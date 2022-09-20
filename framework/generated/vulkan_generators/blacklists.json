@@ -11,7 +11,8 @@
     "vkUpdateDescriptorSetWithTemplateKHR",
     "vkCmdPushDescriptorSetWithTemplateKHR",
     "vkBuildAccelerationStructuresKHR",
-    "vkCopyAccelerationStructureKHR"
+    "vkCopyAccelerationStructureKHR",
+    "vkCmdCuLaunchKernelNVX"
   ],
   "functions-decoder": [
     "vkCreateRayTracingPipelinesKHR",
@@ -24,6 +25,7 @@
     "VkWriteDescriptorSet",
     "VkPerformanceValueINTEL",
     "VkAccelerationStructureGeometryKHR",
-    "VkAccelerationStructureMotionInstanceNV"
+    "VkAccelerationStructureMotionInstanceNV",
+    "VkCuLaunchInfoNVX"
   ]
 }

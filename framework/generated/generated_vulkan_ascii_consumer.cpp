@@ -7482,6 +7482,94 @@ void VulkanAsciiConsumer::Process_vkCmdDrawIndirectByteCountEXT(
     );
 }
 
+void VulkanAsciiConsumer::Process_vkCreateCuModuleNVX(
+    const ApiCallInfo&                          call_info,
+    VkResult                                    returnValue,
+    format::HandleId                            device,
+    StructPointerDecoder<Decoded_VkCuModuleCreateInfoNVX>* pCreateInfo,
+    StructPointerDecoder<Decoded_VkAllocationCallbacks>* pAllocator,
+    HandlePointerDecoder<VkCuModuleNVX>*        pModule)
+{
+    using namespace gfxrecon::util;
+    ToStringFlags toStringFlags = kToString_Default;
+    uint32_t tabCount = 0;
+    uint32_t tabSize = 4;
+    WriteApiCallToFile(call_info, "vkCreateCuModuleNVX", toStringFlags, tabCount, tabSize,
+        [&](std::stringstream& strStrm)
+        {
+            FieldToString(strStrm, true, "return", toStringFlags, tabCount, tabSize, '"' + ToString(returnValue, toStringFlags, tabCount, tabSize) + '"');
+            FieldToString(strStrm, false, "device", toStringFlags, tabCount, tabSize, HandleIdToString(device));
+            FieldToString(strStrm, false, "pCreateInfo", toStringFlags, tabCount, tabSize, PointerDecoderToString(pCreateInfo, toStringFlags, tabCount, tabSize));
+            FieldToString(strStrm, false, "pAllocator", toStringFlags, tabCount, tabSize, PointerDecoderToString(pAllocator, toStringFlags, tabCount, tabSize));
+            FieldToString(strStrm, false, "[out]pModule", toStringFlags, tabCount, tabSize, HandlePointerDecoderToString(pModule));
+        }
+    );
+}
+
+void VulkanAsciiConsumer::Process_vkCreateCuFunctionNVX(
+    const ApiCallInfo&                          call_info,
+    VkResult                                    returnValue,
+    format::HandleId                            device,
+    StructPointerDecoder<Decoded_VkCuFunctionCreateInfoNVX>* pCreateInfo,
+    StructPointerDecoder<Decoded_VkAllocationCallbacks>* pAllocator,
+    HandlePointerDecoder<VkCuFunctionNVX>*      pFunction)
+{
+    using namespace gfxrecon::util;
+    ToStringFlags toStringFlags = kToString_Default;
+    uint32_t tabCount = 0;
+    uint32_t tabSize = 4;
+    WriteApiCallToFile(call_info, "vkCreateCuFunctionNVX", toStringFlags, tabCount, tabSize,
+        [&](std::stringstream& strStrm)
+        {
+            FieldToString(strStrm, true, "return", toStringFlags, tabCount, tabSize, '"' + ToString(returnValue, toStringFlags, tabCount, tabSize) + '"');
+            FieldToString(strStrm, false, "device", toStringFlags, tabCount, tabSize, HandleIdToString(device));
+            FieldToString(strStrm, false, "pCreateInfo", toStringFlags, tabCount, tabSize, PointerDecoderToString(pCreateInfo, toStringFlags, tabCount, tabSize));
+            FieldToString(strStrm, false, "pAllocator", toStringFlags, tabCount, tabSize, PointerDecoderToString(pAllocator, toStringFlags, tabCount, tabSize));
+            FieldToString(strStrm, false, "[out]pFunction", toStringFlags, tabCount, tabSize, HandlePointerDecoderToString(pFunction));
+        }
+    );
+}
+
+void VulkanAsciiConsumer::Process_vkDestroyCuModuleNVX(
+    const ApiCallInfo&                          call_info,
+    format::HandleId                            device,
+    format::HandleId                            module,
+    StructPointerDecoder<Decoded_VkAllocationCallbacks>* pAllocator)
+{
+    using namespace gfxrecon::util;
+    ToStringFlags toStringFlags = kToString_Default;
+    uint32_t tabCount = 0;
+    uint32_t tabSize = 4;
+    WriteApiCallToFile(call_info, "vkDestroyCuModuleNVX", toStringFlags, tabCount, tabSize,
+        [&](std::stringstream& strStrm)
+        {
+            FieldToString(strStrm, true, "device", toStringFlags, tabCount, tabSize, HandleIdToString(device));
+            FieldToString(strStrm, false, "module", toStringFlags, tabCount, tabSize, HandleIdToString(module));
+            FieldToString(strStrm, false, "pAllocator", toStringFlags, tabCount, tabSize, PointerDecoderToString(pAllocator, toStringFlags, tabCount, tabSize));
+        }
+    );
+}
+
+void VulkanAsciiConsumer::Process_vkDestroyCuFunctionNVX(
+    const ApiCallInfo&                          call_info,
+    format::HandleId                            device,
+    format::HandleId                            function,
+    StructPointerDecoder<Decoded_VkAllocationCallbacks>* pAllocator)
+{
+    using namespace gfxrecon::util;
+    ToStringFlags toStringFlags = kToString_Default;
+    uint32_t tabCount = 0;
+    uint32_t tabSize = 4;
+    WriteApiCallToFile(call_info, "vkDestroyCuFunctionNVX", toStringFlags, tabCount, tabSize,
+        [&](std::stringstream& strStrm)
+        {
+            FieldToString(strStrm, true, "device", toStringFlags, tabCount, tabSize, HandleIdToString(device));
+            FieldToString(strStrm, false, "function", toStringFlags, tabCount, tabSize, HandleIdToString(function));
+            FieldToString(strStrm, false, "pAllocator", toStringFlags, tabCount, tabSize, PointerDecoderToString(pAllocator, toStringFlags, tabCount, tabSize));
+        }
+    );
+}
+
 void VulkanAsciiConsumer::Process_vkGetImageViewHandleNVX(
     const ApiCallInfo&                          call_info,
     uint32_t                                    returnValue,

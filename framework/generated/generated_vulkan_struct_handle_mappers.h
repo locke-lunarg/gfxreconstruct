@@ -232,6 +232,8 @@ void MapStructHandles(Decoded_VkDebugMarkerObjectTagInfoEXT* wrapper, const Vulk
 
 void MapStructHandles(Decoded_VkDedicatedAllocationMemoryAllocateInfoNV* wrapper, const VulkanObjectInfoTable& object_info_table);
 
+void MapStructHandles(Decoded_VkCuFunctionCreateInfoNVX* wrapper, const VulkanObjectInfoTable& object_info_table);
+
 void MapStructHandles(Decoded_VkImageViewHandleInfoNVX* wrapper, const VulkanObjectInfoTable& object_info_table);
 
 void MapStructHandles(Decoded_VkWin32KeyedMutexAcquireReleaseInfoNV* wrapper, const VulkanObjectInfoTable& object_info_table);

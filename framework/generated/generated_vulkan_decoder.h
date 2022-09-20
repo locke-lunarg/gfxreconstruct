@@ -736,6 +736,14 @@ class VulkanDecoder : public VulkanDecoderBase
 
     size_t Decode_vkCmdDrawIndirectByteCountEXT(const ApiCallInfo& call_info, const uint8_t* parameter_buffer, size_t buffer_size);
 
+    size_t Decode_vkCreateCuModuleNVX(const ApiCallInfo& call_info, const uint8_t* parameter_buffer, size_t buffer_size);
+
+    size_t Decode_vkCreateCuFunctionNVX(const ApiCallInfo& call_info, const uint8_t* parameter_buffer, size_t buffer_size);
+
+    size_t Decode_vkDestroyCuModuleNVX(const ApiCallInfo& call_info, const uint8_t* parameter_buffer, size_t buffer_size);
+
+    size_t Decode_vkDestroyCuFunctionNVX(const ApiCallInfo& call_info, const uint8_t* parameter_buffer, size_t buffer_size);
+
     size_t Decode_vkGetImageViewHandleNVX(const ApiCallInfo& call_info, const uint8_t* parameter_buffer, size_t buffer_size);
 
     size_t Decode_vkGetImageViewAddressNVX(const ApiCallInfo& call_info, const uint8_t* parameter_buffer, size_t buffer_size);

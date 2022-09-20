@@ -2413,6 +2413,34 @@ class VulkanAsciiConsumer : public VulkanAsciiConsumerBase
         uint32_t                                    counterOffset,
         uint32_t                                    vertexStride) override;
 
+    virtual void Process_vkCreateCuModuleNVX(
+        const ApiCallInfo&                          call_info,
+        VkResult                                    returnValue,
+        format::HandleId                            device,
+        StructPointerDecoder<Decoded_VkCuModuleCreateInfoNVX>* pCreateInfo,
+        StructPointerDecoder<Decoded_VkAllocationCallbacks>* pAllocator,
+        HandlePointerDecoder<VkCuModuleNVX>*        pModule) override;
+
+    virtual void Process_vkCreateCuFunctionNVX(
+        const ApiCallInfo&                          call_info,
+        VkResult                                    returnValue,
+        format::HandleId                            device,
+        StructPointerDecoder<Decoded_VkCuFunctionCreateInfoNVX>* pCreateInfo,
+        StructPointerDecoder<Decoded_VkAllocationCallbacks>* pAllocator,
+        HandlePointerDecoder<VkCuFunctionNVX>*      pFunction) override;
+
+    virtual void Process_vkDestroyCuModuleNVX(
+        const ApiCallInfo&                          call_info,
+        format::HandleId                            device,
+        format::HandleId                            module,
+        StructPointerDecoder<Decoded_VkAllocationCallbacks>* pAllocator) override;
+
+    virtual void Process_vkDestroyCuFunctionNVX(
+        const ApiCallInfo&                          call_info,
+        format::HandleId                            device,
+        format::HandleId                            function,
+        StructPointerDecoder<Decoded_VkAllocationCallbacks>* pAllocator) override;
+
     virtual void Process_vkGetImageViewHandleNVX(
         const ApiCallInfo&                          call_info,
         uint32_t                                    returnValue,

@@ -1919,6 +1919,28 @@ VKAPI_ATTR void VKAPI_CALL CmdDrawIndirectByteCountEXT(
     uint32_t                                    counterOffset,
     uint32_t                                    vertexStride);
 
+VKAPI_ATTR VkResult VKAPI_CALL CreateCuModuleNVX(
+    VkDevice                                    device,
+    const VkCuModuleCreateInfoNVX*              pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
+    VkCuModuleNVX*                              pModule);
+
+VKAPI_ATTR VkResult VKAPI_CALL CreateCuFunctionNVX(
+    VkDevice                                    device,
+    const VkCuFunctionCreateInfoNVX*            pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
+    VkCuFunctionNVX*                            pFunction);
+
+VKAPI_ATTR void VKAPI_CALL DestroyCuModuleNVX(
+    VkDevice                                    device,
+    VkCuModuleNVX                               module,
+    const VkAllocationCallbacks*                pAllocator);
+
+VKAPI_ATTR void VKAPI_CALL DestroyCuFunctionNVX(
+    VkDevice                                    device,
+    VkCuFunctionNVX                             function,
+    const VkAllocationCallbacks*                pAllocator);
+
 VKAPI_ATTR uint32_t VKAPI_CALL GetImageViewHandleNVX(
     VkDevice                                    device,
     const VkImageViewHandleInfoNVX*             pInfo);

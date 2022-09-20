@@ -8015,6 +8015,44 @@ template <> std::string ToString<decode::Decoded_VkPipelineRasterizationStateStr
     );
 }
 
+template <> std::string ToString<decode::Decoded_VkCuModuleCreateInfoNVX>(const decode::Decoded_VkCuModuleCreateInfoNVX& decoded_obj, ToStringFlags toStringFlags, uint32_t tabCount, uint32_t tabSize)
+{
+    assert(decoded_obj.decoded_value != nullptr);
+    if(decoded_obj.decoded_value == nullptr)
+    {
+        return "";
+    }
+    const VkCuModuleCreateInfoNVX& obj = *decoded_obj.decoded_value;
+    return ObjectToString(toStringFlags, tabCount, tabSize,
+        [&](std::stringstream& strStrm)
+        {
+            FieldToString(strStrm, true, "sType", toStringFlags, tabCount, tabSize, '"' + ToString(obj.sType, toStringFlags, tabCount, tabSize) + '"');
+            FieldToString(strStrm, false, "pNext", toStringFlags, tabCount, tabSize, PNextDecodedToString(decoded_obj.pNext, toStringFlags, tabCount, tabSize));
+            FieldToString(strStrm, false, "dataSize", toStringFlags, tabCount, tabSize, ToString(obj.dataSize, toStringFlags, tabCount, tabSize));
+            FieldToString(strStrm, false, "pData", toStringFlags, tabCount, tabSize, decode::DataPointerDecoderToString(&decoded_obj.pData));
+        }
+    );
+}
+
+template <> std::string ToString<decode::Decoded_VkCuFunctionCreateInfoNVX>(const decode::Decoded_VkCuFunctionCreateInfoNVX& decoded_obj, ToStringFlags toStringFlags, uint32_t tabCount, uint32_t tabSize)
+{
+    assert(decoded_obj.decoded_value != nullptr);
+    if(decoded_obj.decoded_value == nullptr)
+    {
+        return "";
+    }
+    const VkCuFunctionCreateInfoNVX& obj = *decoded_obj.decoded_value;
+    return ObjectToString(toStringFlags, tabCount, tabSize,
+        [&](std::stringstream& strStrm)
+        {
+            FieldToString(strStrm, true, "sType", toStringFlags, tabCount, tabSize, '"' + ToString(obj.sType, toStringFlags, tabCount, tabSize) + '"');
+            FieldToString(strStrm, false, "pNext", toStringFlags, tabCount, tabSize, PNextDecodedToString(decoded_obj.pNext, toStringFlags, tabCount, tabSize));
+            FieldToString(strStrm, false, "module", toStringFlags, tabCount, tabSize, decode::HandleIdToString(decoded_obj.module));
+            FieldToString(strStrm, false, "pName", toStringFlags, tabCount, tabSize, (obj.pName ? ("\"" + std::string(obj.pName) + "\"") : "null"));
+        }
+    );
+}
+
 template <> std::string ToString<decode::Decoded_VkImageViewHandleInfoNVX>(const decode::Decoded_VkImageViewHandleInfoNVX& decoded_obj, ToStringFlags toStringFlags, uint32_t tabCount, uint32_t tabSize)
 {
     assert(decoded_obj.decoded_value != nullptr);

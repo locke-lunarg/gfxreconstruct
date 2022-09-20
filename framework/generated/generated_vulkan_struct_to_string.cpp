@@ -5739,6 +5739,32 @@ template <> std::string ToString<VkPipelineRasterizationStateStreamCreateInfoEXT
     );
 }
 
+template <> std::string ToString<VkCuModuleCreateInfoNVX>(const VkCuModuleCreateInfoNVX& obj, ToStringFlags toStringFlags, uint32_t tabCount, uint32_t tabSize)
+{
+    return ObjectToString(toStringFlags, tabCount, tabSize,
+        [&](std::stringstream& strStrm)
+        {
+            FieldToString(strStrm, true, "sType", toStringFlags, tabCount, tabSize, '"' + ToString(obj.sType, toStringFlags, tabCount, tabSize) + '"');
+            FieldToString(strStrm, false, "pNext", toStringFlags, tabCount, tabSize, PNextToString(obj.pNext, toStringFlags, tabCount, tabSize));
+            FieldToString(strStrm, false, "dataSize", toStringFlags, tabCount, tabSize, ToString(obj.dataSize, toStringFlags, tabCount, tabSize));
+            FieldToString(strStrm, false, "pData", toStringFlags, tabCount, tabSize, "\"" + PtrToString(obj.pData) + "\"");
+        }
+    );
+}
+
+template <> std::string ToString<VkCuFunctionCreateInfoNVX>(const VkCuFunctionCreateInfoNVX& obj, ToStringFlags toStringFlags, uint32_t tabCount, uint32_t tabSize)
+{
+    return ObjectToString(toStringFlags, tabCount, tabSize,
+        [&](std::stringstream& strStrm)
+        {
+            FieldToString(strStrm, true, "sType", toStringFlags, tabCount, tabSize, '"' + ToString(obj.sType, toStringFlags, tabCount, tabSize) + '"');
+            FieldToString(strStrm, false, "pNext", toStringFlags, tabCount, tabSize, PNextToString(obj.pNext, toStringFlags, tabCount, tabSize));
+            FieldToString(strStrm, false, "module", toStringFlags, tabCount, tabSize, '"' + VkHandleToString(obj.module) + '"');
+            FieldToString(strStrm, false, "pName", toStringFlags, tabCount, tabSize, (obj.pName ? ("\"" + std::string(obj.pName) + "\"") : "null"));
+        }
+    );
+}
+
 template <> std::string ToString<VkImageViewHandleInfoNVX>(const VkImageViewHandleInfoNVX& obj, ToStringFlags toStringFlags, uint32_t tabCount, uint32_t tabSize)
 {
     return ObjectToString(toStringFlags, tabCount, tabSize,

@@ -10595,6 +10595,146 @@ VKAPI_ATTR void VKAPI_CALL CmdDrawIndirectByteCountEXT(
     CustomEncoderPostCall<format::ApiCallId::ApiCall_vkCmdDrawIndirectByteCountEXT>::Dispatch(VulkanCaptureManager::Get(), commandBuffer, instanceCount, firstInstance, counterBuffer, counterBufferOffset, counterOffset, vertexStride);
 }
 
+VKAPI_ATTR VkResult VKAPI_CALL CreateCuModuleNVX(
+    VkDevice                                    device,
+    const VkCuModuleCreateInfoNVX*              pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
+    VkCuModuleNVX*                              pModule)
+{
+    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
+
+    bool omit_output_data = false;
+
+    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkCreateCuModuleNVX>::Dispatch(VulkanCaptureManager::Get(), device, pCreateInfo, pAllocator, pModule);
+
+    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
+
+    VkResult result = GetDeviceTable(device)->CreateCuModuleNVX(device_unwrapped, pCreateInfo, pAllocator, pModule);
+
+    if (result >= 0)
+    {
+        CreateWrappedHandle<DeviceWrapper, NoParentWrapper, CuModuleNVXWrapper>(device, NoParentWrapper::kHandleValue, pModule, VulkanCaptureManager::GetUniqueId);
+    }
+    else
+    {
+        omit_output_data = true;
+    }
+
+    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkCreateCuModuleNVX);
+    if (encoder)
+    {
+        encoder->EncodeHandleValue(device);
+        EncodeStructPtr(encoder, pCreateInfo);
+        EncodeStructPtr(encoder, pAllocator);
+        encoder->EncodeHandlePtr(pModule, omit_output_data);
+        encoder->EncodeEnumValue(result);
+        VulkanCaptureManager::Get()->EndCreateApiCallCapture<VkDevice, CuModuleNVXWrapper, VkCuModuleCreateInfoNVX>(result, device, pModule, pCreateInfo);
+    }
+
+    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkCreateCuModuleNVX>::Dispatch(VulkanCaptureManager::Get(), result, device, pCreateInfo, pAllocator, pModule);
+
+    return result;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL CreateCuFunctionNVX(
+    VkDevice                                    device,
+    const VkCuFunctionCreateInfoNVX*            pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
+    VkCuFunctionNVX*                            pFunction)
+{
+    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
+
+    bool omit_output_data = false;
+
+    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkCreateCuFunctionNVX>::Dispatch(VulkanCaptureManager::Get(), device, pCreateInfo, pAllocator, pFunction);
+
+    auto handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
+    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
+    const VkCuFunctionCreateInfoNVX* pCreateInfo_unwrapped = UnwrapStructPtrHandles(pCreateInfo, handle_unwrap_memory);
+
+    VkResult result = GetDeviceTable(device)->CreateCuFunctionNVX(device_unwrapped, pCreateInfo_unwrapped, pAllocator, pFunction);
+
+    if (result >= 0)
+    {
+        CreateWrappedHandle<DeviceWrapper, NoParentWrapper, CuFunctionNVXWrapper>(device, NoParentWrapper::kHandleValue, pFunction, VulkanCaptureManager::GetUniqueId);
+    }
+    else
+    {
+        omit_output_data = true;
+    }
+
+    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkCreateCuFunctionNVX);
+    if (encoder)
+    {
+        encoder->EncodeHandleValue(device);
+        EncodeStructPtr(encoder, pCreateInfo);
+        EncodeStructPtr(encoder, pAllocator);
+        encoder->EncodeHandlePtr(pFunction, omit_output_data);
+        encoder->EncodeEnumValue(result);
+        VulkanCaptureManager::Get()->EndCreateApiCallCapture<VkDevice, CuFunctionNVXWrapper, VkCuFunctionCreateInfoNVX>(result, device, pFunction, pCreateInfo);
+    }
+
+    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkCreateCuFunctionNVX>::Dispatch(VulkanCaptureManager::Get(), result, device, pCreateInfo, pAllocator, pFunction);
+
+    return result;
+}
+
+VKAPI_ATTR void VKAPI_CALL DestroyCuModuleNVX(
+    VkDevice                                    device,
+    VkCuModuleNVX                               module,
+    const VkAllocationCallbacks*                pAllocator)
+{
+    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
+
+    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyCuModuleNVX>::Dispatch(VulkanCaptureManager::Get(), device, module, pAllocator);
+
+    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyCuModuleNVX);
+    if (encoder)
+    {
+        encoder->EncodeHandleValue(device);
+        encoder->EncodeHandleValue(module);
+        EncodeStructPtr(encoder, pAllocator);
+        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<CuModuleNVXWrapper>(module);
+    }
+
+    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
+    VkCuModuleNVX module_unwrapped = GetWrappedHandle<VkCuModuleNVX>(module);
+
+    GetDeviceTable(device)->DestroyCuModuleNVX(device_unwrapped, module_unwrapped, pAllocator);
+
+    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyCuModuleNVX>::Dispatch(VulkanCaptureManager::Get(), device, module, pAllocator);
+
+    DestroyWrappedHandle<CuModuleNVXWrapper>(module);
+}
+
+VKAPI_ATTR void VKAPI_CALL DestroyCuFunctionNVX(
+    VkDevice                                    device,
+    VkCuFunctionNVX                             function,
+    const VkAllocationCallbacks*                pAllocator)
+{
+    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
+
+    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyCuFunctionNVX>::Dispatch(VulkanCaptureManager::Get(), device, function, pAllocator);
+
+    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyCuFunctionNVX);
+    if (encoder)
+    {
+        encoder->EncodeHandleValue(device);
+        encoder->EncodeHandleValue(function);
+        EncodeStructPtr(encoder, pAllocator);
+        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<CuFunctionNVXWrapper>(function);
+    }
+
+    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
+    VkCuFunctionNVX function_unwrapped = GetWrappedHandle<VkCuFunctionNVX>(function);
+
+    GetDeviceTable(device)->DestroyCuFunctionNVX(device_unwrapped, function_unwrapped, pAllocator);
+
+    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyCuFunctionNVX>::Dispatch(VulkanCaptureManager::Get(), device, function, pAllocator);
+
+    DestroyWrappedHandle<CuFunctionNVXWrapper>(function);
+}
+
 VKAPI_ATTR uint32_t VKAPI_CALL GetImageViewHandleNVX(
     VkDevice                                    device,
     const VkImageViewHandleInfoNVX*             pInfo)

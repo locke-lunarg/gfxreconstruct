@@ -598,6 +598,11 @@ enum ApiCallId : uint32_t
     ApiCall_vkGetShaderModuleCreateInfoIdentifierEXT                                              = MakeApiCallId(ApiFamily_Vulkan, 0x1278),
     ApiCall_vkGetFramebufferTilePropertiesQCOM                                                    = MakeApiCallId(ApiFamily_Vulkan, 0x1279),
     ApiCall_vkGetDynamicRenderingTilePropertiesQCOM                                               = MakeApiCallId(ApiFamily_Vulkan, 0x127a),
+    ApiCall_vkCreateCuModuleNVX                                                                   = MakeApiCallId(ApiFamily_Vulkan, 0x127b),
+    ApiCall_vkCreateCuFunctionNVX                                                                 = MakeApiCallId(ApiFamily_Vulkan, 0x127c),
+    ApiCall_vkDestroyCuModuleNVX                                                                  = MakeApiCallId(ApiFamily_Vulkan, 0x127d),
+    ApiCall_vkDestroyCuFunctionNVX                                                                = MakeApiCallId(ApiFamily_Vulkan, 0x127e),
+    ApiCall_vkCmdCuLaunchKernelNVX                                                                = MakeApiCallId(ApiFamily_Vulkan, 0x127f),
 
     ApiCall_VulkanLast
     // clang-format on

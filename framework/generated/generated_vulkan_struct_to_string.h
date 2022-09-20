@@ -417,6 +417,8 @@ template <> std::string ToString<VkDedicatedAllocationMemoryAllocateInfoNV>(cons
 template <> std::string ToString<VkPhysicalDeviceTransformFeedbackFeaturesEXT>(const VkPhysicalDeviceTransformFeedbackFeaturesEXT& obj, ToStringFlags toStriingFlags, uint32_t tabCount, uint32_t tabSize);
 template <> std::string ToString<VkPhysicalDeviceTransformFeedbackPropertiesEXT>(const VkPhysicalDeviceTransformFeedbackPropertiesEXT& obj, ToStringFlags toStriingFlags, uint32_t tabCount, uint32_t tabSize);
 template <> std::string ToString<VkPipelineRasterizationStateStreamCreateInfoEXT>(const VkPipelineRasterizationStateStreamCreateInfoEXT& obj, ToStringFlags toStriingFlags, uint32_t tabCount, uint32_t tabSize);
+template <> std::string ToString<VkCuModuleCreateInfoNVX>(const VkCuModuleCreateInfoNVX& obj, ToStringFlags toStriingFlags, uint32_t tabCount, uint32_t tabSize);
+template <> std::string ToString<VkCuFunctionCreateInfoNVX>(const VkCuFunctionCreateInfoNVX& obj, ToStringFlags toStriingFlags, uint32_t tabCount, uint32_t tabSize);
 template <> std::string ToString<VkImageViewHandleInfoNVX>(const VkImageViewHandleInfoNVX& obj, ToStringFlags toStriingFlags, uint32_t tabCount, uint32_t tabSize);
 template <> std::string ToString<VkImageViewAddressPropertiesNVX>(const VkImageViewAddressPropertiesNVX& obj, ToStringFlags toStriingFlags, uint32_t tabCount, uint32_t tabSize);
 template <> std::string ToString<VkTextureLODGatherFormatPropertiesAMD>(const VkTextureLODGatherFormatPropertiesAMD& obj, ToStringFlags toStriingFlags, uint32_t tabCount, uint32_t tabSize);

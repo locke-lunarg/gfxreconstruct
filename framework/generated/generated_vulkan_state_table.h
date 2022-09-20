@@ -47,6 +47,8 @@ class VulkanStateTable : VulkanStateTableBase
     bool InsertWrapper(format::HandleId id, BufferViewWrapper* wrapper) { return InsertEntry(id, wrapper, bufferView_map_); }
     bool InsertWrapper(format::HandleId id, CommandBufferWrapper* wrapper) { return InsertEntry(id, wrapper, commandBuffer_map_); }
     bool InsertWrapper(format::HandleId id, CommandPoolWrapper* wrapper) { return InsertEntry(id, wrapper, commandPool_map_); }
+    bool InsertWrapper(format::HandleId id, CuFunctionNVXWrapper* wrapper) { return InsertEntry(id, wrapper, cuFunctionNVX_map_); }
+    bool InsertWrapper(format::HandleId id, CuModuleNVXWrapper* wrapper) { return InsertEntry(id, wrapper, cuModuleNVX_map_); }
     bool InsertWrapper(format::HandleId id, DebugReportCallbackEXTWrapper* wrapper) { return InsertEntry(id, wrapper, debugReportCallbackEXT_map_); }
     bool InsertWrapper(format::HandleId id, DebugUtilsMessengerEXTWrapper* wrapper) { return InsertEntry(id, wrapper, debugUtilsMessengerEXT_map_); }
     bool InsertWrapper(format::HandleId id, DeferredOperationKHRWrapper* wrapper) { return InsertEntry(id, wrapper, deferredOperationKHR_map_); }
@@ -88,6 +90,8 @@ class VulkanStateTable : VulkanStateTableBase
     bool RemoveWrapper(const BufferViewWrapper* wrapper) { return RemoveEntry(wrapper, bufferView_map_); }
     bool RemoveWrapper(const CommandBufferWrapper* wrapper) { return RemoveEntry(wrapper, commandBuffer_map_); }
     bool RemoveWrapper(const CommandPoolWrapper* wrapper) { return RemoveEntry(wrapper, commandPool_map_); }
+    bool RemoveWrapper(const CuFunctionNVXWrapper* wrapper) { return RemoveEntry(wrapper, cuFunctionNVX_map_); }
+    bool RemoveWrapper(const CuModuleNVXWrapper* wrapper) { return RemoveEntry(wrapper, cuModuleNVX_map_); }
     bool RemoveWrapper(const DebugReportCallbackEXTWrapper* wrapper) { return RemoveEntry(wrapper, debugReportCallbackEXT_map_); }
     bool RemoveWrapper(const DebugUtilsMessengerEXTWrapper* wrapper) { return RemoveEntry(wrapper, debugUtilsMessengerEXT_map_); }
     bool RemoveWrapper(const DeferredOperationKHRWrapper* wrapper) { return RemoveEntry(wrapper, deferredOperationKHR_map_); }
@@ -129,6 +133,8 @@ class VulkanStateTable : VulkanStateTableBase
     const BufferViewWrapper* GetBufferViewWrapper(format::HandleId id) const { return GetWrapper<BufferViewWrapper>(id, bufferView_map_); }
     const CommandBufferWrapper* GetCommandBufferWrapper(format::HandleId id) const { return GetWrapper<CommandBufferWrapper>(id, commandBuffer_map_); }
     const CommandPoolWrapper* GetCommandPoolWrapper(format::HandleId id) const { return GetWrapper<CommandPoolWrapper>(id, commandPool_map_); }
+    const CuFunctionNVXWrapper* GetCuFunctionNVXWrapper(format::HandleId id) const { return GetWrapper<CuFunctionNVXWrapper>(id, cuFunctionNVX_map_); }
+    const CuModuleNVXWrapper* GetCuModuleNVXWrapper(format::HandleId id) const { return GetWrapper<CuModuleNVXWrapper>(id, cuModuleNVX_map_); }
     const DebugReportCallbackEXTWrapper* GetDebugReportCallbackEXTWrapper(format::HandleId id) const { return GetWrapper<DebugReportCallbackEXTWrapper>(id, debugReportCallbackEXT_map_); }
     const DebugUtilsMessengerEXTWrapper* GetDebugUtilsMessengerEXTWrapper(format::HandleId id) const { return GetWrapper<DebugUtilsMessengerEXTWrapper>(id, debugUtilsMessengerEXT_map_); }
     const DeferredOperationKHRWrapper* GetDeferredOperationKHRWrapper(format::HandleId id) const { return GetWrapper<DeferredOperationKHRWrapper>(id, deferredOperationKHR_map_); }
@@ -170,6 +176,8 @@ class VulkanStateTable : VulkanStateTableBase
     BufferViewWrapper* GetBufferViewWrapper(format::HandleId id) { return GetWrapper<BufferViewWrapper>(id, bufferView_map_); }
     CommandBufferWrapper* GetCommandBufferWrapper(format::HandleId id) { return GetWrapper<CommandBufferWrapper>(id, commandBuffer_map_); }
     CommandPoolWrapper* GetCommandPoolWrapper(format::HandleId id) { return GetWrapper<CommandPoolWrapper>(id, commandPool_map_); }
+    CuFunctionNVXWrapper* GetCuFunctionNVXWrapper(format::HandleId id) { return GetWrapper<CuFunctionNVXWrapper>(id, cuFunctionNVX_map_); }
+    CuModuleNVXWrapper* GetCuModuleNVXWrapper(format::HandleId id) { return GetWrapper<CuModuleNVXWrapper>(id, cuModuleNVX_map_); }
     DebugReportCallbackEXTWrapper* GetDebugReportCallbackEXTWrapper(format::HandleId id) { return GetWrapper<DebugReportCallbackEXTWrapper>(id, debugReportCallbackEXT_map_); }
     DebugUtilsMessengerEXTWrapper* GetDebugUtilsMessengerEXTWrapper(format::HandleId id) { return GetWrapper<DebugUtilsMessengerEXTWrapper>(id, debugUtilsMessengerEXT_map_); }
     DeferredOperationKHRWrapper* GetDeferredOperationKHRWrapper(format::HandleId id) { return GetWrapper<DeferredOperationKHRWrapper>(id, deferredOperationKHR_map_); }
@@ -211,6 +219,8 @@ class VulkanStateTable : VulkanStateTableBase
     void VisitWrappers(std::function<void(BufferViewWrapper*)> visitor) const { for (auto entry : bufferView_map_) { visitor(entry.second); } }
     void VisitWrappers(std::function<void(CommandBufferWrapper*)> visitor) const { for (auto entry : commandBuffer_map_) { visitor(entry.second); } }
     void VisitWrappers(std::function<void(CommandPoolWrapper*)> visitor) const { for (auto entry : commandPool_map_) { visitor(entry.second); } }
+    void VisitWrappers(std::function<void(CuFunctionNVXWrapper*)> visitor) const { for (auto entry : cuFunctionNVX_map_) { visitor(entry.second); } }
+    void VisitWrappers(std::function<void(CuModuleNVXWrapper*)> visitor) const { for (auto entry : cuModuleNVX_map_) { visitor(entry.second); } }
     void VisitWrappers(std::function<void(DebugReportCallbackEXTWrapper*)> visitor) const { for (auto entry : debugReportCallbackEXT_map_) { visitor(entry.second); } }
     void VisitWrappers(std::function<void(DebugUtilsMessengerEXTWrapper*)> visitor) const { for (auto entry : debugUtilsMessengerEXT_map_) { visitor(entry.second); } }
     void VisitWrappers(std::function<void(DeferredOperationKHRWrapper*)> visitor) const { for (auto entry : deferredOperationKHR_map_) { visitor(entry.second); } }
@@ -253,6 +263,8 @@ class VulkanStateTable : VulkanStateTableBase
     std::map<format::HandleId, BufferViewWrapper*> bufferView_map_;
     std::map<format::HandleId, CommandBufferWrapper*> commandBuffer_map_;
     std::map<format::HandleId, CommandPoolWrapper*> commandPool_map_;
+    std::map<format::HandleId, CuFunctionNVXWrapper*> cuFunctionNVX_map_;
+    std::map<format::HandleId, CuModuleNVXWrapper*> cuModuleNVX_map_;
     std::map<format::HandleId, DebugReportCallbackEXTWrapper*> debugReportCallbackEXT_map_;
     std::map<format::HandleId, DebugUtilsMessengerEXTWrapper*> debugUtilsMessengerEXT_map_;
     std::map<format::HandleId, DeferredOperationKHRWrapper*> deferredOperationKHR_map_;

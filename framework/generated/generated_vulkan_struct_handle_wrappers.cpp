@@ -946,6 +946,14 @@ void UnwrapStructHandles(VkDedicatedAllocationMemoryAllocateInfoNV* value, Handl
     }
 }
 
+void UnwrapStructHandles(VkCuFunctionCreateInfoNVX* value, HandleUnwrapMemory* unwrap_memory)
+{
+    if (value != nullptr)
+    {
+        value->module = GetWrappedHandle<VkCuModuleNVX>(value->module);
+    }
+}
+
 void UnwrapStructHandles(VkImageViewHandleInfoNVX* value, HandleUnwrapMemory* unwrap_memory)
 {
     if (value != nullptr)

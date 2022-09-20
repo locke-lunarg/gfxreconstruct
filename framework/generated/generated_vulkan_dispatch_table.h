@@ -437,6 +437,11 @@ static VKAPI_ATTR void VKAPI_CALL CmdEndTransformFeedbackEXT(VkCommandBuffer, ui
 static VKAPI_ATTR void VKAPI_CALL CmdBeginQueryIndexedEXT(VkCommandBuffer, VkQueryPool, uint32_t, VkQueryControlFlags, uint32_t) { GFXRECON_LOG_WARNING("Unsupported function vkCmdBeginQueryIndexedEXT was called, resulting in no-op behavior."); }
 static VKAPI_ATTR void VKAPI_CALL CmdEndQueryIndexedEXT(VkCommandBuffer, VkQueryPool, uint32_t, uint32_t) { GFXRECON_LOG_WARNING("Unsupported function vkCmdEndQueryIndexedEXT was called, resulting in no-op behavior."); }
 static VKAPI_ATTR void VKAPI_CALL CmdDrawIndirectByteCountEXT(VkCommandBuffer, uint32_t, uint32_t, VkBuffer, VkDeviceSize, uint32_t, uint32_t) { GFXRECON_LOG_WARNING("Unsupported function vkCmdDrawIndirectByteCountEXT was called, resulting in no-op behavior."); }
+static VKAPI_ATTR VkResult VKAPI_CALL CreateCuModuleNVX(VkDevice, const VkCuModuleCreateInfoNVX*, const VkAllocationCallbacks*, VkCuModuleNVX*) { GFXRECON_LOG_WARNING("Unsupported function vkCreateCuModuleNVX was called, resulting in no-op behavior."); return VK_SUCCESS; }
+static VKAPI_ATTR VkResult VKAPI_CALL CreateCuFunctionNVX(VkDevice, const VkCuFunctionCreateInfoNVX*, const VkAllocationCallbacks*, VkCuFunctionNVX*) { GFXRECON_LOG_WARNING("Unsupported function vkCreateCuFunctionNVX was called, resulting in no-op behavior."); return VK_SUCCESS; }
+static VKAPI_ATTR void VKAPI_CALL DestroyCuModuleNVX(VkDevice, VkCuModuleNVX, const VkAllocationCallbacks*) { GFXRECON_LOG_WARNING("Unsupported function vkDestroyCuModuleNVX was called, resulting in no-op behavior."); }
+static VKAPI_ATTR void VKAPI_CALL DestroyCuFunctionNVX(VkDevice, VkCuFunctionNVX, const VkAllocationCallbacks*) { GFXRECON_LOG_WARNING("Unsupported function vkDestroyCuFunctionNVX was called, resulting in no-op behavior."); }
+static VKAPI_ATTR void VKAPI_CALL CmdCuLaunchKernelNVX(VkCommandBuffer, const VkCuLaunchInfoNVX*) { GFXRECON_LOG_WARNING("Unsupported function vkCmdCuLaunchKernelNVX was called, resulting in no-op behavior."); }
 static VKAPI_ATTR uint32_t VKAPI_CALL GetImageViewHandleNVX(VkDevice, const VkImageViewHandleInfoNVX*) { GFXRECON_LOG_WARNING("Unsupported function vkGetImageViewHandleNVX was called, resulting in no-op behavior."); return 0; }
 static VKAPI_ATTR VkResult VKAPI_CALL GetImageViewAddressNVX(VkDevice, VkImageView, VkImageViewAddressPropertiesNVX*) { GFXRECON_LOG_WARNING("Unsupported function vkGetImageViewAddressNVX was called, resulting in no-op behavior."); return VK_SUCCESS; }
 static VKAPI_ATTR void VKAPI_CALL CmdDrawIndirectCountAMD(VkCommandBuffer, VkBuffer, VkDeviceSize, VkBuffer, VkDeviceSize, uint32_t, uint32_t) { GFXRECON_LOG_WARNING("Unsupported function vkCmdDrawIndirectCountAMD was called, resulting in no-op behavior."); }
@@ -972,6 +977,11 @@ struct DeviceTable
     PFN_vkCmdBeginQueryIndexedEXT CmdBeginQueryIndexedEXT{ noop::CmdBeginQueryIndexedEXT };
     PFN_vkCmdEndQueryIndexedEXT CmdEndQueryIndexedEXT{ noop::CmdEndQueryIndexedEXT };
     PFN_vkCmdDrawIndirectByteCountEXT CmdDrawIndirectByteCountEXT{ noop::CmdDrawIndirectByteCountEXT };
+    PFN_vkCreateCuModuleNVX CreateCuModuleNVX{ noop::CreateCuModuleNVX };
+    PFN_vkCreateCuFunctionNVX CreateCuFunctionNVX{ noop::CreateCuFunctionNVX };
+    PFN_vkDestroyCuModuleNVX DestroyCuModuleNVX{ noop::DestroyCuModuleNVX };
+    PFN_vkDestroyCuFunctionNVX DestroyCuFunctionNVX{ noop::DestroyCuFunctionNVX };
+    PFN_vkCmdCuLaunchKernelNVX CmdCuLaunchKernelNVX{ noop::CmdCuLaunchKernelNVX };
     PFN_vkGetImageViewHandleNVX GetImageViewHandleNVX{ noop::GetImageViewHandleNVX };
     PFN_vkGetImageViewAddressNVX GetImageViewAddressNVX{ noop::GetImageViewAddressNVX };
     PFN_vkCmdDrawIndirectCountAMD CmdDrawIndirectCountAMD{ noop::CmdDrawIndirectCountAMD };
@@ -1514,6 +1524,11 @@ static void LoadDeviceTable(PFN_vkGetDeviceProcAddr gpa, VkDevice device, Device
     LoadFunction(gpa, device, "vkCmdBeginQueryIndexedEXT", &table->CmdBeginQueryIndexedEXT);
     LoadFunction(gpa, device, "vkCmdEndQueryIndexedEXT", &table->CmdEndQueryIndexedEXT);
     LoadFunction(gpa, device, "vkCmdDrawIndirectByteCountEXT", &table->CmdDrawIndirectByteCountEXT);
+    LoadFunction(gpa, device, "vkCreateCuModuleNVX", &table->CreateCuModuleNVX);
+    LoadFunction(gpa, device, "vkCreateCuFunctionNVX", &table->CreateCuFunctionNVX);
+    LoadFunction(gpa, device, "vkDestroyCuModuleNVX", &table->DestroyCuModuleNVX);
+    LoadFunction(gpa, device, "vkDestroyCuFunctionNVX", &table->DestroyCuFunctionNVX);
+    LoadFunction(gpa, device, "vkCmdCuLaunchKernelNVX", &table->CmdCuLaunchKernelNVX);
     LoadFunction(gpa, device, "vkGetImageViewHandleNVX", &table->GetImageViewHandleNVX);
     LoadFunction(gpa, device, "vkGetImageViewAddressNVX", &table->GetImageViewAddressNVX);
     LoadFunction(gpa, device, "vkCmdDrawIndirectCountAMD", &table->CmdDrawIndirectCountAMD);

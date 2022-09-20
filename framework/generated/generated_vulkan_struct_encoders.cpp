@@ -3890,6 +3890,22 @@ void EncodeStruct(ParameterEncoder* encoder, const VkPipelineRasterizationStateS
     encoder->EncodeUInt32Value(value.rasterizationStream);
 }
 
+void EncodeStruct(ParameterEncoder* encoder, const VkCuModuleCreateInfoNVX& value)
+{
+    encoder->EncodeEnumValue(value.sType);
+    EncodePNextStruct(encoder, value.pNext);
+    encoder->EncodeSizeTValue(value.dataSize);
+    encoder->EncodeVoidArray(value.pData, value.dataSize);
+}
+
+void EncodeStruct(ParameterEncoder* encoder, const VkCuFunctionCreateInfoNVX& value)
+{
+    encoder->EncodeEnumValue(value.sType);
+    EncodePNextStruct(encoder, value.pNext);
+    encoder->EncodeHandleValue(value.module);
+    encoder->EncodeString(value.pName);
+}
+
 void EncodeStruct(ParameterEncoder* encoder, const VkImageViewHandleInfoNVX& value)
 {
     encoder->EncodeEnumValue(value.sType);

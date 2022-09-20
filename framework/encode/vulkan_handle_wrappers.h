@@ -79,6 +79,8 @@ struct ValidationCacheEXTWrapper            : public HandleWrapper<VkValidationC
 struct IndirectCommandsLayoutNVWrapper      : public HandleWrapper<VkIndirectCommandsLayoutNV> {};
 struct PerformanceConfigurationINTELWrapper : public HandleWrapper<VkPerformanceConfigurationINTEL> {};
 struct PrivateDataSlotWrapper               : public HandleWrapper<VkPrivateDataSlot> {};
+struct CuFunctionNVXWrapper                 : public HandleWrapper<VkCuFunctionNVX> {};
+struct CuModuleNVXWrapper                   : public HandleWrapper<VkCuModuleNVX> {};
 
 // This handle type has a create function, but no destroy function. The handle wrapper will be owned by its parent VkDisplayKHR
 // handle wrapper, which will filter duplicate handle retrievals and ensure that the wrapper is destroyed.

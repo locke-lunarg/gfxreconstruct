@@ -47,6 +47,8 @@ class VulkanObjectInfoTableBase2 : VulkanObjectInfoTableBase
     void AddBufferViewInfo(BufferViewInfo&& info) { AddObjectInfo(std::move(info), &bufferView_map_); }
     void AddCommandBufferInfo(CommandBufferInfo&& info) { AddObjectInfo(std::move(info), &commandBuffer_map_); }
     void AddCommandPoolInfo(CommandPoolInfo&& info) { AddObjectInfo(std::move(info), &commandPool_map_); }
+    void AddCuFunctionNVXInfo(CuFunctionNVXInfo&& info) { AddObjectInfo(std::move(info), &cuFunctionNVX_map_); }
+    void AddCuModuleNVXInfo(CuModuleNVXInfo&& info) { AddObjectInfo(std::move(info), &cuModuleNVX_map_); }
     void AddDebugReportCallbackEXTInfo(DebugReportCallbackEXTInfo&& info) { AddObjectInfo(std::move(info), &debugReportCallbackEXT_map_); }
     void AddDebugUtilsMessengerEXTInfo(DebugUtilsMessengerEXTInfo&& info) { AddObjectInfo(std::move(info), &debugUtilsMessengerEXT_map_); }
     void AddDeferredOperationKHRInfo(DeferredOperationKHRInfo&& info) { AddObjectInfo(std::move(info), &deferredOperationKHR_map_); }
@@ -88,6 +90,8 @@ class VulkanObjectInfoTableBase2 : VulkanObjectInfoTableBase
     void RemoveBufferViewInfo(format::HandleId id) { bufferView_map_.erase(id); }
     void RemoveCommandBufferInfo(format::HandleId id) { commandBuffer_map_.erase(id); }
     void RemoveCommandPoolInfo(format::HandleId id) { commandPool_map_.erase(id); }
+    void RemoveCuFunctionNVXInfo(format::HandleId id) { cuFunctionNVX_map_.erase(id); }
+    void RemoveCuModuleNVXInfo(format::HandleId id) { cuModuleNVX_map_.erase(id); }
     void RemoveDebugReportCallbackEXTInfo(format::HandleId id) { debugReportCallbackEXT_map_.erase(id); }
     void RemoveDebugUtilsMessengerEXTInfo(format::HandleId id) { debugUtilsMessengerEXT_map_.erase(id); }
     void RemoveDeferredOperationKHRInfo(format::HandleId id) { deferredOperationKHR_map_.erase(id); }
@@ -129,6 +133,8 @@ class VulkanObjectInfoTableBase2 : VulkanObjectInfoTableBase
     const BufferViewInfo* GetBufferViewInfo(format::HandleId id) const { return GetObjectInfo<BufferViewInfo>(id, &bufferView_map_); }
     const CommandBufferInfo* GetCommandBufferInfo(format::HandleId id) const { return GetObjectInfo<CommandBufferInfo>(id, &commandBuffer_map_); }
     const CommandPoolInfo* GetCommandPoolInfo(format::HandleId id) const { return GetObjectInfo<CommandPoolInfo>(id, &commandPool_map_); }
+    const CuFunctionNVXInfo* GetCuFunctionNVXInfo(format::HandleId id) const { return GetObjectInfo<CuFunctionNVXInfo>(id, &cuFunctionNVX_map_); }
+    const CuModuleNVXInfo* GetCuModuleNVXInfo(format::HandleId id) const { return GetObjectInfo<CuModuleNVXInfo>(id, &cuModuleNVX_map_); }
     const DebugReportCallbackEXTInfo* GetDebugReportCallbackEXTInfo(format::HandleId id) const { return GetObjectInfo<DebugReportCallbackEXTInfo>(id, &debugReportCallbackEXT_map_); }
     const DebugUtilsMessengerEXTInfo* GetDebugUtilsMessengerEXTInfo(format::HandleId id) const { return GetObjectInfo<DebugUtilsMessengerEXTInfo>(id, &debugUtilsMessengerEXT_map_); }
     const DeferredOperationKHRInfo* GetDeferredOperationKHRInfo(format::HandleId id) const { return GetObjectInfo<DeferredOperationKHRInfo>(id, &deferredOperationKHR_map_); }
@@ -170,6 +176,8 @@ class VulkanObjectInfoTableBase2 : VulkanObjectInfoTableBase
     BufferViewInfo* GetBufferViewInfo(format::HandleId id) { return GetObjectInfo<BufferViewInfo>(id, &bufferView_map_); }
     CommandBufferInfo* GetCommandBufferInfo(format::HandleId id) { return GetObjectInfo<CommandBufferInfo>(id, &commandBuffer_map_); }
     CommandPoolInfo* GetCommandPoolInfo(format::HandleId id) { return GetObjectInfo<CommandPoolInfo>(id, &commandPool_map_); }
+    CuFunctionNVXInfo* GetCuFunctionNVXInfo(format::HandleId id) { return GetObjectInfo<CuFunctionNVXInfo>(id, &cuFunctionNVX_map_); }
+    CuModuleNVXInfo* GetCuModuleNVXInfo(format::HandleId id) { return GetObjectInfo<CuModuleNVXInfo>(id, &cuModuleNVX_map_); }
     DebugReportCallbackEXTInfo* GetDebugReportCallbackEXTInfo(format::HandleId id) { return GetObjectInfo<DebugReportCallbackEXTInfo>(id, &debugReportCallbackEXT_map_); }
     DebugUtilsMessengerEXTInfo* GetDebugUtilsMessengerEXTInfo(format::HandleId id) { return GetObjectInfo<DebugUtilsMessengerEXTInfo>(id, &debugUtilsMessengerEXT_map_); }
     DeferredOperationKHRInfo* GetDeferredOperationKHRInfo(format::HandleId id) { return GetObjectInfo<DeferredOperationKHRInfo>(id, &deferredOperationKHR_map_); }
@@ -211,6 +219,8 @@ class VulkanObjectInfoTableBase2 : VulkanObjectInfoTableBase
     void VisitBufferViewInfo(std::function<void(const BufferViewInfo*)> visitor) const {  for (const auto& entry : bufferView_map_) { visitor(&entry.second); }  }
     void VisitCommandBufferInfo(std::function<void(const CommandBufferInfo*)> visitor) const {  for (const auto& entry : commandBuffer_map_) { visitor(&entry.second); }  }
     void VisitCommandPoolInfo(std::function<void(const CommandPoolInfo*)> visitor) const {  for (const auto& entry : commandPool_map_) { visitor(&entry.second); }  }
+    void VisitCuFunctionNVXInfo(std::function<void(const CuFunctionNVXInfo*)> visitor) const {  for (const auto& entry : cuFunctionNVX_map_) { visitor(&entry.second); }  }
+    void VisitCuModuleNVXInfo(std::function<void(const CuModuleNVXInfo*)> visitor) const {  for (const auto& entry : cuModuleNVX_map_) { visitor(&entry.second); }  }
     void VisitDebugReportCallbackEXTInfo(std::function<void(const DebugReportCallbackEXTInfo*)> visitor) const {  for (const auto& entry : debugReportCallbackEXT_map_) { visitor(&entry.second); }  }
     void VisitDebugUtilsMessengerEXTInfo(std::function<void(const DebugUtilsMessengerEXTInfo*)> visitor) const {  for (const auto& entry : debugUtilsMessengerEXT_map_) { visitor(&entry.second); }  }
     void VisitDeferredOperationKHRInfo(std::function<void(const DeferredOperationKHRInfo*)> visitor) const {  for (const auto& entry : deferredOperationKHR_map_) { visitor(&entry.second); }  }
@@ -253,6 +263,8 @@ class VulkanObjectInfoTableBase2 : VulkanObjectInfoTableBase
      std::unordered_map<format::HandleId, BufferViewInfo> bufferView_map_;
      std::unordered_map<format::HandleId, CommandBufferInfo> commandBuffer_map_;
      std::unordered_map<format::HandleId, CommandPoolInfo> commandPool_map_;
+     std::unordered_map<format::HandleId, CuFunctionNVXInfo> cuFunctionNVX_map_;
+     std::unordered_map<format::HandleId, CuModuleNVXInfo> cuModuleNVX_map_;
      std::unordered_map<format::HandleId, DebugReportCallbackEXTInfo> debugReportCallbackEXT_map_;
      std::unordered_map<format::HandleId, DebugUtilsMessengerEXTInfo> debugUtilsMessengerEXT_map_;
      std::unordered_map<format::HandleId, DeferredOperationKHRInfo> deferredOperationKHR_map_;

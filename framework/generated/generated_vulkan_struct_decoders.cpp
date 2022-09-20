@@ -7481,6 +7481,41 @@ size_t DecodeStruct(const uint8_t* buffer, size_t buffer_size, Decoded_VkPipelin
     return bytes_read;
 }
 
+size_t DecodeStruct(const uint8_t* buffer, size_t buffer_size, Decoded_VkCuModuleCreateInfoNVX* wrapper)
+{
+    assert((wrapper != nullptr) && (wrapper->decoded_value != nullptr));
+
+    size_t bytes_read = 0;
+    VkCuModuleCreateInfoNVX* value = wrapper->decoded_value;
+
+    bytes_read += ValueDecoder::DecodeEnumValue((buffer + bytes_read), (buffer_size - bytes_read), &(value->sType));
+    bytes_read += DecodePNextStruct((buffer + bytes_read), (buffer_size - bytes_read), &(wrapper->pNext));
+    value->pNext = wrapper->pNext ? wrapper->pNext->GetPointer() : nullptr;
+    bytes_read += ValueDecoder::DecodeSizeTValue((buffer + bytes_read), (buffer_size - bytes_read), &(value->dataSize));
+    bytes_read += wrapper->pData.DecodeVoid((buffer + bytes_read), (buffer_size - bytes_read));
+    value->pData = wrapper->pData.GetPointer();
+
+    return bytes_read;
+}
+
+size_t DecodeStruct(const uint8_t* buffer, size_t buffer_size, Decoded_VkCuFunctionCreateInfoNVX* wrapper)
+{
+    assert((wrapper != nullptr) && (wrapper->decoded_value != nullptr));
+
+    size_t bytes_read = 0;
+    VkCuFunctionCreateInfoNVX* value = wrapper->decoded_value;
+
+    bytes_read += ValueDecoder::DecodeEnumValue((buffer + bytes_read), (buffer_size - bytes_read), &(value->sType));
+    bytes_read += DecodePNextStruct((buffer + bytes_read), (buffer_size - bytes_read), &(wrapper->pNext));
+    value->pNext = wrapper->pNext ? wrapper->pNext->GetPointer() : nullptr;
+    bytes_read += ValueDecoder::DecodeHandleIdValue((buffer + bytes_read), (buffer_size - bytes_read), &(wrapper->module));
+    value->module = VK_NULL_HANDLE;
+    bytes_read += wrapper->pName.Decode((buffer + bytes_read), (buffer_size - bytes_read));
+    value->pName = wrapper->pName.GetPointer();
+
+    return bytes_read;
+}
+
 size_t DecodeStruct(const uint8_t* buffer, size_t buffer_size, Decoded_VkImageViewHandleInfoNVX* wrapper)
 {
     assert((wrapper != nullptr) && (wrapper->decoded_value != nullptr));

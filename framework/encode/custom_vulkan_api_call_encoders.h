@@ -58,6 +58,8 @@ VKAPI_ATTR VkResult VKAPI_CALL CopyAccelerationStructureKHR(VkDevice            
                                                             VkDeferredOperationKHR                    deferredOperation,
                                                             const VkCopyAccelerationStructureInfoKHR* pInfo);
 
+VKAPI_ATTR void VKAPI_CALL CmdCuLaunchKernelNVX(VkCommandBuffer commandBuffer, const VkCuLaunchInfoNVX* pLaunchInfo);
+
 GFXRECON_END_NAMESPACE(encode)
 GFXRECON_END_NAMESPACE(gfxrecon)
 

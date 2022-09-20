@@ -896,6 +896,12 @@ size_t DecodeStruct(const uint8_t* parameter_buffer, size_t buffer_size, Decoded
 size_t DecodeStruct(const uint8_t* parameter_buffer, size_t buffer_size, Decoded_VkPhysicalDeviceTransformFeedbackPropertiesEXT* wrapper);
 size_t DecodeStruct(const uint8_t* parameter_buffer, size_t buffer_size, Decoded_VkPipelineRasterizationStateStreamCreateInfoEXT* wrapper);
 
+struct Decoded_VkCuModuleCreateInfoNVX;
+struct Decoded_VkCuFunctionCreateInfoNVX;
+
+size_t DecodeStruct(const uint8_t* parameter_buffer, size_t buffer_size, Decoded_VkCuModuleCreateInfoNVX* wrapper);
+size_t DecodeStruct(const uint8_t* parameter_buffer, size_t buffer_size, Decoded_VkCuFunctionCreateInfoNVX* wrapper);
+
 struct Decoded_VkImageViewHandleInfoNVX;
 struct Decoded_VkImageViewAddressPropertiesNVX;
 

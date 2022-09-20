@@ -199,6 +199,8 @@ typedef VulkanObjectInfo<VkDebugUtilsMessengerEXT>        DebugUtilsMessengerEXT
 typedef VulkanObjectInfo<VkAccelerationStructureKHR>      AccelerationStructureKHRInfo;
 typedef VulkanObjectInfo<VkAccelerationStructureNV>       AccelerationStructureNVInfo;
 typedef VulkanObjectInfo<VkPerformanceConfigurationINTEL> PerformanceConfigurationINTELInfo;
+typedef VulkanObjectInfo<VkCuFunctionNVX>                 CuFunctionNVXInfo;
+typedef VulkanObjectInfo<VkCuModuleNVX>                   CuModuleNVXInfo;
 
 //
 // Declarations for Vulkan objects with additional replay state info.

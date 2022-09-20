@@ -348,5 +348,12 @@ VKAPI_ATTR VkResult VKAPI_CALL CopyAccelerationStructureKHR(VkDevice            
     return GetDeviceTable(device)->CopyAccelerationStructureKHR(device, deferredOperation, pInfo);
 }
 
+VKAPI_ATTR void VKAPI_CALL CmdCuLaunchKernelNVX(VkCommandBuffer commandBuffer, const VkCuLaunchInfoNVX* pLaunchInfo)
+{
+    // TODO
+    GFXRECON_LOG_ERROR("CmdCuLaunchKernelNVX encoding is not supported");
+    return GetDeviceTable(commandBuffer)->CmdCuLaunchKernelNVX(commandBuffer, pLaunchInfo);
+}
+
 GFXRECON_END_NAMESPACE(encode)
 GFXRECON_END_NAMESPACE(gfxrecon)
