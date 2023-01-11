@@ -39,6 +39,8 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(encode)
 
+static std::set<uint64_t> wrapper_pointers;
+
 typedef format::HandleId (*PFN_GetHandleId)();
 
 template <typename T>
@@ -131,6 +133,11 @@ void CreateWrappedDispatchHandle(typename ParentWrapper::HandleType parent,
 
         (*handle) = reinterpret_cast<typename Wrapper::HandleType>(wrapper);
         VulkanWrapperHandleList::Get()->AddWrapperHandle(wrapper);
+        auto it   = wrapper_pointers.insert(reinterpret_cast<uint64_t>(wrapper));
+        if (!it.second)
+        {
+            GFXRECON_LOG_WARNING("CreateWrappedDispatchHandle duplicated %" PRId64 "", wrapper);
+        }
     }
 }
 
@@ -146,6 +153,11 @@ void CreateWrappedNonDispatchHandle(typename Wrapper::HandleType* handle, PFN_Ge
         wrapper->handle_id = get_id();
         (*handle)          = reinterpret_cast<typename Wrapper::HandleType>(wrapper);
         VulkanWrapperHandleList::Get()->AddWrapperHandle(wrapper);
+        auto it = wrapper_pointers.insert(reinterpret_cast<uint64_t>(wrapper));
+        if (!it.second)
+        {
+            GFXRECON_LOG_WARNING("CreateWrappedNonDispatchHandle duplicated %" PRId64 "", wrapper);
+        }
     }
 }
 
