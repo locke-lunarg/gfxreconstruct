@@ -39,6 +39,8 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(encode)
 
+static std::set<uint64_t> wrapper_pointers;
+
 #if VK_USE_64_BIT_PTR_DEFINES == 1
 // Vulkan non-dispatch handle is a pointer in its define for 64bit Vulkan, so
 // we need to use reinterpret_cast for the conversion.
@@ -346,6 +348,11 @@ void CreateWrappedDispatchHandle(typename ParentWrapper::HandleType parent,
         }
 
         (*handle) = reinterpret_cast<typename Wrapper::HandleType>(wrapper);
+        auto it   = wrapper_pointers.insert(reinterpret_cast<uint64_t>(wrapper));
+        if (!it.second)
+        {
+            GFXRECON_LOG_WARNING("CreateWrappedDispatchHandle duplicated %" PRId64 "", wrapper);
+        }
     }
 }
 
@@ -360,6 +367,11 @@ void CreateWrappedNonDispatchHandle(typename Wrapper::HandleType* handle, PFN_Ge
         wrapper->handle_id = get_id();
         (*handle)          = UINT64_TO_VK_HANDLE(typename Wrapper::HandleType, wrapper->handle_id);
         WrapperManager::GetInstance()->Add(wrapper->handle_id, reinterpret_cast<void*>(wrapper));
+        auto it = wrapper_pointers.insert(reinterpret_cast<uint64_t>(wrapper));
+        if (!it.second)
+        {
+            GFXRECON_LOG_WARNING("CreateWrappedNonDispatchHandle duplicated %" PRId64 "", wrapper);
+        }
     }
 }
 
