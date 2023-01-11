@@ -654,7 +654,7 @@ void DestroyWrappedHandle(typename Wrapper::HandleType handle)
         if (wrapper != nullptr)
         {
             WrapperManager::GetInstance()->Remove(VK_HANDLE_TO_UINT64(handle));
-            delete reinterpret_cast<Wrapper*>(wrapper);
+            // delete reinterpret_cast<Wrapper*>(wrapper);
         }
         else
         {
@@ -680,16 +680,16 @@ inline void DestroyWrappedHandle<InstanceWrapper>(VkInstance handle)
                 for (auto display_mode_wrapper : display_wrapper->child_display_modes)
                 {
                     WrapperManager::GetInstance()->Remove(static_cast<uint64_t>(display_mode_wrapper->handle_id));
-                    delete display_mode_wrapper;
+                    // delete display_mode_wrapper;
                 }
                 WrapperManager::GetInstance()->Remove(static_cast<uint64_t>(display_wrapper->handle_id));
-                delete display_wrapper;
+                // delete display_wrapper;
             }
             WrapperManager::GetInstance()->Remove(static_cast<uint64_t>(physical_device_wrapper->handle_id));
-            delete physical_device_wrapper;
+            // delete physical_device_wrapper;
         }
         WrapperManager::GetInstance()->Remove(static_cast<uint64_t>(wrapper->handle_id));
-        delete wrapper;
+        // delete wrapper;
     }
 }
 
@@ -704,10 +704,10 @@ inline void DestroyWrappedHandle<DeviceWrapper>(VkDevice handle)
         for (auto queue_wrapper : wrapper->child_queues)
         {
             WrapperManager::GetInstance()->Remove(static_cast<uint64_t>(queue_wrapper->handle_id));
-            delete queue_wrapper;
+            // delete queue_wrapper;
         }
         WrapperManager::GetInstance()->Remove(static_cast<uint64_t>(wrapper->handle_id));
-        delete wrapper;
+        // delete wrapper;
     }
 }
 
@@ -720,7 +720,7 @@ inline void DestroyWrappedHandle<CommandBufferWrapper>(VkCommandBuffer handle)
         auto wrapper = GetWrapperPointerFromHandle<CommandBufferWrapper*>(handle);
         wrapper->parent_pool->child_buffers.erase(wrapper->handle_id);
         WrapperManager::GetInstance()->Remove(static_cast<uint64_t>(wrapper->handle_id));
-        delete wrapper;
+        // delete wrapper;
     }
 }
 
@@ -736,10 +736,10 @@ inline void DestroyWrappedHandle<CommandPoolWrapper>(VkCommandPool handle)
             for (const auto& buffer_wrapper : wrapper->child_buffers)
             {
                 WrapperManager::GetInstance()->Remove(static_cast<uint64_t>(buffer_wrapper.second->handle_id));
-                delete buffer_wrapper.second;
+                // delete buffer_wrapper.second;
             }
             WrapperManager::GetInstance()->Remove(static_cast<uint64_t>(wrapper->handle_id));
-            delete wrapper;
+            // delete wrapper;
         }
         else
         {
@@ -761,7 +761,7 @@ inline void DestroyWrappedHandle<DescriptorSetWrapper>(VkDescriptorSet handle)
         {
             wrapper->parent_pool->child_sets.erase(wrapper->handle_id);
             WrapperManager::GetInstance()->Remove(wrapper->handle_id);
-            delete wrapper;
+            // delete wrapper;
         }
         else
         {
@@ -784,10 +784,10 @@ inline void DestroyWrappedHandle<DescriptorPoolWrapper>(VkDescriptorPool handle)
             for (const auto& set_wrapper : wrapper->child_sets)
             {
                 WrapperManager::GetInstance()->Remove(set_wrapper.second->handle_id);
-                delete set_wrapper.second;
+                // delete set_wrapper.second;
             }
             WrapperManager::GetInstance()->Remove(wrapper->handle_id);
-            delete wrapper;
+            // delete wrapper;
         }
         else
         {
@@ -810,10 +810,10 @@ inline void DestroyWrappedHandle<SwapchainKHRWrapper>(VkSwapchainKHR handle)
             for (auto image_wrapper : wrapper->child_images)
             {
                 WrapperManager::GetInstance()->Remove(image_wrapper->handle_id);
-                delete image_wrapper;
+                // delete image_wrapper;
             }
             WrapperManager::GetInstance()->Remove(wrapper->handle_id);
-            delete wrapper;
+            // delete wrapper;
         }
         else
         {
@@ -845,7 +845,7 @@ inline void ResetDescriptorPoolWrapper(VkDescriptorPool handle)
     for (const auto& set_wrapper : wrapper->child_sets)
     {
         WrapperManager::GetInstance()->Remove(set_wrapper.second->handle_id);
-        delete set_wrapper.second;
+        // delete set_wrapper.second;
     }
     wrapper->child_sets.clear();
 }
