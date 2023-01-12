@@ -40,6 +40,7 @@ GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(encode)
 
 static std::set<uint64_t> wrapper_pointers;
+static std::set<uint64_t> handles;
 
 #if VK_USE_64_BIT_PTR_DEFINES == 1
 // Vulkan non-dispatch handle is a pointer in its define for 64bit Vulkan, so
@@ -230,7 +231,12 @@ void CreateWrappedDispatchHandle(typename ParentWrapper::HandleType parent,
         auto it   = wrapper_pointers.insert(reinterpret_cast<uint64_t>(wrapper));
         if (!it.second)
         {
-            GFXRECON_LOG_WARNING("CreateWrappedDispatchHandle duplicated %" PRId64 "", wrapper);
+            GFXRECON_LOG_WARNING("CreateWrappedDispatchHandle wrapper duplicated %" PRId64 "", wrapper);
+        }
+        auto it1 = handles.insert(reinterpret_cast<uint64_t>(wrapper->handle));
+        if (!it1.second)
+        {
+            GFXRECON_LOG_WARNING("CreateWrappedDispatchHandle handle duplicated %" PRId64 "", wrapper->handle);
         }
     }
 }
@@ -251,7 +257,12 @@ void CreateWrappedNonDispatchHandle(typename Wrapper::HandleType* handle, PFN_Ge
         auto it = wrapper_pointers.insert(reinterpret_cast<uint64_t>(wrapper));
         if (!it.second)
         {
-            GFXRECON_LOG_WARNING("CreateWrappedNonDispatchHandle duplicated %" PRId64 "", wrapper);
+            GFXRECON_LOG_WARNING("CreateWrappedNonDispatchHandle wrapper duplicated %" PRId64 "", wrapper);
+        }
+        auto it1 = handles.insert(reinterpret_cast<uint64_t>(wrapper->handle));
+        if (!it1.second)
+        {
+            GFXRECON_LOG_WARNING("CreateWrappedNonDispatchHandle handle duplicated %" PRId64 "", wrapper->handle);
         }
     }
 }
