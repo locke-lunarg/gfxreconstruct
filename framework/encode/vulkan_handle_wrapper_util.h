@@ -109,66 +109,6 @@ T GetWrapperPointerFromHandle(typename std::remove_pointer<T>::type::HandleType 
     return wrapper;
 }
 
-template <>
-inline InstanceWrapper* GetWrapperPointerFromHandle<InstanceWrapper*>(VkInstance handle)
-{
-    return reinterpret_cast<InstanceWrapper*>(handle);
-}
-
-template <>
-inline const InstanceWrapper* GetWrapperPointerFromHandle<const InstanceWrapper*>(VkInstance handle)
-{
-    return reinterpret_cast<const InstanceWrapper*>(handle);
-}
-
-template <>
-inline PhysicalDeviceWrapper* GetWrapperPointerFromHandle<PhysicalDeviceWrapper*>(VkPhysicalDevice handle)
-{
-    return reinterpret_cast<PhysicalDeviceWrapper*>(handle);
-}
-
-template <>
-inline const PhysicalDeviceWrapper* GetWrapperPointerFromHandle<const PhysicalDeviceWrapper*>(VkPhysicalDevice handle)
-{
-    return reinterpret_cast<const PhysicalDeviceWrapper*>(handle);
-}
-
-template <>
-inline DeviceWrapper* GetWrapperPointerFromHandle<DeviceWrapper*>(VkDevice handle)
-{
-    return reinterpret_cast<DeviceWrapper*>(handle);
-}
-
-template <>
-inline const DeviceWrapper* GetWrapperPointerFromHandle<const DeviceWrapper*>(VkDevice handle)
-{
-    return reinterpret_cast<const DeviceWrapper*>(handle);
-}
-
-template <>
-inline QueueWrapper* GetWrapperPointerFromHandle<QueueWrapper*>(VkQueue handle)
-{
-    return reinterpret_cast<QueueWrapper*>(handle);
-}
-
-template <>
-inline const QueueWrapper* GetWrapperPointerFromHandle<const QueueWrapper*>(VkQueue handle)
-{
-    return reinterpret_cast<const QueueWrapper*>(handle);
-}
-
-template <>
-inline CommandBufferWrapper* GetWrapperPointerFromHandle<CommandBufferWrapper*>(VkCommandBuffer handle)
-{
-    return reinterpret_cast<CommandBufferWrapper*>(handle);
-}
-
-template <>
-inline const CommandBufferWrapper* GetWrapperPointerFromHandle<const CommandBufferWrapper*>(VkCommandBuffer handle)
-{
-    return reinterpret_cast<const CommandBufferWrapper*>(handle);
-}
-
 typedef format::HandleId (*PFN_GetHandleId)();
 
 template <typename T>
@@ -191,38 +131,6 @@ T GetWrappedHandle(const T& handle)
     return VK_NULL_HANDLE;
 }
 
-template <>
-inline VkInstance GetWrappedHandle<VkInstance>(const VkInstance& handle)
-{
-    return (handle != VK_NULL_HANDLE) ? reinterpret_cast<HandleWrapper<VkInstance>*>(handle)->handle : VK_NULL_HANDLE;
-}
-
-template <>
-inline VkPhysicalDevice GetWrappedHandle<VkPhysicalDevice>(const VkPhysicalDevice& handle)
-{
-    return (handle != VK_NULL_HANDLE) ? reinterpret_cast<HandleWrapper<VkPhysicalDevice>*>(handle)->handle
-                                      : VK_NULL_HANDLE;
-}
-
-template <>
-inline VkDevice GetWrappedHandle<VkDevice>(const VkDevice& handle)
-{
-    return (handle != VK_NULL_HANDLE) ? reinterpret_cast<HandleWrapper<VkDevice>*>(handle)->handle : VK_NULL_HANDLE;
-}
-
-template <>
-inline VkQueue GetWrappedHandle<VkQueue>(const VkQueue& handle)
-{
-    return (handle != VK_NULL_HANDLE) ? reinterpret_cast<HandleWrapper<VkQueue>*>(handle)->handle : VK_NULL_HANDLE;
-}
-
-template <>
-inline VkCommandBuffer GetWrappedHandle<VkCommandBuffer>(const VkCommandBuffer& handle)
-{
-    return (handle != VK_NULL_HANDLE) ? reinterpret_cast<HandleWrapper<VkCommandBuffer>*>(handle)->handle
-                                      : VK_NULL_HANDLE;
-}
-
 template <typename T>
 format::HandleId GetWrappedId(const T& handle)
 {
@@ -240,36 +148,6 @@ format::HandleId GetWrappedId(const T& handle)
         return (wrapper_pointer != nullptr) ? reinterpret_cast<HandleWrapper<T>*>(wrapper_pointer)->handle_id : 0;
     }
     return 0;
-}
-
-template <>
-inline format::HandleId GetWrappedId(const VkInstance& handle)
-{
-    return (handle != VK_NULL_HANDLE) ? reinterpret_cast<HandleWrapper<VkInstance>*>(handle)->handle_id : 0;
-}
-
-template <>
-inline format::HandleId GetWrappedId(const VkPhysicalDevice& handle)
-{
-    return (handle != VK_NULL_HANDLE) ? reinterpret_cast<HandleWrapper<VkPhysicalDevice>*>(handle)->handle_id : 0;
-}
-
-template <>
-inline format::HandleId GetWrappedId(const VkDevice& handle)
-{
-    return (handle != VK_NULL_HANDLE) ? reinterpret_cast<HandleWrapper<VkDevice>*>(handle)->handle_id : 0;
-}
-
-template <>
-inline format::HandleId GetWrappedId(const VkQueue& handle)
-{
-    return (handle != VK_NULL_HANDLE) ? reinterpret_cast<HandleWrapper<VkQueue>*>(handle)->handle_id : 0;
-}
-
-template <>
-inline format::HandleId GetWrappedId(const VkCommandBuffer& handle)
-{
-    return (handle != VK_NULL_HANDLE) ? reinterpret_cast<HandleWrapper<VkCommandBuffer>*>(handle)->handle_id : 0;
 }
 
 uint64_t GetWrappedHandle(uint64_t, VkObjectType object_type);
@@ -336,7 +214,8 @@ void CreateWrappedDispatchHandle(typename ParentWrapper::HandleType parent,
         wrapper->dispatch_key = *reinterpret_cast<void**>(*handle);
         wrapper->handle       = (*handle);
         wrapper->handle_id    = get_id();
-        WrapperManager::GetInstance()->Add(wrapper->handle_id, reinterpret_cast<void*>(wrapper));
+        // WrapperManager::GetInstance()->Add(wrapper->handle_id, reinterpret_cast<void*>(wrapper));
+        WrapperManager::GetInstance()->Add(reinterpret_cast<uint64_t>(wrapper), reinterpret_cast<void*>(wrapper));
         if (parent != VK_NULL_HANDLE)
         {
             // VkQueue and VkCommandBuffer loader dispatch tables are not assigned until the handles reach the
@@ -365,8 +244,10 @@ void CreateWrappedNonDispatchHandle(typename Wrapper::HandleType* handle, PFN_Ge
         Wrapper* wrapper   = new Wrapper;
         wrapper->handle    = (*handle);
         wrapper->handle_id = get_id();
-        (*handle)          = UINT64_TO_VK_HANDLE(typename Wrapper::HandleType, wrapper->handle_id);
-        WrapperManager::GetInstance()->Add(wrapper->handle_id, reinterpret_cast<void*>(wrapper));
+        // (*handle)          = UINT64_TO_VK_HANDLE(typename Wrapper::HandleType, wrapper->handle_id);
+        (*handle) = reinterpret_cast<typename Wrapper::HandleType>(wrapper);
+        // WrapperManager::GetInstance()->Add(wrapper->handle_id, reinterpret_cast<void*>(wrapper));
+        WrapperManager::GetInstance()->Add(reinterpret_cast<uint64_t>(wrapper), reinterpret_cast<void*>(wrapper));
         auto it = wrapper_pointers.insert(reinterpret_cast<uint64_t>(wrapper));
         if (!it.second)
         {
@@ -554,7 +435,8 @@ inline void CreateWrappedHandle<PhysicalDeviceWrapper, NoParentWrapper, DisplayK
 
         if (wrapper != nullptr)
         {
-            (*handle) = UINT64_TO_VK_HANDLE(VkDisplayKHR, wrapper->handle_id);
+            //(*handle) = UINT64_TO_VK_HANDLE(VkDisplayKHR, wrapper->handle_id);
+            (*handle) = reinterpret_cast<VkDisplayKHR>(wrapper);
         }
         else
         {
@@ -591,7 +473,8 @@ CreateWrappedHandle<DeviceWrapper, SwapchainKHRWrapper, ImageWrapper>(VkDevice, 
 
     if (wrapper != nullptr)
     {
-        (*handle) = UINT64_TO_VK_HANDLE(VkImage, wrapper->handle_id);
+        //(*handle) = UINT64_TO_VK_HANDLE(VkImage, wrapper->handle_id);
+        (*handle) = reinterpret_cast<VkImage>(wrapper);
     }
     else
     {
@@ -629,7 +512,8 @@ inline void CreateWrappedHandle<PhysicalDeviceWrapper, DisplayKHRWrapper, Displa
 
     if (wrapper != nullptr)
     {
-        (*handle) = UINT64_TO_VK_HANDLE(VkDisplayModeKHR, wrapper->handle_id);
+        // (*handle) = UINT64_TO_VK_HANDLE(VkDisplayModeKHR, wrapper->handle_id);
+        (*handle) = reinterpret_cast<VkDisplayModeKHR>(wrapper);
     }
     else
     {
