@@ -82,25 +82,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyInstance(
     VkInstance                                  instance,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyInstance>::Dispatch(VulkanCaptureManager::Get(), instance, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyInstance);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(instance);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<InstanceWrapper>(instance);
-    }
-
-    VkInstance instance_unwrapped = GetWrappedHandle<VkInstance>(instance);
-
-    GetInstanceTable(instance)->DestroyInstance(instance_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyInstance>::Dispatch(VulkanCaptureManager::Get(), instance, pAllocator);
-
-    DestroyWrappedHandle<InstanceWrapper>(instance);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL EnumeratePhysicalDevices(
@@ -341,25 +322,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyDevice(
     VkDevice                                    device,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDevice>::Dispatch(VulkanCaptureManager::Get(), device, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyDevice);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<DeviceWrapper>(device);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-
-    GetDeviceTable(device)->DestroyDevice(device_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyDevice>::Dispatch(VulkanCaptureManager::Get(), device, pAllocator);
-
-    DestroyWrappedHandle<DeviceWrapper>(device);
 }
 
 VKAPI_ATTR void VKAPI_CALL GetDeviceQueue(
@@ -511,27 +473,6 @@ VKAPI_ATTR void VKAPI_CALL FreeMemory(
     VkDeviceMemory                              memory,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkFreeMemory>::Dispatch(VulkanCaptureManager::Get(), device, memory, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkFreeMemory);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(memory);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<DeviceMemoryWrapper>(memory);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkDeviceMemory memory_unwrapped = GetWrappedHandle<VkDeviceMemory>(memory);
-
-    GetDeviceTable(device)->FreeMemory(device_unwrapped, memory_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkFreeMemory>::Dispatch(VulkanCaptureManager::Get(), device, memory, pAllocator);
-
-    DestroyWrappedHandle<DeviceMemoryWrapper>(memory);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL MapMemory(
@@ -943,27 +884,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyFence(
     VkFence                                     fence,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyFence>::Dispatch(VulkanCaptureManager::Get(), device, fence, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyFence);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(fence);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<FenceWrapper>(fence);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkFence fence_unwrapped = GetWrappedHandle<VkFence>(fence);
-
-    GetDeviceTable(device)->DestroyFence(device_unwrapped, fence_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyFence>::Dispatch(VulkanCaptureManager::Get(), device, fence, pAllocator);
-
-    DestroyWrappedHandle<FenceWrapper>(fence);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL ResetFences(
@@ -1103,27 +1023,6 @@ VKAPI_ATTR void VKAPI_CALL DestroySemaphore(
     VkSemaphore                                 semaphore,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySemaphore>::Dispatch(VulkanCaptureManager::Get(), device, semaphore, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroySemaphore);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(semaphore);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<SemaphoreWrapper>(semaphore);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkSemaphore semaphore_unwrapped = GetWrappedHandle<VkSemaphore>(semaphore);
-
-    GetDeviceTable(device)->DestroySemaphore(device_unwrapped, semaphore_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroySemaphore>::Dispatch(VulkanCaptureManager::Get(), device, semaphore, pAllocator);
-
-    DestroyWrappedHandle<SemaphoreWrapper>(semaphore);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateEvent(
@@ -1172,27 +1071,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyEvent(
     VkEvent                                     event,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyEvent>::Dispatch(VulkanCaptureManager::Get(), device, event, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyEvent);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(event);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<EventWrapper>(event);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkEvent event_unwrapped = GetWrappedHandle<VkEvent>(event);
-
-    GetDeviceTable(device)->DestroyEvent(device_unwrapped, event_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyEvent>::Dispatch(VulkanCaptureManager::Get(), device, event, pAllocator);
-
-    DestroyWrappedHandle<EventWrapper>(event);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL GetEventStatus(
@@ -1322,27 +1200,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyQueryPool(
     VkQueryPool                                 queryPool,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyQueryPool>::Dispatch(VulkanCaptureManager::Get(), device, queryPool, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyQueryPool);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(queryPool);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<QueryPoolWrapper>(queryPool);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkQueryPool queryPool_unwrapped = GetWrappedHandle<VkQueryPool>(queryPool);
-
-    GetDeviceTable(device)->DestroyQueryPool(device_unwrapped, queryPool_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyQueryPool>::Dispatch(VulkanCaptureManager::Get(), device, queryPool, pAllocator);
-
-    DestroyWrappedHandle<QueryPoolWrapper>(queryPool);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL GetQueryPoolResults(
@@ -1429,27 +1286,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyBuffer(
     VkBuffer                                    buffer,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyBuffer>::Dispatch(VulkanCaptureManager::Get(), device, buffer, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyBuffer);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(buffer);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<BufferWrapper>(buffer);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkBuffer buffer_unwrapped = GetWrappedHandle<VkBuffer>(buffer);
-
-    GetDeviceTable(device)->DestroyBuffer(device_unwrapped, buffer_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyBuffer>::Dispatch(VulkanCaptureManager::Get(), device, buffer, pAllocator);
-
-    DestroyWrappedHandle<BufferWrapper>(buffer);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateBufferView(
@@ -1500,27 +1336,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyBufferView(
     VkBufferView                                bufferView,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyBufferView>::Dispatch(VulkanCaptureManager::Get(), device, bufferView, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyBufferView);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(bufferView);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<BufferViewWrapper>(bufferView);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkBufferView bufferView_unwrapped = GetWrappedHandle<VkBufferView>(bufferView);
-
-    GetDeviceTable(device)->DestroyBufferView(device_unwrapped, bufferView_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyBufferView>::Dispatch(VulkanCaptureManager::Get(), device, bufferView, pAllocator);
-
-    DestroyWrappedHandle<BufferViewWrapper>(bufferView);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateImage(
@@ -1571,27 +1386,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyImage(
     VkImage                                     image,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyImage>::Dispatch(VulkanCaptureManager::Get(), device, image, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyImage);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(image);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<ImageWrapper>(image);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkImage image_unwrapped = GetWrappedHandle<VkImage>(image);
-
-    GetDeviceTable(device)->DestroyImage(device_unwrapped, image_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyImage>::Dispatch(VulkanCaptureManager::Get(), device, image, pAllocator);
-
-    DestroyWrappedHandle<ImageWrapper>(image);
 }
 
 VKAPI_ATTR void VKAPI_CALL GetImageSubresourceLayout(
@@ -1670,27 +1464,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyImageView(
     VkImageView                                 imageView,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyImageView>::Dispatch(VulkanCaptureManager::Get(), device, imageView, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyImageView);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(imageView);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<ImageViewWrapper>(imageView);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkImageView imageView_unwrapped = GetWrappedHandle<VkImageView>(imageView);
-
-    GetDeviceTable(device)->DestroyImageView(device_unwrapped, imageView_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyImageView>::Dispatch(VulkanCaptureManager::Get(), device, imageView, pAllocator);
-
-    DestroyWrappedHandle<ImageViewWrapper>(imageView);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateShaderModule(
@@ -1741,27 +1514,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyShaderModule(
     VkShaderModule                              shaderModule,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyShaderModule>::Dispatch(VulkanCaptureManager::Get(), device, shaderModule, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyShaderModule);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(shaderModule);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<ShaderModuleWrapper>(shaderModule);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkShaderModule shaderModule_unwrapped = GetWrappedHandle<VkShaderModule>(shaderModule);
-
-    GetDeviceTable(device)->DestroyShaderModule(device_unwrapped, shaderModule_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyShaderModule>::Dispatch(VulkanCaptureManager::Get(), device, shaderModule, pAllocator);
-
-    DestroyWrappedHandle<ShaderModuleWrapper>(shaderModule);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreatePipelineCache(
@@ -1810,27 +1562,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyPipelineCache(
     VkPipelineCache                             pipelineCache,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyPipelineCache>::Dispatch(VulkanCaptureManager::Get(), device, pipelineCache, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyPipelineCache);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(pipelineCache);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<PipelineCacheWrapper>(pipelineCache);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkPipelineCache pipelineCache_unwrapped = GetWrappedHandle<VkPipelineCache>(pipelineCache);
-
-    GetDeviceTable(device)->DestroyPipelineCache(device_unwrapped, pipelineCache_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyPipelineCache>::Dispatch(VulkanCaptureManager::Get(), device, pipelineCache, pAllocator);
-
-    DestroyWrappedHandle<PipelineCacheWrapper>(pipelineCache);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL GetPipelineCacheData(
@@ -2004,27 +1735,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyPipeline(
     VkPipeline                                  pipeline,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyPipeline>::Dispatch(VulkanCaptureManager::Get(), device, pipeline, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyPipeline);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(pipeline);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<PipelineWrapper>(pipeline);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkPipeline pipeline_unwrapped = GetWrappedHandle<VkPipeline>(pipeline);
-
-    GetDeviceTable(device)->DestroyPipeline(device_unwrapped, pipeline_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyPipeline>::Dispatch(VulkanCaptureManager::Get(), device, pipeline, pAllocator);
-
-    DestroyWrappedHandle<PipelineWrapper>(pipeline);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreatePipelineLayout(
@@ -2075,27 +1785,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyPipelineLayout(
     VkPipelineLayout                            pipelineLayout,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyPipelineLayout>::Dispatch(VulkanCaptureManager::Get(), device, pipelineLayout, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyPipelineLayout);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(pipelineLayout);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<PipelineLayoutWrapper>(pipelineLayout);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkPipelineLayout pipelineLayout_unwrapped = GetWrappedHandle<VkPipelineLayout>(pipelineLayout);
-
-    GetDeviceTable(device)->DestroyPipelineLayout(device_unwrapped, pipelineLayout_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyPipelineLayout>::Dispatch(VulkanCaptureManager::Get(), device, pipelineLayout, pAllocator);
-
-    DestroyWrappedHandle<PipelineLayoutWrapper>(pipelineLayout);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateSampler(
@@ -2146,27 +1835,6 @@ VKAPI_ATTR void VKAPI_CALL DestroySampler(
     VkSampler                                   sampler,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySampler>::Dispatch(VulkanCaptureManager::Get(), device, sampler, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroySampler);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(sampler);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<SamplerWrapper>(sampler);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkSampler sampler_unwrapped = GetWrappedHandle<VkSampler>(sampler);
-
-    GetDeviceTable(device)->DestroySampler(device_unwrapped, sampler_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroySampler>::Dispatch(VulkanCaptureManager::Get(), device, sampler, pAllocator);
-
-    DestroyWrappedHandle<SamplerWrapper>(sampler);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateDescriptorSetLayout(
@@ -2217,27 +1885,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyDescriptorSetLayout(
     VkDescriptorSetLayout                       descriptorSetLayout,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDescriptorSetLayout>::Dispatch(VulkanCaptureManager::Get(), device, descriptorSetLayout, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyDescriptorSetLayout);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(descriptorSetLayout);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<DescriptorSetLayoutWrapper>(descriptorSetLayout);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkDescriptorSetLayout descriptorSetLayout_unwrapped = GetWrappedHandle<VkDescriptorSetLayout>(descriptorSetLayout);
-
-    GetDeviceTable(device)->DestroyDescriptorSetLayout(device_unwrapped, descriptorSetLayout_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyDescriptorSetLayout>::Dispatch(VulkanCaptureManager::Get(), device, descriptorSetLayout, pAllocator);
-
-    DestroyWrappedHandle<DescriptorSetLayoutWrapper>(descriptorSetLayout);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateDescriptorPool(
@@ -2286,27 +1933,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyDescriptorPool(
     VkDescriptorPool                            descriptorPool,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDescriptorPool>::Dispatch(VulkanCaptureManager::Get(), device, descriptorPool, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyDescriptorPool);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(descriptorPool);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<DescriptorPoolWrapper>(descriptorPool);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkDescriptorPool descriptorPool_unwrapped = GetWrappedHandle<VkDescriptorPool>(descriptorPool);
-
-    GetDeviceTable(device)->DestroyDescriptorPool(device_unwrapped, descriptorPool_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyDescriptorPool>::Dispatch(VulkanCaptureManager::Get(), device, descriptorPool, pAllocator);
-
-    DestroyWrappedHandle<DescriptorPoolWrapper>(descriptorPool);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL ResetDescriptorPool(
@@ -2385,33 +2011,7 @@ VKAPI_ATTR VkResult VKAPI_CALL FreeDescriptorSets(
     uint32_t                                    descriptorSetCount,
     const VkDescriptorSet*                      pDescriptorSets)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkFreeDescriptorSets>::Dispatch(VulkanCaptureManager::Get(), device, descriptorPool, descriptorSetCount, pDescriptorSets);
-
-    auto handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkDescriptorPool descriptorPool_unwrapped = GetWrappedHandle<VkDescriptorPool>(descriptorPool);
-    const VkDescriptorSet* pDescriptorSets_unwrapped = UnwrapHandles<VkDescriptorSet>(pDescriptorSets, descriptorSetCount, handle_unwrap_memory);
-
-    VkResult result = GetDeviceTable(device)->FreeDescriptorSets(device_unwrapped, descriptorPool_unwrapped, descriptorSetCount, pDescriptorSets_unwrapped);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkFreeDescriptorSets);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(descriptorPool);
-        encoder->EncodeUInt32Value(descriptorSetCount);
-        encoder->EncodeHandleArray(pDescriptorSets, descriptorSetCount);
-        encoder->EncodeEnumValue(result);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<DescriptorSetWrapper>(descriptorSetCount, pDescriptorSets);
-    }
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkFreeDescriptorSets>::Dispatch(VulkanCaptureManager::Get(), result, device, descriptorPool, descriptorSetCount, pDescriptorSets);
-
-    DestroyWrappedHandles<DescriptorSetWrapper>(pDescriptorSets, descriptorSetCount);
-
-    return result;
+    return VK_SUCCESS;
 }
 
 VKAPI_ATTR void VKAPI_CALL UpdateDescriptorSets(
@@ -2494,27 +2094,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyFramebuffer(
     VkFramebuffer                               framebuffer,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyFramebuffer>::Dispatch(VulkanCaptureManager::Get(), device, framebuffer, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyFramebuffer);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(framebuffer);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<FramebufferWrapper>(framebuffer);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkFramebuffer framebuffer_unwrapped = GetWrappedHandle<VkFramebuffer>(framebuffer);
-
-    GetDeviceTable(device)->DestroyFramebuffer(device_unwrapped, framebuffer_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyFramebuffer>::Dispatch(VulkanCaptureManager::Get(), device, framebuffer, pAllocator);
-
-    DestroyWrappedHandle<FramebufferWrapper>(framebuffer);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateRenderPass(
@@ -2563,27 +2142,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyRenderPass(
     VkRenderPass                                renderPass,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyRenderPass>::Dispatch(VulkanCaptureManager::Get(), device, renderPass, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyRenderPass);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(renderPass);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<RenderPassWrapper>(renderPass);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkRenderPass renderPass_unwrapped = GetWrappedHandle<VkRenderPass>(renderPass);
-
-    GetDeviceTable(device)->DestroyRenderPass(device_unwrapped, renderPass_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyRenderPass>::Dispatch(VulkanCaptureManager::Get(), device, renderPass, pAllocator);
-
-    DestroyWrappedHandle<RenderPassWrapper>(renderPass);
 }
 
 VKAPI_ATTR void VKAPI_CALL GetRenderAreaGranularity(
@@ -2658,27 +2216,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyCommandPool(
     VkCommandPool                               commandPool,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyCommandPool>::Dispatch(VulkanCaptureManager::Get(), device, commandPool, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyCommandPool);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(commandPool);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<CommandPoolWrapper>(commandPool);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkCommandPool commandPool_unwrapped = GetWrappedHandle<VkCommandPool>(commandPool);
-
-    GetDeviceTable(device)->DestroyCommandPool(device_unwrapped, commandPool_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyCommandPool>::Dispatch(VulkanCaptureManager::Get(), device, commandPool, pAllocator);
-
-    DestroyWrappedHandle<CommandPoolWrapper>(commandPool);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL ResetCommandPool(
@@ -2757,30 +2294,6 @@ VKAPI_ATTR void VKAPI_CALL FreeCommandBuffers(
     uint32_t                                    commandBufferCount,
     const VkCommandBuffer*                      pCommandBuffers)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkFreeCommandBuffers>::Dispatch(VulkanCaptureManager::Get(), device, commandPool, commandBufferCount, pCommandBuffers);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkFreeCommandBuffers);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(commandPool);
-        encoder->EncodeUInt32Value(commandBufferCount);
-        encoder->EncodeHandleArray(pCommandBuffers, commandBufferCount);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<CommandBufferWrapper>(commandBufferCount, pCommandBuffers);
-    }
-
-    auto handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkCommandPool commandPool_unwrapped = GetWrappedHandle<VkCommandPool>(commandPool);
-    const VkCommandBuffer* pCommandBuffers_unwrapped = UnwrapHandles<VkCommandBuffer>(pCommandBuffers, commandBufferCount, handle_unwrap_memory);
-
-    GetDeviceTable(device)->FreeCommandBuffers(device_unwrapped, commandPool_unwrapped, commandBufferCount, pCommandBuffers_unwrapped);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkFreeCommandBuffers>::Dispatch(VulkanCaptureManager::Get(), device, commandPool, commandBufferCount, pCommandBuffers);
-
-    DestroyWrappedHandles<CommandBufferWrapper>(pCommandBuffers, commandBufferCount);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL BeginCommandBuffer(
@@ -4703,27 +4216,6 @@ VKAPI_ATTR void VKAPI_CALL DestroySamplerYcbcrConversion(
     VkSamplerYcbcrConversion                    ycbcrConversion,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySamplerYcbcrConversion>::Dispatch(VulkanCaptureManager::Get(), device, ycbcrConversion, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroySamplerYcbcrConversion);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(ycbcrConversion);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<SamplerYcbcrConversionWrapper>(ycbcrConversion);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkSamplerYcbcrConversion ycbcrConversion_unwrapped = GetWrappedHandle<VkSamplerYcbcrConversion>(ycbcrConversion);
-
-    GetDeviceTable(device)->DestroySamplerYcbcrConversion(device_unwrapped, ycbcrConversion_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroySamplerYcbcrConversion>::Dispatch(VulkanCaptureManager::Get(), device, ycbcrConversion, pAllocator);
-
-    DestroyWrappedHandle<SamplerYcbcrConversionWrapper>(ycbcrConversion);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateDescriptorUpdateTemplate(
@@ -4774,27 +4266,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyDescriptorUpdateTemplate(
     VkDescriptorUpdateTemplate                  descriptorUpdateTemplate,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDescriptorUpdateTemplate>::Dispatch(VulkanCaptureManager::Get(), device, descriptorUpdateTemplate, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyDescriptorUpdateTemplate);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(descriptorUpdateTemplate);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<DescriptorUpdateTemplateWrapper>(descriptorUpdateTemplate);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkDescriptorUpdateTemplate descriptorUpdateTemplate_unwrapped = GetWrappedHandle<VkDescriptorUpdateTemplate>(descriptorUpdateTemplate);
-
-    GetDeviceTable(device)->DestroyDescriptorUpdateTemplate(device_unwrapped, descriptorUpdateTemplate_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyDescriptorUpdateTemplate>::Dispatch(VulkanCaptureManager::Get(), device, descriptorUpdateTemplate, pAllocator);
-
-    DestroyWrappedHandle<DescriptorUpdateTemplateWrapper>(descriptorUpdateTemplate);
 }
 
 VKAPI_ATTR void VKAPI_CALL GetPhysicalDeviceExternalBufferProperties(
@@ -5370,27 +4841,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyPrivateDataSlot(
     VkPrivateDataSlot                           privateDataSlot,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyPrivateDataSlot>::Dispatch(VulkanCaptureManager::Get(), device, privateDataSlot, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyPrivateDataSlot);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(privateDataSlot);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<PrivateDataSlotWrapper>(privateDataSlot);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkPrivateDataSlot privateDataSlot_unwrapped = GetWrappedHandle<VkPrivateDataSlot>(privateDataSlot);
-
-    GetDeviceTable(device)->DestroyPrivateDataSlot(device_unwrapped, privateDataSlot_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyPrivateDataSlot>::Dispatch(VulkanCaptureManager::Get(), device, privateDataSlot, pAllocator);
-
-    DestroyWrappedHandle<PrivateDataSlotWrapper>(privateDataSlot);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL SetPrivateData(
@@ -6279,27 +5729,6 @@ VKAPI_ATTR void VKAPI_CALL DestroySurfaceKHR(
     VkSurfaceKHR                                surface,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySurfaceKHR>::Dispatch(VulkanCaptureManager::Get(), instance, surface, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroySurfaceKHR);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(instance);
-        encoder->EncodeHandleValue(surface);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<SurfaceKHRWrapper>(surface);
-    }
-
-    VkInstance instance_unwrapped = GetWrappedHandle<VkInstance>(instance);
-    VkSurfaceKHR surface_unwrapped = GetWrappedHandle<VkSurfaceKHR>(surface);
-
-    GetInstanceTable(instance)->DestroySurfaceKHR(instance_unwrapped, surface_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroySurfaceKHR>::Dispatch(VulkanCaptureManager::Get(), instance, surface, pAllocator);
-
-    DestroyWrappedHandle<SurfaceKHRWrapper>(surface);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL GetPhysicalDeviceSurfaceSupportKHR(
@@ -6496,27 +5925,6 @@ VKAPI_ATTR void VKAPI_CALL DestroySwapchainKHR(
     VkSwapchainKHR                              swapchain,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySwapchainKHR>::Dispatch(VulkanCaptureManager::Get(), device, swapchain, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroySwapchainKHR);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(swapchain);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<SwapchainKHRWrapper>(swapchain);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkSwapchainKHR swapchain_unwrapped = GetWrappedHandle<VkSwapchainKHR>(swapchain);
-
-    GetDeviceTable(device)->DestroySwapchainKHR(device_unwrapped, swapchain_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroySwapchainKHR>::Dispatch(VulkanCaptureManager::Get(), device, swapchain, pAllocator);
-
-    DestroyWrappedHandle<SwapchainKHRWrapper>(swapchain);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL GetSwapchainImagesKHR(
@@ -8201,27 +7609,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyDescriptorUpdateTemplateKHR(
     VkDescriptorUpdateTemplate                  descriptorUpdateTemplate,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDescriptorUpdateTemplateKHR>::Dispatch(VulkanCaptureManager::Get(), device, descriptorUpdateTemplate, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyDescriptorUpdateTemplateKHR);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(descriptorUpdateTemplate);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<DescriptorUpdateTemplateWrapper>(descriptorUpdateTemplate);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkDescriptorUpdateTemplate descriptorUpdateTemplate_unwrapped = GetWrappedHandle<VkDescriptorUpdateTemplate>(descriptorUpdateTemplate);
-
-    GetDeviceTable(device)->DestroyDescriptorUpdateTemplateKHR(device_unwrapped, descriptorUpdateTemplate_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyDescriptorUpdateTemplateKHR>::Dispatch(VulkanCaptureManager::Get(), device, descriptorUpdateTemplate, pAllocator);
-
-    DestroyWrappedHandle<DescriptorUpdateTemplateWrapper>(descriptorUpdateTemplate);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateRenderPass2KHR(
@@ -8989,27 +8376,6 @@ VKAPI_ATTR void VKAPI_CALL DestroySamplerYcbcrConversionKHR(
     VkSamplerYcbcrConversion                    ycbcrConversion,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySamplerYcbcrConversionKHR>::Dispatch(VulkanCaptureManager::Get(), device, ycbcrConversion, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroySamplerYcbcrConversionKHR);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(ycbcrConversion);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<SamplerYcbcrConversionWrapper>(ycbcrConversion);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkSamplerYcbcrConversion ycbcrConversion_unwrapped = GetWrappedHandle<VkSamplerYcbcrConversion>(ycbcrConversion);
-
-    GetDeviceTable(device)->DestroySamplerYcbcrConversionKHR(device_unwrapped, ycbcrConversion_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroySamplerYcbcrConversionKHR>::Dispatch(VulkanCaptureManager::Get(), device, ycbcrConversion, pAllocator);
-
-    DestroyWrappedHandle<SamplerYcbcrConversionWrapper>(ycbcrConversion);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL BindBufferMemory2KHR(
@@ -9480,27 +8846,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyDeferredOperationKHR(
     VkDeferredOperationKHR                      operation,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDeferredOperationKHR>::Dispatch(VulkanCaptureManager::Get(), device, operation, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyDeferredOperationKHR);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(operation);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<DeferredOperationKHRWrapper>(operation);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkDeferredOperationKHR operation_unwrapped = GetWrappedHandle<VkDeferredOperationKHR>(operation);
-
-    GetDeviceTable(device)->DestroyDeferredOperationKHR(device_unwrapped, operation_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyDeferredOperationKHR>::Dispatch(VulkanCaptureManager::Get(), device, operation, pAllocator);
-
-    DestroyWrappedHandle<DeferredOperationKHRWrapper>(operation);
 }
 
 VKAPI_ATTR uint32_t VKAPI_CALL GetDeferredOperationMaxConcurrencyKHR(
@@ -10202,27 +9547,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyDebugReportCallbackEXT(
     VkDebugReportCallbackEXT                    callback,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDebugReportCallbackEXT>::Dispatch(VulkanCaptureManager::Get(), instance, callback, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyDebugReportCallbackEXT);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(instance);
-        encoder->EncodeHandleValue(callback);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<DebugReportCallbackEXTWrapper>(callback);
-    }
-
-    VkInstance instance_unwrapped = GetWrappedHandle<VkInstance>(instance);
-    VkDebugReportCallbackEXT callback_unwrapped = GetWrappedHandle<VkDebugReportCallbackEXT>(callback);
-
-    GetInstanceTable(instance)->DestroyDebugReportCallbackEXT(instance_unwrapped, callback_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyDebugReportCallbackEXT>::Dispatch(VulkanCaptureManager::Get(), instance, callback, pAllocator);
-
-    DestroyWrappedHandle<DebugReportCallbackEXTWrapper>(callback);
 }
 
 VKAPI_ATTR void VKAPI_CALL DebugReportMessageEXT(
@@ -11710,27 +11034,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyDebugUtilsMessengerEXT(
     VkDebugUtilsMessengerEXT                    messenger,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDebugUtilsMessengerEXT>::Dispatch(VulkanCaptureManager::Get(), instance, messenger, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyDebugUtilsMessengerEXT);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(instance);
-        encoder->EncodeHandleValue(messenger);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<DebugUtilsMessengerEXTWrapper>(messenger);
-    }
-
-    VkInstance instance_unwrapped = GetWrappedHandle<VkInstance>(instance);
-    VkDebugUtilsMessengerEXT messenger_unwrapped = GetWrappedHandle<VkDebugUtilsMessengerEXT>(messenger);
-
-    GetInstanceTable(instance)->DestroyDebugUtilsMessengerEXT(instance_unwrapped, messenger_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyDebugUtilsMessengerEXT>::Dispatch(VulkanCaptureManager::Get(), instance, messenger, pAllocator);
-
-    DestroyWrappedHandle<DebugUtilsMessengerEXTWrapper>(messenger);
 }
 
 VKAPI_ATTR void VKAPI_CALL SubmitDebugUtilsMessageEXT(
@@ -11959,27 +11262,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyValidationCacheEXT(
     VkValidationCacheEXT                        validationCache,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyValidationCacheEXT>::Dispatch(VulkanCaptureManager::Get(), device, validationCache, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyValidationCacheEXT);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(validationCache);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<ValidationCacheEXTWrapper>(validationCache);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkValidationCacheEXT validationCache_unwrapped = GetWrappedHandle<VkValidationCacheEXT>(validationCache);
-
-    GetDeviceTable(device)->DestroyValidationCacheEXT(device_unwrapped, validationCache_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyValidationCacheEXT>::Dispatch(VulkanCaptureManager::Get(), device, validationCache, pAllocator);
-
-    DestroyWrappedHandle<ValidationCacheEXTWrapper>(validationCache);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL MergeValidationCachesEXT(
@@ -12180,27 +11462,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyAccelerationStructureNV(
     VkAccelerationStructureNV                   accelerationStructure,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyAccelerationStructureNV>::Dispatch(VulkanCaptureManager::Get(), device, accelerationStructure, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyAccelerationStructureNV);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(accelerationStructure);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<AccelerationStructureNVWrapper>(accelerationStructure);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkAccelerationStructureNV accelerationStructure_unwrapped = GetWrappedHandle<VkAccelerationStructureNV>(accelerationStructure);
-
-    GetDeviceTable(device)->DestroyAccelerationStructureNV(device_unwrapped, accelerationStructure_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyAccelerationStructureNV>::Dispatch(VulkanCaptureManager::Get(), device, accelerationStructure, pAllocator);
-
-    DestroyWrappedHandle<AccelerationStructureNVWrapper>(accelerationStructure);
 }
 
 VKAPI_ATTR void VKAPI_CALL GetAccelerationStructureMemoryRequirementsNV(
@@ -13086,29 +12347,7 @@ VKAPI_ATTR VkResult VKAPI_CALL ReleasePerformanceConfigurationINTEL(
     VkDevice                                    device,
     VkPerformanceConfigurationINTEL             configuration)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkReleasePerformanceConfigurationINTEL>::Dispatch(VulkanCaptureManager::Get(), device, configuration);
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkPerformanceConfigurationINTEL configuration_unwrapped = GetWrappedHandle<VkPerformanceConfigurationINTEL>(configuration);
-
-    VkResult result = GetDeviceTable(device)->ReleasePerformanceConfigurationINTEL(device_unwrapped, configuration_unwrapped);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkReleasePerformanceConfigurationINTEL);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(configuration);
-        encoder->EncodeEnumValue(result);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<PerformanceConfigurationINTELWrapper>(configuration);
-    }
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkReleasePerformanceConfigurationINTEL>::Dispatch(VulkanCaptureManager::Get(), result, device, configuration);
-
-    DestroyWrappedHandle<PerformanceConfigurationINTELWrapper>(configuration);
-
-    return result;
+    return VK_SUCCESS;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL QueueSetPerformanceConfigurationINTEL(
@@ -14085,27 +13324,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyIndirectCommandsLayoutNV(
     VkIndirectCommandsLayoutNV                  indirectCommandsLayout,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyIndirectCommandsLayoutNV>::Dispatch(VulkanCaptureManager::Get(), device, indirectCommandsLayout, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyIndirectCommandsLayoutNV);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(indirectCommandsLayout);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<IndirectCommandsLayoutNVWrapper>(indirectCommandsLayout);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkIndirectCommandsLayoutNV indirectCommandsLayout_unwrapped = GetWrappedHandle<VkIndirectCommandsLayoutNV>(indirectCommandsLayout);
-
-    GetDeviceTable(device)->DestroyIndirectCommandsLayoutNV(device_unwrapped, indirectCommandsLayout_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyIndirectCommandsLayoutNV>::Dispatch(VulkanCaptureManager::Get(), device, indirectCommandsLayout, pAllocator);
-
-    DestroyWrappedHandle<IndirectCommandsLayoutNVWrapper>(indirectCommandsLayout);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL AcquireDrmDisplayEXT(
@@ -14224,27 +13442,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyPrivateDataSlotEXT(
     VkPrivateDataSlot                           privateDataSlot,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyPrivateDataSlotEXT>::Dispatch(VulkanCaptureManager::Get(), device, privateDataSlot, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyPrivateDataSlotEXT);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(privateDataSlot);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<PrivateDataSlotWrapper>(privateDataSlot);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkPrivateDataSlot privateDataSlot_unwrapped = GetWrappedHandle<VkPrivateDataSlot>(privateDataSlot);
-
-    GetDeviceTable(device)->DestroyPrivateDataSlotEXT(device_unwrapped, privateDataSlot_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyPrivateDataSlotEXT>::Dispatch(VulkanCaptureManager::Get(), device, privateDataSlot, pAllocator);
-
-    DestroyWrappedHandle<PrivateDataSlotWrapper>(privateDataSlot);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL SetPrivateDataEXT(
@@ -15090,27 +14287,6 @@ VKAPI_ATTR void VKAPI_CALL DestroyAccelerationStructureKHR(
     VkAccelerationStructureKHR                  accelerationStructure,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto state_lock = VulkanCaptureManager::Get()->AcquireSharedStateLock();
-
-    CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyAccelerationStructureKHR>::Dispatch(VulkanCaptureManager::Get(), device, accelerationStructure, pAllocator);
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkDestroyAccelerationStructureKHR);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue(device);
-        encoder->EncodeHandleValue(accelerationStructure);
-        EncodeStructPtr(encoder, pAllocator);
-        VulkanCaptureManager::Get()->EndDestroyApiCallCapture<AccelerationStructureKHRWrapper>(accelerationStructure);
-    }
-
-    VkDevice device_unwrapped = GetWrappedHandle<VkDevice>(device);
-    VkAccelerationStructureKHR accelerationStructure_unwrapped = GetWrappedHandle<VkAccelerationStructureKHR>(accelerationStructure);
-
-    GetDeviceTable(device)->DestroyAccelerationStructureKHR(device_unwrapped, accelerationStructure_unwrapped, pAllocator);
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyAccelerationStructureKHR>::Dispatch(VulkanCaptureManager::Get(), device, accelerationStructure, pAllocator);
-
-    DestroyWrappedHandle<AccelerationStructureKHRWrapper>(accelerationStructure);
 }
 
 VKAPI_ATTR void VKAPI_CALL CmdBuildAccelerationStructuresKHR(
