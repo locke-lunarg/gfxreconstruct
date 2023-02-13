@@ -1994,7 +1994,7 @@ void VulkanCaptureManager::PreProcess_vkGetBufferDeviceAddress(VkDevice device, 
 void VulkanCaptureManager::PreProcess_vkGetBufferOpaqueCaptureAddress(VkDevice                         device,
                                                                       const VkBufferDeviceAddressInfo* pInfo)
 {
-    auto device_wrapper = reinterpret_cast<DeviceWrapper*>(device);
+    auto device_wrapper = GetWrapperPointerFromHandle<DeviceWrapper*>(device);
     if (!device_wrapper->property_feature_info.feature_bufferDeviceAddressCaptureReplay)
     {
         GFXRECON_LOG_ERROR_ONCE(
@@ -2008,7 +2008,7 @@ void VulkanCaptureManager::PreProcess_vkGetBufferOpaqueCaptureAddress(VkDevice  
 void VulkanCaptureManager::PreProcess_vkGetDeviceMemoryOpaqueCaptureAddress(
     VkDevice device, const VkDeviceMemoryOpaqueCaptureAddressInfo* pInfo)
 {
-    auto device_wrapper = reinterpret_cast<DeviceWrapper*>(device);
+    auto device_wrapper = GetWrapperPointerFromHandle<DeviceWrapper*>(device);
     if (!device_wrapper->property_feature_info.feature_bufferDeviceAddressCaptureReplay)
     {
         GFXRECON_LOG_ERROR_ONCE(
