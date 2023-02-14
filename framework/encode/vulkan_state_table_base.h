@@ -44,31 +44,30 @@ class VulkanStateTableBase
     ~VulkanStateTableBase() {}
 
   protected:
-    template <typename T>
-    bool InsertEntry(format::HandleId id, T* wrapper, std::map<format::HandleId, T*>& map)
+    template <typename Key, typename Wrapper>
+    bool InsertEntry(Key key, Wrapper* wrapper, std::map<Key, Wrapper*>& map)
     {
-        const auto& inserted = map.insert(std::make_pair(id, wrapper));
+        const auto& inserted = map.insert(std::make_pair(key, wrapper));
         return inserted.second;
     }
 
-    template <typename Wrapper>
-    bool RemoveEntry(const Wrapper* wrapper, std::map<format::HandleId, Wrapper*>& map)
+    template <typename Key, typename Wrapper>
+    bool RemoveEntry(const Key key, std::map<Key, Wrapper*>& map)
     {
-        assert(wrapper != nullptr);
-        return (map.erase(wrapper->handle_id) != 0);
+        return (map.erase(key) != 0);
     }
 
-    template <typename T>
-    T* GetWrapper(format::HandleId id, std::map<format::HandleId, T*>& map)
+    template <typename Key, typename Wrapper>
+    Wrapper* GetWrapper(Key key, std::map<Key, Wrapper*>& map)
     {
-        auto entry = map.find(id);
+        auto entry = map.find(key);
         return (entry != map.end()) ? entry->second : nullptr;
     }
 
-    template <typename T>
-    const T* GetWrapper(format::HandleId id, const std::map<format::HandleId, T*>& map) const
+    template <typename Key, typename Wrapper>
+    const Wrapper* GetWrapper(Key key, const std::map<Key, Wrapper*>& map) const
     {
-        auto entry = map.find(id);
+        auto entry = map.find(key);
         return (entry != map.end()) ? entry->second : nullptr;
     }
 };

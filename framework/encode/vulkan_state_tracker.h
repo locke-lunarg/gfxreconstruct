@@ -73,11 +73,11 @@ class VulkanStateTracker
 
         if (*new_handle != VK_NULL_HANDLE)
         {
-            auto wrapper = reinterpret_cast<Wrapper*>(*new_handle);
+            auto wrapper = GetWrapper<Wrapper>(*new_handle);
 
             // Adds the handle wrapper to the object state table, filtering for duplicate handle retrieval.
             std::unique_lock<std::mutex> lock(state_table_mutex_);
-            if (state_table_.InsertWrapper(wrapper->handle_id, wrapper))
+            if (state_table_.InsertWrapper(wrapper))
             {
                 vulkan_state_tracker::InitializeState<ParentHandle, Wrapper, CreateInfo>(
                     parent_handle,
@@ -109,10 +109,10 @@ class VulkanStateTracker
         {
             if (new_handles[i] != VK_NULL_HANDLE)
             {
-                auto wrapper = reinterpret_cast<Wrapper*>(new_handles[i]);
+                auto wrapper = GetWrapper<Wrapper>(new_handles[i]);
 
                 // Adds the handle wrapper to the object state table, filtering for duplicate handle retrieval.
-                if (state_table_.InsertWrapper(wrapper->handle_id, wrapper))
+                if (state_table_.InsertWrapper(wrapper))
                 {
                     vulkan_state_tracker::InitializePoolObjectState(
                         parent_handle, wrapper, i, alloc_info, create_call_id, create_parameters);
@@ -162,7 +162,7 @@ class VulkanStateTracker
             auto wrapper = unwrap_struct_handle(&handle_structs[i]);
 
             // VkDisplayPlaneProperties::currentDisplay can be a null wrapper.
-            if ((wrapper != nullptr) && (state_table_.InsertWrapper(wrapper->handle_id, wrapper)))
+            if ((wrapper != nullptr) && (state_table_.InsertWrapper(wrapper)))
             {
                 vulkan_state_tracker::InitializeGroupObjectState<ParentHandle, void*, Wrapper, void>(
                     parent_handle, nullptr, wrapper, nullptr, create_call_id, create_parameters);
@@ -203,7 +203,7 @@ class VulkanStateTracker
     {
         if (handle != VK_NULL_HANDLE)
         {
-            auto wrapper = reinterpret_cast<Wrapper*>(handle);
+            auto wrapper = GetWrapper<Wrapper>(handle);
 
             // Scope the state table mutex lock because DestroyState also modifies the state table and will attempt to
             // lock the mutex.
@@ -226,7 +226,7 @@ class VulkanStateTracker
     {
         if (command_buffer != VK_NULL_HANDLE)
         {
-            auto wrapper = reinterpret_cast<CommandBufferWrapper*>(command_buffer);
+            auto wrapper = GetWrapper<CommandBufferWrapper>(command_buffer);
 
             TrackCommandExecution(wrapper, call_id, parameter_buffer);
         }
@@ -241,7 +241,7 @@ class VulkanStateTracker
     {
         if (command_buffer != VK_NULL_HANDLE)
         {
-            auto wrapper = reinterpret_cast<CommandBufferWrapper*>(command_buffer);
+            auto wrapper = GetWrapper<CommandBufferWrapper>(command_buffer);
 
             TrackCommandExecution(wrapper, call_id, parameter_buffer);
             func(wrapper, args...);
@@ -419,10 +419,10 @@ class VulkanStateTracker
         {
             if (new_handles[i] != VK_NULL_HANDLE)
             {
-                auto wrapper = reinterpret_cast<Wrapper*>(new_handles[i]);
+                auto wrapper = GetWrapper<Wrapper>(new_handles[i]);
 
                 // Adds the handle wrapper to the object state table, filtering for duplicate handle retrieval.
-                if (state_table_.InsertWrapper(wrapper->handle_id, wrapper))
+                if (state_table_.InsertWrapper(wrapper))
                 {
                     const CreateInfo* create_info = nullptr;
 
