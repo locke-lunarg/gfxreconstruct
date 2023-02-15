@@ -789,7 +789,7 @@ void VulkanStateWriter::WriteDescriptorSetState(const VulkanStateTable& state_ta
         encode_wrapper.handle_id = wrapper->handle_id;
 
         VkWriteDescriptorSet write = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-        write.dstSet               = reinterpret_cast<VkDescriptorSet>(&encode_wrapper);
+        write.dstSet               = encode_wrapper.handle;
 
         for (const auto& binding_entry : wrapper->bindings)
         {
@@ -1652,9 +1652,9 @@ void VulkanStateWriter::WriteBufferMemoryState(const VulkanStateTable& state_tab
                 VkBindBufferMemoryInfo info = {};
                 info.sType                  = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO;
                 info.pNext                  = wrapper->bind_pnext;
-                info.buffer                 = reinterpret_cast<VkBuffer>(const_cast<BufferWrapper*>(wrapper));
-                info.memory       = reinterpret_cast<VkDeviceMemory>(const_cast<DeviceMemoryWrapper*>(memory_wrapper));
-                info.memoryOffset = wrapper->bind_offset;
+                info.buffer                 = wrapper->handle;
+                info.memory                 = memory_wrapper->handle;
+                info.memoryOffset           = wrapper->bind_offset;
                 EncodeStructArray(&encoder_, &info, 1);
                 encoder_.EncodeEnumValue(VK_SUCCESS);
 
@@ -1739,9 +1739,9 @@ void VulkanStateWriter::WriteImageMemoryState(const VulkanStateTable& state_tabl
                 VkBindImageMemoryInfo info = {};
                 info.sType                 = VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO;
                 info.pNext                 = wrapper->bind_pnext;
-                info.image                 = reinterpret_cast<VkImage>(const_cast<ImageWrapper*>(wrapper));
-                info.memory       = reinterpret_cast<VkDeviceMemory>(const_cast<DeviceMemoryWrapper*>(memory_wrapper));
-                info.memoryOffset = wrapper->bind_offset;
+                info.image                 = wrapper->handle;
+                info.memory                = memory_wrapper->handle;
+                info.memoryOffset          = wrapper->bind_offset;
                 EncodeStructArray(&encoder_, &info, 1);
                 encoder_.EncodeEnumValue(VK_SUCCESS);
 
@@ -1988,7 +1988,7 @@ void VulkanStateWriter::WriteMappedMemoryState(const VulkanStateTable& state_tab
         if (wrapper->mapped_data != nullptr)
         {
             const VkResult result         = VK_SUCCESS;
-            const auto     device_wrapper = reinterpret_cast<DeviceWrapper*>(wrapper->map_device);
+            const auto     device_wrapper = wrapper->map_device;
 
             // Map the replay memory.
             encoder_.EncodeHandleIdValue(device_wrapper->handle_id);
@@ -2044,7 +2044,7 @@ void VulkanStateWriter::WriteSwapchainImageState(const VulkanStateTable& state_t
             if (wrapper->image_acquired_info[i].last_presented_queue != VK_NULL_HANDLE)
             {
                 auto queue_wrapper =
-                    reinterpret_cast<const QueueWrapper*>(wrapper->image_acquired_info[i].last_presented_queue);
+                    GetWrapper<const QueueWrapper>(wrapper->image_acquired_info[i].last_presented_queue);
                 info.last_presented_queue_id = queue_wrapper->handle_id;
             }
             else
@@ -2235,7 +2235,7 @@ void VulkanStateWriter::WriteGetPhysicalDeviceSurfacePresentModes(format::Handle
         surface_info2.sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR;
         surface_info2.pNext   = present_modes.surface_info_pnext;
         auto surface_wrapper  = state_table.GetSurfaceKHRWrapper(surface_id);
-        surface_info2.surface = reinterpret_cast<VkSurfaceKHR>(const_cast<SurfaceKHRWrapper*>(surface_wrapper));
+        surface_info2.surface = surface_wrapper->handle;
 
         // First write the call to retrieve the size.
         encoder_.EncodeHandleIdValue(physical_device_id);
@@ -2282,7 +2282,7 @@ void VulkanStateWriter::WriteGetDeviceGroupSurfacePresentModes(format::HandleId 
         surface_info2.sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR;
         surface_info2.pNext   = present_modes.surface_info_pnext;
         auto surface_wrapper  = state_table.GetSurfaceKHRWrapper(surface_id);
-        surface_info2.surface = reinterpret_cast<VkSurfaceKHR>(const_cast<SurfaceKHRWrapper*>(surface_wrapper));
+        surface_info2.surface = surface_wrapper->handle;
 
         encoder_.EncodeHandleIdValue(device_id);
         EncodeStructPtr(&encoder_, &surface_info2);
@@ -2334,7 +2334,7 @@ void VulkanStateWriter::WriteCommandProcessingCreateCommands(format::HandleId de
 
     VkCommandBufferAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
     alloc_info.pNext                       = nullptr;
-    alloc_info.commandPool                 = reinterpret_cast<VkCommandPool>(&encode_wrapper);
+    alloc_info.commandPool                 = encode_wrapper.handle;
     alloc_info.level                       = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     alloc_info.commandBufferCount          = 1;
 
