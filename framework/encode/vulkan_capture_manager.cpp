@@ -619,8 +619,7 @@ VkResult VulkanCaptureManager::OverrideCreateDevice(VkPhysicalDevice            
                                                     const VkAllocationCallbacks* pAllocator,
                                                     VkDevice*                    pDevice)
 {
-    auto                handle_unwrap_memory     = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
-    VkPhysicalDevice    physicalDevice_unwrapped = GetWrappedHandle<VkPhysicalDevice>(physicalDevice);
+    auto                handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
     VkDeviceCreateInfo* pCreateInfo_unwrapped =
         const_cast<VkDeviceCreateInfo*>(UnwrapStructPtrHandles(pCreateInfo, handle_unwrap_memory));
 
@@ -631,7 +630,7 @@ VkResult VulkanCaptureManager::OverrideCreateDevice(VkPhysicalDevice            
 
     graphics::VulkanDeviceUtil                device_util;
     graphics::VulkanDevicePropertyFeatureInfo property_feature_info = device_util.EnableRequiredPhysicalDeviceFeatures(
-        physical_device_wrapper->instance_api_version, instance_table, physicalDevice_unwrapped, pCreateInfo_unwrapped);
+        physical_device_wrapper->instance_api_version, instance_table, physicalDevice, pCreateInfo_unwrapped);
 
     // TODO: Only enable KHR_external_memory_capabilities for 1.0 API version.
     size_t                   extension_count = pCreateInfo_unwrapped->enabledExtensionCount;
@@ -676,7 +675,7 @@ VkResult VulkanCaptureManager::OverrideCreateDevice(VkPhysicalDevice            
     pCreateInfo_unwrapped->enabledExtensionCount   = static_cast<uint32_t>(modified_extensions.size());
     pCreateInfo_unwrapped->ppEnabledExtensionNames = modified_extensions.data();
 
-    VkResult result = layer_table_.CreateDevice(physicalDevice_unwrapped, pCreateInfo_unwrapped, pAllocator, pDevice);
+    VkResult result = layer_table_.CreateDevice(physicalDevice, pCreateInfo_unwrapped, pAllocator, pDevice);
 
     if (result == VK_SUCCESS)
     {
@@ -808,7 +807,6 @@ VkResult VulkanCaptureManager::OverrideCreateImage(VkDevice                     
                                                    VkImage*                     pImage)
 {
     auto                     handle_unwrap_memory  = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
-    VkDevice                 device_unwrapped      = GetWrappedHandle<VkDevice>(device);
     const VkImageCreateInfo* pCreateInfo_unwrapped = UnwrapStructPtrHandles(pCreateInfo, handle_unwrap_memory);
 
     VkImageCreateInfo modified_create_info = (*pCreateInfo_unwrapped);
@@ -818,7 +816,7 @@ VkResult VulkanCaptureManager::OverrideCreateImage(VkDevice                     
         modified_create_info.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     }
 
-    VkResult result = GetDeviceTable(device)->CreateImage(device_unwrapped, &modified_create_info, pAllocator, pImage);
+    VkResult result = GetDeviceTable(device)->CreateImage(device, &modified_create_info, pAllocator, pImage);
 
     if (result >= 0)
     {
@@ -863,8 +861,7 @@ VulkanCaptureManager::OverrideCreateAccelerationStructureKHR(VkDevice           
 
         if (device_wrapper->property_feature_info.feature_accelerationStructureCaptureReplay)
         {
-            auto accel_struct_wrapper =
-                GetWrapper<AccelerationStructureKHRWrapper>(*pAccelerationStructureKHR);
+            auto accel_struct_wrapper = GetWrapper<AccelerationStructureKHRWrapper>(*pAccelerationStructureKHR);
 
             VkAccelerationStructureDeviceAddressInfoKHR address_info{
                 VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR, nullptr, accel_struct_wrapper->handle
@@ -1077,10 +1074,8 @@ VkResult VulkanCaptureManager::OverrideGetPhysicalDeviceToolPropertiesEXT(
         }
     }
 
-    auto physicalDevice_unwrapped = GetWrappedHandle<VkPhysicalDevice>(physicalDevice);
-
     VkResult result = GetInstanceTable(physicalDevice)
-                          ->GetPhysicalDeviceToolPropertiesEXT(physicalDevice_unwrapped, pToolCount, pToolProperties);
+                          ->GetPhysicalDeviceToolPropertiesEXT(physicalDevice, pToolCount, pToolProperties);
 
     if (original_pToolProperties != nullptr)
     {
@@ -1104,14 +1099,11 @@ VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice             
                                                            const VkAllocationCallbacks*             pAllocator,
                                                            VkPipeline*                              pPipelines)
 {
-    auto                   device_wrapper              = GetWrapper<DeviceWrapper>(device);
-    VkDevice               device_unwrapped            = device_wrapper->handle;
-    const DeviceTable*     device_table                = GetDeviceTable(device);
-    VkDeferredOperationKHR deferredOperation_unwrapped = GetWrappedHandle<VkDeferredOperationKHR>(deferredOperation);
-    auto deferred_operation_wrapper = GetWrapper<DeferredOperationKHRWrapper>(deferredOperation);
+    auto               device_wrapper             = GetWrapper<DeviceWrapper>(device);
+    const DeviceTable* device_table               = GetDeviceTable(device);
+    auto               deferred_operation_wrapper = GetWrapper<DeferredOperationKHRWrapper>(deferredOperation);
 
-    VkPipelineCache     pipelineCache_unwrapped = GetWrappedHandle<VkPipelineCache>(pipelineCache);
-    HandleUnwrapMemory* handle_unwrap_memory    = nullptr;
+    HandleUnwrapMemory* handle_unwrap_memory = nullptr;
 
     if (deferred_operation_wrapper)
     {
@@ -1150,9 +1142,9 @@ VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice             
             std::memcpy(deferred_operation_wrapper->create_infos.data(),
                         modified_create_infos.get(),
                         sizeof(VkRayTracingPipelineCreateInfoKHR) * createInfoCount);
-            result = device_table->CreateRayTracingPipelinesKHR(device_unwrapped,
-                                                                deferredOperation_unwrapped,
-                                                                pipelineCache_unwrapped,
+            result = device_table->CreateRayTracingPipelinesKHR(device,
+                                                                deferredOperation,
+                                                                pipelineCache,
                                                                 createInfoCount,
                                                                 deferred_operation_wrapper->create_infos.data(),
                                                                 deferred_operation_wrapper->p_allocator,
@@ -1162,9 +1154,9 @@ VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice             
         }
         else
         {
-            result = device_table->CreateRayTracingPipelinesKHR(device_unwrapped,
-                                                                deferredOperation_unwrapped,
-                                                                pipelineCache_unwrapped,
+            result = device_table->CreateRayTracingPipelinesKHR(device,
+                                                                deferredOperation,
+                                                                pipelineCache,
                                                                 createInfoCount,
                                                                 modified_create_infos.get(),
                                                                 pAllocator,
@@ -1183,9 +1175,9 @@ VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice             
             std::memcpy(deferred_operation_wrapper->create_infos.data(),
                         pCreateInfos_unwrapped,
                         sizeof(VkRayTracingPipelineCreateInfoKHR) * createInfoCount);
-            result = device_table->CreateRayTracingPipelinesKHR(device_unwrapped,
-                                                                deferredOperation_unwrapped,
-                                                                pipelineCache_unwrapped,
+            result = device_table->CreateRayTracingPipelinesKHR(device,
+                                                                deferredOperation,
+                                                                pipelineCache,
                                                                 createInfoCount,
                                                                 deferred_operation_wrapper->create_infos.data(),
                                                                 deferred_operation_wrapper->p_allocator,
@@ -1195,9 +1187,9 @@ VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice             
         }
         else
         {
-            result = device_table->CreateRayTracingPipelinesKHR(device_unwrapped,
-                                                                deferredOperation_unwrapped,
-                                                                pipelineCache_unwrapped,
+            result = device_table->CreateRayTracingPipelinesKHR(device,
+                                                                deferredOperation,
+                                                                pipelineCache,
                                                                 createInfoCount,
                                                                 pCreateInfos_unwrapped,
                                                                 pAllocator,
@@ -1228,7 +1220,7 @@ VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice             
                 std::vector<uint8_t> data(data_size);
 
                 device_table->GetRayTracingCaptureReplayShaderGroupHandlesKHR(
-                    device_unwrapped, pipeline_wrapper->handle, 0, pCreateInfos[i].groupCount, data_size, data.data());
+                    device, pipeline_wrapper->handle, 0, pCreateInfos[i].groupCount, data_size, data.data());
 
                 WriteSetRayTracingShaderGroupHandlesCommand(
                     device_wrapper->handle_id, pipeline_wrapper->handle_id, data_size, data.data());
