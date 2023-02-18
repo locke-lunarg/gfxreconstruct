@@ -63,7 +63,11 @@ class WrapperManager
     void Add(uint64_t id, void* wrapper)
     {
         const std::lock_guard<std::mutex> lock(mutex_);
-        wrapper_map_[id] = wrapper;
+        auto it = wrapper_map_.insert(std::pair(id, wrapper));
+        if (it.second == false)
+        {
+            GFXRECON_LOG_WARNING("Add duplicated The Vulkan object with the following handle %" PRId64 "", id);
+        }
     }
 
     void* Get(uint64_t id)
