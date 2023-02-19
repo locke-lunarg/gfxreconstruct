@@ -73,24 +73,31 @@ class VulkanStateTableBase
     }
 
     template <typename Wrapper>
-    bool InsertEntry(typename Wrapper::HandleType                      handle,
-                     Wrapper*                                          wrapper,
-                     std::map<typename Wrapper::HandleType, Wrapper*>& map)
+    bool InsertEntry(typename Wrapper::HandleType                           handle,
+                     Wrapper*                                               wrapper,
+                     std::multimap<typename Wrapper::HandleType, Wrapper*>& map)
     {
         const std::lock_guard<std::mutex> lock(mutex_);
-        const auto&                       inserted = map.insert(std::make_pair(handle, wrapper));
-        return inserted.second;
+        map.insert(std::make_pair(handle, wrapper));
+        return true;
     }
 
     template <typename Wrapper>
-    bool RemoveEntry(const typename Wrapper::HandleType handle, std::map<typename Wrapper::HandleType, Wrapper*>& map)
+    bool RemoveEntry(const typename Wrapper::HandleType                     handle,
+                     std::multimap<typename Wrapper::HandleType, Wrapper*>& map)
     {
         const std::lock_guard<std::mutex> lock(mutex_);
-        return (map.erase(handle) != 0);
+        auto                              it = map.find(handle);
+        if (it == map.end())
+        {
+            return false;
+        }
+        map.erase(it);
+        return true;
     }
 
     template <typename Wrapper>
-    Wrapper* GetWrapper(typename Wrapper::HandleType handle, std::map<typename Wrapper::HandleType, Wrapper*>& map)
+    Wrapper* GetWrapper(typename Wrapper::HandleType handle, std::multimap<typename Wrapper::HandleType, Wrapper*>& map)
     {
         const std::lock_guard<std::mutex> lock(mutex_);
         auto                              entry = map.find(handle);
@@ -98,8 +105,8 @@ class VulkanStateTableBase
     }
 
     template <typename Wrapper>
-    const Wrapper* GetWrapper(typename Wrapper::HandleType                            handle,
-                              const std::map<typename Wrapper::HandleType, Wrapper*>& map) const
+    const Wrapper* GetWrapper(typename Wrapper::HandleType                                 handle,
+                              const std::multimap<typename Wrapper::HandleType, Wrapper*>& map) const
     {
         const std::lock_guard<std::mutex> lock(mutex_);
         auto                              entry = map.find(handle);

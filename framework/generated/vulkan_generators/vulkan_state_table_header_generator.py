@@ -118,7 +118,7 @@ class VulkanStateTableHeaderGenerator(BaseGenerator):
             vk_remove_code += '    bool RemoveWrapper(const {0}* wrapper) {{ return RemoveEntry(wrapper->handle, {1}); }}\n'.format(handle_wrapper, handle_map)
             vk_get_code += '    {0}* GetWrapper({1} handle) {{ return VulkanStateTableBase::GetWrapper(handle, {2}); }}\n'.format(handle_wrapper, vkhandle_name, handle_map)
             vk_const_get_code += '    const {0}* GetWrapper({1} handle) const {{ return VulkanStateTableBase::GetWrapper(handle, {2}); }}\n'.format(handle_wrapper, vkhandle_name, handle_map)
-            vk_map_code += '    std::map<{0}, {1}*> {2};\n'.format(vkhandle_name, handle_wrapper, handle_map)
+            vk_map_code += '    std::multimap<{0}, {1}*> {2};\n'.format(vkhandle_name, handle_wrapper, handle_map)
 
         self.newline()
         code = 'class VulkanStateTable : VulkanStateTableBase\n'
