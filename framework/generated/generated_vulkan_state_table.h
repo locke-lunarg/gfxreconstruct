@@ -364,50 +364,182 @@ class VulkanStateHandleTable : VulkanStateTableBase
     bool InsertWrapper(VideoSessionKHRWrapper* wrapper) { return InsertEntry(wrapper->handle, wrapper, videoSessionKHR_map_); }
     bool InsertWrapper(VideoSessionParametersKHRWrapper* wrapper) { return InsertEntry(wrapper->handle, wrapper, videoSessionParametersKHR_map_); }
 
-    bool RemoveWrapper(const AccelerationStructureKHRWrapper* wrapper) { return RemoveEntry(wrapper->handle, accelerationStructureKHR_map_); }
-    bool RemoveWrapper(const AccelerationStructureNVWrapper* wrapper) { return RemoveEntry(wrapper->handle, accelerationStructureNV_map_); }
-    bool RemoveWrapper(const BufferWrapper* wrapper) { return RemoveEntry(wrapper->handle, buffer_map_); }
-    bool RemoveWrapper(const BufferViewWrapper* wrapper) { return RemoveEntry(wrapper->handle, bufferView_map_); }
-    bool RemoveWrapper(const CommandBufferWrapper* wrapper) { return RemoveEntry(wrapper->handle, commandBuffer_map_); }
-    bool RemoveWrapper(const CommandPoolWrapper* wrapper) { return RemoveEntry(wrapper->handle, commandPool_map_); }
-    bool RemoveWrapper(const DebugReportCallbackEXTWrapper* wrapper) { return RemoveEntry(wrapper->handle, debugReportCallbackEXT_map_); }
-    bool RemoveWrapper(const DebugUtilsMessengerEXTWrapper* wrapper) { return RemoveEntry(wrapper->handle, debugUtilsMessengerEXT_map_); }
-    bool RemoveWrapper(const DeferredOperationKHRWrapper* wrapper) { return RemoveEntry(wrapper->handle, deferredOperationKHR_map_); }
-    bool RemoveWrapper(const DescriptorPoolWrapper* wrapper) { return RemoveEntry(wrapper->handle, descriptorPool_map_); }
-    bool RemoveWrapper(const DescriptorSetWrapper* wrapper) { return RemoveEntry(wrapper->handle, descriptorSet_map_); }
-    bool RemoveWrapper(const DescriptorSetLayoutWrapper* wrapper) { return RemoveEntry(wrapper->handle, descriptorSetLayout_map_); }
-    bool RemoveWrapper(const DescriptorUpdateTemplateWrapper* wrapper) { return RemoveEntry(wrapper->handle, descriptorUpdateTemplate_map_); }
-    bool RemoveWrapper(const DeviceWrapper* wrapper) { return RemoveEntry(wrapper->handle, device_map_); }
-    bool RemoveWrapper(const DeviceMemoryWrapper* wrapper) { return RemoveEntry(wrapper->handle, deviceMemory_map_); }
-    bool RemoveWrapper(const DisplayKHRWrapper* wrapper) { return RemoveEntry(wrapper->handle, displayKHR_map_); }
-    bool RemoveWrapper(const DisplayModeKHRWrapper* wrapper) { return RemoveEntry(wrapper->handle, displayModeKHR_map_); }
-    bool RemoveWrapper(const EventWrapper* wrapper) { return RemoveEntry(wrapper->handle, event_map_); }
-    bool RemoveWrapper(const FenceWrapper* wrapper) { return RemoveEntry(wrapper->handle, fence_map_); }
-    bool RemoveWrapper(const FramebufferWrapper* wrapper) { return RemoveEntry(wrapper->handle, framebuffer_map_); }
-    bool RemoveWrapper(const ImageWrapper* wrapper) { return RemoveEntry(wrapper->handle, image_map_); }
-    bool RemoveWrapper(const ImageViewWrapper* wrapper) { return RemoveEntry(wrapper->handle, imageView_map_); }
-    bool RemoveWrapper(const IndirectCommandsLayoutNVWrapper* wrapper) { return RemoveEntry(wrapper->handle, indirectCommandsLayoutNV_map_); }
-    bool RemoveWrapper(const InstanceWrapper* wrapper) { return RemoveEntry(wrapper->handle, instance_map_); }
-    bool RemoveWrapper(const MicromapEXTWrapper* wrapper) { return RemoveEntry(wrapper->handle, micromapEXT_map_); }
-    bool RemoveWrapper(const OpticalFlowSessionNVWrapper* wrapper) { return RemoveEntry(wrapper->handle, opticalFlowSessionNV_map_); }
-    bool RemoveWrapper(const PerformanceConfigurationINTELWrapper* wrapper) { return RemoveEntry(wrapper->handle, performanceConfigurationINTEL_map_); }
-    bool RemoveWrapper(const PhysicalDeviceWrapper* wrapper) { return RemoveEntry(wrapper->handle, physicalDevice_map_); }
-    bool RemoveWrapper(const PipelineWrapper* wrapper) { return RemoveEntry(wrapper->handle, pipeline_map_); }
-    bool RemoveWrapper(const PipelineCacheWrapper* wrapper) { return RemoveEntry(wrapper->handle, pipelineCache_map_); }
-    bool RemoveWrapper(const PipelineLayoutWrapper* wrapper) { return RemoveEntry(wrapper->handle, pipelineLayout_map_); }
-    bool RemoveWrapper(const PrivateDataSlotWrapper* wrapper) { return RemoveEntry(wrapper->handle, privateDataSlot_map_); }
-    bool RemoveWrapper(const QueryPoolWrapper* wrapper) { return RemoveEntry(wrapper->handle, queryPool_map_); }
-    bool RemoveWrapper(const QueueWrapper* wrapper) { return RemoveEntry(wrapper->handle, queue_map_); }
-    bool RemoveWrapper(const RenderPassWrapper* wrapper) { return RemoveEntry(wrapper->handle, renderPass_map_); }
-    bool RemoveWrapper(const SamplerWrapper* wrapper) { return RemoveEntry(wrapper->handle, sampler_map_); }
-    bool RemoveWrapper(const SamplerYcbcrConversionWrapper* wrapper) { return RemoveEntry(wrapper->handle, samplerYcbcrConversion_map_); }
-    bool RemoveWrapper(const SemaphoreWrapper* wrapper) { return RemoveEntry(wrapper->handle, semaphore_map_); }
-    bool RemoveWrapper(const ShaderModuleWrapper* wrapper) { return RemoveEntry(wrapper->handle, shaderModule_map_); }
-    bool RemoveWrapper(const SurfaceKHRWrapper* wrapper) { return RemoveEntry(wrapper->handle, surfaceKHR_map_); }
-    bool RemoveWrapper(const SwapchainKHRWrapper* wrapper) { return RemoveEntry(wrapper->handle, swapchainKHR_map_); }
-    bool RemoveWrapper(const ValidationCacheEXTWrapper* wrapper) { return RemoveEntry(wrapper->handle, validationCacheEXT_map_); }
-    bool RemoveWrapper(const VideoSessionKHRWrapper* wrapper) { return RemoveEntry(wrapper->handle, videoSessionKHR_map_); }
-    bool RemoveWrapper(const VideoSessionParametersKHRWrapper* wrapper) { return RemoveEntry(wrapper->handle, videoSessionParametersKHR_map_); }
+    bool RemoveWrapper(const AccelerationStructureKHRWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, accelerationStructureKHR_map_);
+    }
+    bool RemoveWrapper(const AccelerationStructureNVWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, accelerationStructureNV_map_);
+    }
+    bool RemoveWrapper(const BufferWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, buffer_map_);
+    }
+    bool RemoveWrapper(const BufferViewWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, bufferView_map_);
+    }
+    bool RemoveWrapper(const CommandBufferWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, commandBuffer_map_);
+    }
+    bool RemoveWrapper(const CommandPoolWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, commandPool_map_);
+    }
+    bool RemoveWrapper(const DebugReportCallbackEXTWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, debugReportCallbackEXT_map_);
+    }
+    bool RemoveWrapper(const DebugUtilsMessengerEXTWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, debugUtilsMessengerEXT_map_);
+    }
+    bool RemoveWrapper(const DeferredOperationKHRWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, deferredOperationKHR_map_);
+    }
+    bool RemoveWrapper(const DescriptorPoolWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, descriptorPool_map_);
+    }
+    bool RemoveWrapper(const DescriptorSetWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, descriptorSet_map_);
+    }
+    bool RemoveWrapper(const DescriptorSetLayoutWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, descriptorSetLayout_map_);
+    }
+    bool RemoveWrapper(const DescriptorUpdateTemplateWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, descriptorUpdateTemplate_map_);
+    }
+    bool RemoveWrapper(const DeviceWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, device_map_);
+    }
+    bool RemoveWrapper(const DeviceMemoryWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, deviceMemory_map_);
+    }
+    bool RemoveWrapper(const DisplayKHRWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, displayKHR_map_);
+    }
+    bool RemoveWrapper(const DisplayModeKHRWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, displayModeKHR_map_);
+    }
+    bool RemoveWrapper(const EventWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, event_map_);
+    }
+    bool RemoveWrapper(const FenceWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, fence_map_);
+    }
+    bool RemoveWrapper(const FramebufferWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, framebuffer_map_);
+    }
+    bool RemoveWrapper(const ImageWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, image_map_);
+    }
+    bool RemoveWrapper(const ImageViewWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, imageView_map_);
+    }
+    bool RemoveWrapper(const IndirectCommandsLayoutNVWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, indirectCommandsLayoutNV_map_);
+    }
+    bool RemoveWrapper(const InstanceWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, instance_map_);
+    }
+    bool RemoveWrapper(const MicromapEXTWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, micromapEXT_map_);
+    }
+    bool RemoveWrapper(const OpticalFlowSessionNVWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, opticalFlowSessionNV_map_);
+    }
+    bool RemoveWrapper(const PerformanceConfigurationINTELWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, performanceConfigurationINTEL_map_);
+    }
+    bool RemoveWrapper(const PhysicalDeviceWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, physicalDevice_map_);
+    }
+    bool RemoveWrapper(const PipelineWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, pipeline_map_);
+    }
+    bool RemoveWrapper(const PipelineCacheWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, pipelineCache_map_);
+    }
+    bool RemoveWrapper(const PipelineLayoutWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, pipelineLayout_map_);
+    }
+    bool RemoveWrapper(const PrivateDataSlotWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, privateDataSlot_map_);
+    }
+    bool RemoveWrapper(const QueryPoolWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, queryPool_map_);
+    }
+    bool RemoveWrapper(const QueueWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, queue_map_);
+    }
+    bool RemoveWrapper(const RenderPassWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, renderPass_map_);
+    }
+    bool RemoveWrapper(const SamplerWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, sampler_map_);
+    }
+    bool RemoveWrapper(const SamplerYcbcrConversionWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, samplerYcbcrConversion_map_);
+    }
+    bool RemoveWrapper(const SemaphoreWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, semaphore_map_);
+    }
+    bool RemoveWrapper(const ShaderModuleWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, shaderModule_map_);
+    }
+    bool RemoveWrapper(const SurfaceKHRWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, surfaceKHR_map_);
+    }
+    bool RemoveWrapper(const SwapchainKHRWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, swapchainKHR_map_);
+    }
+    bool RemoveWrapper(const ValidationCacheEXTWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, validationCacheEXT_map_);
+    }
+    bool RemoveWrapper(const VideoSessionKHRWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, videoSessionKHR_map_);
+    }
+    bool RemoveWrapper(const VideoSessionParametersKHRWrapper* wrapper) {
+         if (wrapper == nullptr) return false;
+         return RemoveEntry(wrapper->handle, videoSessionParametersKHR_map_);
+    }
 
     const AccelerationStructureKHRWrapper* GetWrapper(VkAccelerationStructureKHR handle) const { return VulkanStateTableBase::GetWrapper(handle, accelerationStructureKHR_map_); }
     const AccelerationStructureNVWrapper* GetWrapper(VkAccelerationStructureNV handle) const { return VulkanStateTableBase::GetWrapper(handle, accelerationStructureNV_map_); }
