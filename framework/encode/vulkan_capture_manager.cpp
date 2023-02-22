@@ -57,6 +57,13 @@ LayerTable            VulkanCaptureManager::layer_table_;
 
 bool VulkanCaptureManager::CreateInstance()
 {
+    static bool first = true;
+    if (first)
+    {
+        first = false;
+        MessageBox(0, "Waiting for debugger to attach.", "Waiting", MB_OK);
+    }
+
     bool result = CaptureManager::CreateInstance([]() -> CaptureManager* { return instance_; },
                                                  []() {
                                                      assert(instance_ == nullptr);
