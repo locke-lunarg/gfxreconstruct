@@ -502,6 +502,7 @@ class VulkanStateHandleTable : VulkanStateTableBase
     }
     bool RemoveWrapper(const RenderPassWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("Remove RenderPassWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, renderPass_map_);
     }
     bool RemoveWrapper(const SamplerWrapper* wrapper) {
