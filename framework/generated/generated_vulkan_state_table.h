@@ -366,178 +366,222 @@ class VulkanStateHandleTable : VulkanStateTableBase
 
     bool RemoveWrapper(const AccelerationStructureKHRWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper AccelerationStructureKHRWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, accelerationStructureKHR_map_);
     }
     bool RemoveWrapper(const AccelerationStructureNVWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper AccelerationStructureNVWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, accelerationStructureNV_map_);
     }
     bool RemoveWrapper(const BufferWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper BufferWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, buffer_map_);
     }
     bool RemoveWrapper(const BufferViewWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper BufferViewWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, bufferView_map_);
     }
     bool RemoveWrapper(const CommandBufferWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper CommandBufferWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, commandBuffer_map_);
     }
     bool RemoveWrapper(const CommandPoolWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper CommandPoolWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, commandPool_map_);
     }
     bool RemoveWrapper(const DebugReportCallbackEXTWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DebugReportCallbackEXTWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, debugReportCallbackEXT_map_);
     }
     bool RemoveWrapper(const DebugUtilsMessengerEXTWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DebugUtilsMessengerEXTWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, debugUtilsMessengerEXT_map_);
     }
     bool RemoveWrapper(const DeferredOperationKHRWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DeferredOperationKHRWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, deferredOperationKHR_map_);
     }
     bool RemoveWrapper(const DescriptorPoolWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DescriptorPoolWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, descriptorPool_map_);
     }
     bool RemoveWrapper(const DescriptorSetWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DescriptorSetWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, descriptorSet_map_);
     }
     bool RemoveWrapper(const DescriptorSetLayoutWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DescriptorSetLayoutWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, descriptorSetLayout_map_);
     }
     bool RemoveWrapper(const DescriptorUpdateTemplateWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DescriptorUpdateTemplateWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, descriptorUpdateTemplate_map_);
     }
     bool RemoveWrapper(const DeviceWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DeviceWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, device_map_);
     }
     bool RemoveWrapper(const DeviceMemoryWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DeviceMemoryWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, deviceMemory_map_);
     }
     bool RemoveWrapper(const DisplayKHRWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DisplayKHRWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, displayKHR_map_);
     }
     bool RemoveWrapper(const DisplayModeKHRWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper DisplayModeKHRWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, displayModeKHR_map_);
     }
     bool RemoveWrapper(const EventWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper EventWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, event_map_);
     }
     bool RemoveWrapper(const FenceWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper FenceWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, fence_map_);
     }
     bool RemoveWrapper(const FramebufferWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper FramebufferWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, framebuffer_map_);
     }
     bool RemoveWrapper(const ImageWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper ImageWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, image_map_);
     }
     bool RemoveWrapper(const ImageViewWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper ImageViewWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, imageView_map_);
     }
     bool RemoveWrapper(const IndirectCommandsLayoutNVWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper IndirectCommandsLayoutNVWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, indirectCommandsLayoutNV_map_);
     }
     bool RemoveWrapper(const InstanceWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper InstanceWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, instance_map_);
     }
     bool RemoveWrapper(const MicromapEXTWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper MicromapEXTWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, micromapEXT_map_);
     }
     bool RemoveWrapper(const OpticalFlowSessionNVWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper OpticalFlowSessionNVWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, opticalFlowSessionNV_map_);
     }
     bool RemoveWrapper(const PerformanceConfigurationINTELWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper PerformanceConfigurationINTELWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, performanceConfigurationINTEL_map_);
     }
     bool RemoveWrapper(const PhysicalDeviceWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper PhysicalDeviceWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, physicalDevice_map_);
     }
     bool RemoveWrapper(const PipelineWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper PipelineWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, pipeline_map_);
     }
     bool RemoveWrapper(const PipelineCacheWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper PipelineCacheWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, pipelineCache_map_);
     }
     bool RemoveWrapper(const PipelineLayoutWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper PipelineLayoutWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, pipelineLayout_map_);
     }
     bool RemoveWrapper(const PrivateDataSlotWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper PrivateDataSlotWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, privateDataSlot_map_);
     }
     bool RemoveWrapper(const QueryPoolWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper QueryPoolWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, queryPool_map_);
     }
     bool RemoveWrapper(const QueueWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper QueueWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, queue_map_);
     }
     bool RemoveWrapper(const RenderPassWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper RenderPassWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, renderPass_map_);
     }
     bool RemoveWrapper(const SamplerWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper SamplerWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, sampler_map_);
     }
     bool RemoveWrapper(const SamplerYcbcrConversionWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper SamplerYcbcrConversionWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, samplerYcbcrConversion_map_);
     }
     bool RemoveWrapper(const SemaphoreWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper SemaphoreWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, semaphore_map_);
     }
     bool RemoveWrapper(const ShaderModuleWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper ShaderModuleWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, shaderModule_map_);
     }
     bool RemoveWrapper(const SurfaceKHRWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper SurfaceKHRWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, surfaceKHR_map_);
     }
     bool RemoveWrapper(const SwapchainKHRWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper SwapchainKHRWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, swapchainKHR_map_);
     }
     bool RemoveWrapper(const ValidationCacheEXTWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper ValidationCacheEXTWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, validationCacheEXT_map_);
     }
     bool RemoveWrapper(const VideoSessionKHRWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper VideoSessionKHRWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, videoSessionKHR_map_);
     }
     bool RemoveWrapper(const VideoSessionParametersKHRWrapper* wrapper) {
          if (wrapper == nullptr) return false;
+         GFXRECON_LOG_WARNING("RemoveWrapper VideoSessionParametersKHRWrapper Handle: %" PRIu64 "", wrapper->handle);
          return RemoveEntry(wrapper->handle, videoSessionParametersKHR_map_);
     }
 
