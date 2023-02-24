@@ -3758,18 +3758,15 @@ VKAPI_ATTR void VKAPI_CALL CmdBeginRenderPass(
     }
     auto c = GetWrapper<CommandBufferWrapper>(commandBuffer);
     if(!c){
-        int i =0;
-        ++i;
+        GFXRECON_LOG_WARNING("CmdBeginRenderPass commandBuffer Handle: %" PRIu64 " not found", commandBuffer);
     }
     auto r = GetWrapper<RenderPassWrapper>(pRenderPassBegin->renderPass);
     if(!r){
-        int i =0;
-        ++i;
+        GFXRECON_LOG_WARNING("CmdBeginRenderPass renderPass Handle: %" PRIu64 " not found", pRenderPassBegin->renderPass);
     }
     auto f = GetWrapper<FramebufferWrapper>(pRenderPassBegin->framebuffer);
     if(!f){
-        int i =0;
-        ++i;
+        GFXRECON_LOG_WARNING("CmdBeginRenderPass framebuffer Handle: %" PRIu64 " not found", pRenderPassBegin->framebuffer);
     }
     auto handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
     const VkRenderPassBeginInfo* pRenderPassBegin_unwrapped = UnwrapStructPtrHandles(pRenderPassBegin, handle_unwrap_memory);
