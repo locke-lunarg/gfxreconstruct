@@ -3756,7 +3756,21 @@ VKAPI_ATTR void VKAPI_CALL CmdBeginRenderPass(
         encoder->EncodeEnumValue(contents);
         VulkanCaptureManager::Get()->EndCommandApiCallCapture(commandBuffer, TrackCmdBeginRenderPassHandles, pRenderPassBegin);
     }
-
+    auto c = GetWrapper<CommandBufferWrapper>(commandBuffer);
+    if(!c){
+        int i =0;
+        ++i;
+    }
+    auto r = GetWrapper<RenderPassWrapper>(pRenderPassBegin->renderPass);
+    if(!r){
+        int i =0;
+        ++i;
+    }
+    auto f = GetWrapper<FramebufferWrapper>(pRenderPassBegin->framebuffer);
+    if(!f){
+        int i =0;
+        ++i;
+    }
     auto handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
     const VkRenderPassBeginInfo* pRenderPassBegin_unwrapped = UnwrapStructPtrHandles(pRenderPassBegin, handle_unwrap_memory);
 
