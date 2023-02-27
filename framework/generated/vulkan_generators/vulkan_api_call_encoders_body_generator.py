@@ -230,7 +230,7 @@ class VulkanApiCallEncodersBodyGenerator(BaseGenerator):
 
         body = ''
 
-        if name == "vkCreateInstance" or name == "vkQueuePresentKHR":
+        if "Create" in name or "Destroy" in name or name == "vkQueuePresentKHR":
             body += indent + 'auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();\n'
         else:
             body += indent + 'auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();\n'

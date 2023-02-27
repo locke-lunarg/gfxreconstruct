@@ -88,7 +88,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyInstance(
     VkInstance                                  instance,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyInstance>::Dispatch(VulkanCaptureManager::Get(), instance, pAllocator);
 
@@ -299,7 +299,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDevice(
     const VkAllocationCallbacks*                pAllocator,
     VkDevice*                                   pDevice)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -331,7 +331,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyDevice(
     VkDevice                                    device,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDevice>::Dispatch(VulkanCaptureManager::Get(), device, pAllocator);
 
@@ -848,7 +848,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateFence(
     const VkAllocationCallbacks*                pAllocator,
     VkFence*                                    pFence)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -886,7 +886,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyFence(
     VkFence                                     fence,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyFence>::Dispatch(VulkanCaptureManager::Get(), device, fence, pAllocator);
 
@@ -992,7 +992,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateSemaphore(
     const VkAllocationCallbacks*                pAllocator,
     VkSemaphore*                                pSemaphore)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1030,7 +1030,7 @@ VKAPI_ATTR void VKAPI_CALL DestroySemaphore(
     VkSemaphore                                 semaphore,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySemaphore>::Dispatch(VulkanCaptureManager::Get(), device, semaphore, pAllocator);
 
@@ -1056,7 +1056,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateEvent(
     const VkAllocationCallbacks*                pAllocator,
     VkEvent*                                    pEvent)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1094,7 +1094,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyEvent(
     VkEvent                                     event,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyEvent>::Dispatch(VulkanCaptureManager::Get(), device, event, pAllocator);
 
@@ -1192,7 +1192,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateQueryPool(
     const VkAllocationCallbacks*                pAllocator,
     VkQueryPool*                                pQueryPool)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1230,7 +1230,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyQueryPool(
     VkQueryPool                                 queryPool,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyQueryPool>::Dispatch(VulkanCaptureManager::Get(), device, queryPool, pAllocator);
 
@@ -1298,7 +1298,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateBuffer(
     const VkAllocationCallbacks*                pAllocator,
     VkBuffer*                                   pBuffer)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1331,7 +1331,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyBuffer(
     VkBuffer                                    buffer,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyBuffer>::Dispatch(VulkanCaptureManager::Get(), device, buffer, pAllocator);
 
@@ -1357,7 +1357,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateBufferView(
     const VkAllocationCallbacks*                pAllocator,
     VkBufferView*                               pView)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1398,7 +1398,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyBufferView(
     VkBufferView                                bufferView,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyBufferView>::Dispatch(VulkanCaptureManager::Get(), device, bufferView, pAllocator);
 
@@ -1424,7 +1424,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateImage(
     const VkAllocationCallbacks*                pAllocator,
     VkImage*                                    pImage)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1457,7 +1457,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyImage(
     VkImage                                     image,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyImage>::Dispatch(VulkanCaptureManager::Get(), device, image, pAllocator);
 
@@ -1508,7 +1508,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateImageView(
     const VkAllocationCallbacks*                pAllocator,
     VkImageView*                                pView)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1549,7 +1549,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyImageView(
     VkImageView                                 imageView,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyImageView>::Dispatch(VulkanCaptureManager::Get(), device, imageView, pAllocator);
 
@@ -1575,7 +1575,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateShaderModule(
     const VkAllocationCallbacks*                pAllocator,
     VkShaderModule*                             pShaderModule)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1616,7 +1616,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyShaderModule(
     VkShaderModule                              shaderModule,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyShaderModule>::Dispatch(VulkanCaptureManager::Get(), device, shaderModule, pAllocator);
 
@@ -1642,7 +1642,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreatePipelineCache(
     const VkAllocationCallbacks*                pAllocator,
     VkPipelineCache*                            pPipelineCache)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1680,7 +1680,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyPipelineCache(
     VkPipelineCache                             pipelineCache,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyPipelineCache>::Dispatch(VulkanCaptureManager::Get(), device, pipelineCache, pAllocator);
 
@@ -1770,7 +1770,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateGraphicsPipelines(
     const VkAllocationCallbacks*                pAllocator,
     VkPipeline*                                 pPipelines)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1816,7 +1816,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateComputePipelines(
     const VkAllocationCallbacks*                pAllocator,
     VkPipeline*                                 pPipelines)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1859,7 +1859,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyPipeline(
     VkPipeline                                  pipeline,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyPipeline>::Dispatch(VulkanCaptureManager::Get(), device, pipeline, pAllocator);
 
@@ -1885,7 +1885,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreatePipelineLayout(
     const VkAllocationCallbacks*                pAllocator,
     VkPipelineLayout*                           pPipelineLayout)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1926,7 +1926,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyPipelineLayout(
     VkPipelineLayout                            pipelineLayout,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyPipelineLayout>::Dispatch(VulkanCaptureManager::Get(), device, pipelineLayout, pAllocator);
 
@@ -1952,7 +1952,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateSampler(
     const VkAllocationCallbacks*                pAllocator,
     VkSampler*                                  pSampler)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -1993,7 +1993,7 @@ VKAPI_ATTR void VKAPI_CALL DestroySampler(
     VkSampler                                   sampler,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySampler>::Dispatch(VulkanCaptureManager::Get(), device, sampler, pAllocator);
 
@@ -2019,7 +2019,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDescriptorSetLayout(
     const VkAllocationCallbacks*                pAllocator,
     VkDescriptorSetLayout*                      pSetLayout)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -2060,7 +2060,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyDescriptorSetLayout(
     VkDescriptorSetLayout                       descriptorSetLayout,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDescriptorSetLayout>::Dispatch(VulkanCaptureManager::Get(), device, descriptorSetLayout, pAllocator);
 
@@ -2086,7 +2086,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDescriptorPool(
     const VkAllocationCallbacks*                pAllocator,
     VkDescriptorPool*                           pDescriptorPool)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -2124,7 +2124,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyDescriptorPool(
     VkDescriptorPool                            descriptorPool,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDescriptorPool>::Dispatch(VulkanCaptureManager::Get(), device, descriptorPool, pAllocator);
 
@@ -2277,7 +2277,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateFramebuffer(
     const VkAllocationCallbacks*                pAllocator,
     VkFramebuffer*                              pFramebuffer)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -2318,7 +2318,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyFramebuffer(
     VkFramebuffer                               framebuffer,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyFramebuffer>::Dispatch(VulkanCaptureManager::Get(), device, framebuffer, pAllocator);
 
@@ -2344,7 +2344,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateRenderPass(
     const VkAllocationCallbacks*                pAllocator,
     VkRenderPass*                               pRenderPass)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -2382,7 +2382,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyRenderPass(
     VkRenderPass                                renderPass,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyRenderPass>::Dispatch(VulkanCaptureManager::Get(), device, renderPass, pAllocator);
 
@@ -2431,7 +2431,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateCommandPool(
     const VkAllocationCallbacks*                pAllocator,
     VkCommandPool*                              pCommandPool)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -2469,7 +2469,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyCommandPool(
     VkCommandPool                               commandPool,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyCommandPool>::Dispatch(VulkanCaptureManager::Get(), device, commandPool, pAllocator);
 
@@ -3756,18 +3756,7 @@ VKAPI_ATTR void VKAPI_CALL CmdBeginRenderPass(
         encoder->EncodeEnumValue(contents);
         VulkanCaptureManager::Get()->EndCommandApiCallCapture(commandBuffer, TrackCmdBeginRenderPassHandles, pRenderPassBegin);
     }
-    auto c = GetWrapper<CommandBufferWrapper>(commandBuffer);
-    if(!c){
-        GFXRECON_LOG_WARNING("CmdBeginRenderPass commandBuffer Handle: %" PRIu64 " not found", commandBuffer);
-    }
-    auto r = GetWrapper<RenderPassWrapper>(pRenderPassBegin->renderPass);
-    if(!r){
-        GFXRECON_LOG_WARNING("CmdBeginRenderPass renderPass Handle: %" PRIu64 " not found", pRenderPassBegin->renderPass);
-    }
-    auto f = GetWrapper<FramebufferWrapper>(pRenderPassBegin->framebuffer);
-    if(!f){
-        GFXRECON_LOG_WARNING("CmdBeginRenderPass framebuffer Handle: %" PRIu64 " not found", pRenderPassBegin->framebuffer);
-    }
+
     auto handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
     const VkRenderPassBeginInfo* pRenderPassBegin_unwrapped = UnwrapStructPtrHandles(pRenderPassBegin, handle_unwrap_memory);
 
@@ -4313,7 +4302,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateSamplerYcbcrConversion(
     const VkAllocationCallbacks*                pAllocator,
     VkSamplerYcbcrConversion*                   pYcbcrConversion)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -4351,7 +4340,7 @@ VKAPI_ATTR void VKAPI_CALL DestroySamplerYcbcrConversion(
     VkSamplerYcbcrConversion                    ycbcrConversion,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySamplerYcbcrConversion>::Dispatch(VulkanCaptureManager::Get(), device, ycbcrConversion, pAllocator);
 
@@ -4377,7 +4366,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDescriptorUpdateTemplate(
     const VkAllocationCallbacks*                pAllocator,
     VkDescriptorUpdateTemplate*                 pDescriptorUpdateTemplate)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -4418,7 +4407,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyDescriptorUpdateTemplate(
     VkDescriptorUpdateTemplate                  descriptorUpdateTemplate,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDescriptorUpdateTemplate>::Dispatch(VulkanCaptureManager::Get(), device, descriptorUpdateTemplate, pAllocator);
 
@@ -4601,7 +4590,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateRenderPass2(
     const VkAllocationCallbacks*                pAllocator,
     VkRenderPass*                               pRenderPass)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -4936,7 +4925,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreatePrivateDataSlot(
     const VkAllocationCallbacks*                pAllocator,
     VkPrivateDataSlot*                          pPrivateDataSlot)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -4974,7 +4963,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyPrivateDataSlot(
     VkPrivateDataSlot                           privateDataSlot,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyPrivateDataSlot>::Dispatch(VulkanCaptureManager::Get(), device, privateDataSlot, pAllocator);
 
@@ -5814,7 +5803,7 @@ VKAPI_ATTR void VKAPI_CALL DestroySurfaceKHR(
     VkSurfaceKHR                                surface,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySurfaceKHR>::Dispatch(VulkanCaptureManager::Get(), instance, surface, pAllocator);
 
@@ -5974,7 +5963,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateSwapchainKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkSwapchainKHR*                             pSwapchain)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -6015,7 +6004,7 @@ VKAPI_ATTR void VKAPI_CALL DestroySwapchainKHR(
     VkSwapchainKHR                              swapchain,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySwapchainKHR>::Dispatch(VulkanCaptureManager::Get(), device, swapchain, pAllocator);
 
@@ -6429,7 +6418,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDisplayModeKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkDisplayModeKHR*                           pMode)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -6503,7 +6492,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDisplayPlaneSurfaceKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -6546,7 +6535,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateSharedSwapchainsKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkSwapchainKHR*                             pSwapchains)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -6589,7 +6578,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateXlibSurfaceKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -6656,7 +6645,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateXcbSurfaceKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -6723,7 +6712,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateWaylandSurfaceKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -6788,7 +6777,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateAndroidSurfaceKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -6827,7 +6816,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateWin32SurfaceKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -6956,7 +6945,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateVideoSessionKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkVideoSessionKHR*                          pVideoSession)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -6994,7 +6983,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyVideoSessionKHR(
     VkVideoSessionKHR                           videoSession,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyVideoSessionKHR>::Dispatch(VulkanCaptureManager::Get(), device, videoSession, pAllocator);
 
@@ -7085,7 +7074,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateVideoSessionParametersKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkVideoSessionParametersKHR*                pVideoSessionParameters)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -7152,7 +7141,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyVideoSessionParametersKHR(
     VkVideoSessionParametersKHR                 videoSessionParameters,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyVideoSessionParametersKHR>::Dispatch(VulkanCaptureManager::Get(), device, videoSessionParameters, pAllocator);
 
@@ -7956,7 +7945,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDescriptorUpdateTemplateKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkDescriptorUpdateTemplate*                 pDescriptorUpdateTemplate)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -7997,7 +7986,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyDescriptorUpdateTemplateKHR(
     VkDescriptorUpdateTemplate                  descriptorUpdateTemplate,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDescriptorUpdateTemplateKHR>::Dispatch(VulkanCaptureManager::Get(), device, descriptorUpdateTemplate, pAllocator);
 
@@ -8023,7 +8012,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateRenderPass2KHR(
     const VkAllocationCallbacks*                pAllocator,
     VkRenderPass*                               pRenderPass)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -8705,7 +8694,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateSamplerYcbcrConversionKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkSamplerYcbcrConversion*                   pYcbcrConversion)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -8743,7 +8732,7 @@ VKAPI_ATTR void VKAPI_CALL DestroySamplerYcbcrConversionKHR(
     VkSamplerYcbcrConversion                    ycbcrConversion,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroySamplerYcbcrConversionKHR>::Dispatch(VulkanCaptureManager::Get(), device, ycbcrConversion, pAllocator);
 
@@ -9166,7 +9155,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDeferredOperationKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkDeferredOperationKHR*                     pDeferredOperation)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -9203,7 +9192,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyDeferredOperationKHR(
     VkDeferredOperationKHR                      operation,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDeferredOperationKHR>::Dispatch(VulkanCaptureManager::Get(), device, operation, pAllocator);
 
@@ -9885,7 +9874,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDebugReportCallbackEXT(
     const VkAllocationCallbacks*                pAllocator,
     VkDebugReportCallbackEXT*                   pCallback)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -9923,7 +9912,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyDebugReportCallbackEXT(
     VkDebugReportCallbackEXT                    callback,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDebugReportCallbackEXT>::Dispatch(VulkanCaptureManager::Get(), instance, callback, pAllocator);
 
@@ -10422,7 +10411,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateStreamDescriptorSurfaceGGP(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -10537,7 +10526,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateViSurfaceNN(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -11063,7 +11052,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateIOSSurfaceMVK(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -11102,7 +11091,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateMacOSSurfaceMVK(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -11321,7 +11310,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDebugUtilsMessengerEXT(
     const VkAllocationCallbacks*                pAllocator,
     VkDebugUtilsMessengerEXT*                   pMessenger)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -11359,7 +11348,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyDebugUtilsMessengerEXT(
     VkDebugUtilsMessengerEXT                    messenger,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyDebugUtilsMessengerEXT>::Dispatch(VulkanCaptureManager::Get(), instance, messenger, pAllocator);
 
@@ -11553,7 +11542,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateValidationCacheEXT(
     const VkAllocationCallbacks*                pAllocator,
     VkValidationCacheEXT*                       pValidationCache)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -11591,7 +11580,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyValidationCacheEXT(
     VkValidationCacheEXT                        validationCache,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyValidationCacheEXT>::Dispatch(VulkanCaptureManager::Get(), device, validationCache, pAllocator);
 
@@ -11752,7 +11741,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateAccelerationStructureNV(
     const VkAllocationCallbacks*                pAllocator,
     VkAccelerationStructureNV*                  pAccelerationStructure)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -11793,7 +11782,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyAccelerationStructureNV(
     VkAccelerationStructureNV                   accelerationStructure,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyAccelerationStructureNV>::Dispatch(VulkanCaptureManager::Get(), device, accelerationStructure, pAllocator);
 
@@ -11986,7 +11975,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateRayTracingPipelinesNV(
     const VkAllocationCallbacks*                pAllocator,
     VkPipeline*                                 pPipelines)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -12756,7 +12745,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateImagePipeSurfaceFUCHSIA(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -12795,7 +12784,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateMetalSurfaceEXT(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -13077,7 +13066,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateHeadlessSurfaceEXT(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -13566,7 +13555,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateIndirectCommandsLayoutNV(
     const VkAllocationCallbacks*                pAllocator,
     VkIndirectCommandsLayoutNV*                 pIndirectCommandsLayout)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -13607,7 +13596,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyIndirectCommandsLayoutNV(
     VkIndirectCommandsLayoutNV                  indirectCommandsLayout,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyIndirectCommandsLayoutNV>::Dispatch(VulkanCaptureManager::Get(), device, indirectCommandsLayout, pAllocator);
 
@@ -13698,7 +13687,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreatePrivateDataSlotEXT(
     const VkAllocationCallbacks*                pAllocator,
     VkPrivateDataSlot*                          pPrivateDataSlot)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -13736,7 +13725,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyPrivateDataSlotEXT(
     VkPrivateDataSlot                           privateDataSlot,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyPrivateDataSlotEXT>::Dispatch(VulkanCaptureManager::Get(), device, privateDataSlot, pAllocator);
 
@@ -13960,7 +13949,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateDirectFBSurfaceEXT(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -14346,7 +14335,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateScreenSurfaceQNX(
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -14494,7 +14483,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateMicromapEXT(
     const VkAllocationCallbacks*                pAllocator,
     VkMicromapEXT*                              pMicromap)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -14535,7 +14524,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyMicromapEXT(
     VkMicromapEXT                               micromap,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyMicromapEXT>::Dispatch(VulkanCaptureManager::Get(), device, micromap, pAllocator);
 
@@ -15714,7 +15703,7 @@ VKAPI_ATTR void VKAPI_CALL GetShaderModuleCreateInfoIdentifierEXT(
     const VkShaderModuleCreateInfo*             pCreateInfo,
     VkShaderModuleIdentifierEXT*                pIdentifier)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkGetShaderModuleCreateInfoIdentifierEXT>::Dispatch(VulkanCaptureManager::Get(), device, pCreateInfo, pIdentifier);
 
@@ -15775,7 +15764,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateOpticalFlowSessionNV(
     const VkAllocationCallbacks*                pAllocator,
     VkOpticalFlowSessionNV*                     pSession)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -15813,7 +15802,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyOpticalFlowSessionNV(
     VkOpticalFlowSessionNV                      session,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyOpticalFlowSessionNV>::Dispatch(VulkanCaptureManager::Get(), device, session, pAllocator);
 
@@ -15961,7 +15950,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateAccelerationStructureKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkAccelerationStructureKHR*                 pAccelerationStructure)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
@@ -15994,7 +15983,7 @@ VKAPI_ATTR void VKAPI_CALL DestroyAccelerationStructureKHR(
     VkAccelerationStructureKHR                  accelerationStructure,
     const VkAllocationCallbacks*                pAllocator)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkDestroyAccelerationStructureKHR>::Dispatch(VulkanCaptureManager::Get(), device, accelerationStructure, pAllocator);
 
@@ -16395,7 +16384,7 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateRayTracingPipelinesKHR(
     const VkAllocationCallbacks*                pAllocator,
     VkPipeline*                                 pPipelines)
 {
-    auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();
+    auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();
 
     bool omit_output_data = false;
 
