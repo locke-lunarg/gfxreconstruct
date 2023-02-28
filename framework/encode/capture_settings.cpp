@@ -113,6 +113,8 @@ GFXRECON_BEGIN_NAMESPACE(encode)
 #define DISABLE_DXR_UPPER                                    "DISABLE_DXR"
 #define ACCEL_STRUCT_PADDING_LOWER                           "accel_struct_padding"
 #define ACCEL_STRUCT_PADDING_UPPER                           "ACCEL_STRUCT_PADDING"
+#define ENABLE_EXCLUSIVE_LOCK_LOWER                          "enable_exclusive_lock"
+#define ENABLE_EXCLUSIVE_LOCK_UPPER                          "ENABLE_EXCLUSIVE_LOCK"
 
 #if defined(__ANDROID__)
 // Android Properties
@@ -156,6 +158,7 @@ const char kDebugDeviceLostEnvVar[]                          = GFXRECON_ENV_VAR_
 const char kCaptureAndroidTriggerEnvVar[]                    = GFXRECON_ENV_VAR_PREFIX CAPTURE_ANDROID_TRIGGER_LOWER;
 const char kDisableDxrEnvVar[]                               = GFXRECON_ENV_VAR_PREFIX DISABLE_DXR_LOWER;
 const char kAccelStructPaddingEnvVar[]                       = GFXRECON_ENV_VAR_PREFIX ACCEL_STRUCT_PADDING_LOWER;
+const char kEnableExclusiveLockEnvVar[]                      = GFXRECON_ENV_VAR_PREFIX ENABLE_EXCLUSIVE_LOCK_LOWER;
 
 
 #else
@@ -199,6 +202,7 @@ const char kDebugLayerEnvVar[]                               = GFXRECON_ENV_VAR_
 const char kDebugDeviceLostEnvVar[]                          = GFXRECON_ENV_VAR_PREFIX DEBUG_DEVICE_LOST_UPPER;
 const char kDisableDxrEnvVar[]                               = GFXRECON_ENV_VAR_PREFIX DISABLE_DXR_UPPER;
 const char kAccelStructPaddingEnvVar[]                       = GFXRECON_ENV_VAR_PREFIX ACCEL_STRUCT_PADDING_UPPER;
+const char kEnableExclusiveLockEnvVar[]                      = GFXRECON_ENV_VAR_PREFIX ENABLE_EXCLUSIVE_LOCK_UPPER;
 #endif
 
 // Capture options for settings file.
@@ -239,6 +243,7 @@ const std::string kDebugLayer                                        = std::stri
 const std::string kDebugDeviceLost                                   = std::string(kSettingsFilter) + std::string(DEBUG_DEVICE_LOST_LOWER);
 const std::string kOptionDisableDxr                                  = std::string(kSettingsFilter) + std::string(DISABLE_DXR_LOWER);
 const std::string kOptionAccelStructPadding                          = std::string(kSettingsFilter) + std::string(ACCEL_STRUCT_PADDING_LOWER);
+const std::string kOptionEnableExclusiveLock                         = std::string(kSettingsFilter) + std::string(ENABLE_EXCLUSIVE_LOCK_LOWER);
 
 #if defined(ENABLE_LZ4_COMPRESSION)
 const format::CompressionType kDefaultCompressionType = format::CompressionType::kLz4;
@@ -377,6 +382,8 @@ void CaptureSettings::LoadOptionsEnvVar(OptionsMap* options)
 
     // IUnknown wrapping environment variable
     LoadSingleOptionEnvVar(options, kCaptureIUnknownWrappingEnvVar, kOptionKeyCaptureIUnknownWrapping);
+
+    LoadSingleOptionEnvVar(options, kEnableExclusiveLockEnvVar, kOptionEnableExclusiveLock);
 }
 
 void CaptureSettings::LoadOptionsFile(OptionsMap* options)
@@ -489,6 +496,9 @@ void CaptureSettings::ProcessOptions(OptionsMap* options, CaptureSettings* setti
     // IUnknown wrapping option
     settings->trace_settings_.iunknown_wrapping =
         ParseBoolString(FindOption(options, kOptionKeyCaptureIUnknownWrapping), settings->trace_settings_.disable_dxr);
+
+    settings->trace_settings_.enable_exclusive_lock = ParseBoolString(FindOption(options, kOptionEnableExclusiveLock),
+                                                                      settings->trace_settings_.enable_exclusive_lock);
 }
 
 void CaptureSettings::ProcessLogOptions(OptionsMap* options, CaptureSettings* settings)
