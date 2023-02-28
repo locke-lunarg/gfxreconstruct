@@ -45,37 +45,37 @@ class VulkanStateTableBase
 
   protected:
     template <typename T>
-    bool InsertEntry(format::HandleId id, T* wrapper, std::map<format::HandleId, T*>& map)
+    bool InsertEntry(format::HandleId id, T* wrapper, std::unordered_map<format::HandleId, T*>& map)
     {
         const auto& inserted = map.insert(std::make_pair(id, wrapper));
         return inserted.second;
     }
 
     template <typename Wrapper>
-    bool RemoveEntry(const Wrapper* wrapper, std::map<format::HandleId, Wrapper*>& map)
+    bool RemoveEntry(const Wrapper* wrapper, std::unordered_map<format::HandleId, Wrapper*>& map)
     {
         assert(wrapper != nullptr);
         return (map.erase(wrapper->handle_id) != 0);
     }
 
     template <typename T>
-    T* GetWrapper(format::HandleId id, std::map<format::HandleId, T*>& map)
+    T* GetWrapper(format::HandleId id, std::unordered_map<format::HandleId, T*>& map)
     {
         auto entry = map.find(id);
         return (entry != map.end()) ? entry->second : nullptr;
     }
 
     template <typename T>
-    const T* GetWrapper(format::HandleId id, const std::map<format::HandleId, T*>& map) const
+    const T* GetWrapper(format::HandleId id, const std::unordered_map<format::HandleId, T*>& map) const
     {
         auto entry = map.find(id);
         return (entry != map.end()) ? entry->second : nullptr;
     }
 
     template <typename Wrapper>
-    bool InsertEntry(typename Wrapper::HandleType                      handle,
-                     Wrapper*                                          wrapper,
-                     std::map<typename Wrapper::HandleType, Wrapper*>& map)
+    bool InsertEntry(typename Wrapper::HandleType                                handle,
+                     Wrapper*                                                    wrapper,
+                     std::unordered_map<typename Wrapper::HandleType, Wrapper*>& map)
     {
         const std::lock_guard<std::mutex> lock(mutex_);
         const auto&                       inserted = map.insert(std::make_pair(handle, wrapper));
@@ -83,14 +83,16 @@ class VulkanStateTableBase
     }
 
     template <typename Wrapper>
-    bool RemoveEntry(const typename Wrapper::HandleType handle, std::map<typename Wrapper::HandleType, Wrapper*>& map)
+    bool RemoveEntry(const typename Wrapper::HandleType                          handle,
+                     std::unordered_map<typename Wrapper::HandleType, Wrapper*>& map)
     {
         const std::lock_guard<std::mutex> lock(mutex_);
         return (map.erase(handle) != 0);
     }
 
     template <typename Wrapper>
-    Wrapper* GetWrapper(typename Wrapper::HandleType handle, std::map<typename Wrapper::HandleType, Wrapper*>& map)
+    Wrapper* GetWrapper(typename Wrapper::HandleType                                handle,
+                        std::unordered_map<typename Wrapper::HandleType, Wrapper*>& map)
     {
         const std::lock_guard<std::mutex> lock(mutex_);
         auto                              entry = map.find(handle);
@@ -98,8 +100,8 @@ class VulkanStateTableBase
     }
 
     template <typename Wrapper>
-    const Wrapper* GetWrapper(typename Wrapper::HandleType                            handle,
-                              const std::map<typename Wrapper::HandleType, Wrapper*>& map) const
+    const Wrapper* GetWrapper(typename Wrapper::HandleType                                      handle,
+                              const std::unordered_map<typename Wrapper::HandleType, Wrapper*>& map) const
     {
         const std::lock_guard<std::mutex> lock(mutex_);
         auto                              entry = map.find(handle);
