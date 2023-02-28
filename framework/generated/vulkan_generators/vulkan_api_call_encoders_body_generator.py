@@ -233,7 +233,11 @@ class VulkanApiCallEncodersBodyGenerator(BaseGenerator):
         if name == "vkCreateInstance" or name == "vkQueuePresentKHR":
             body += indent + 'auto api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();\n'
         else:
-            body += indent + 'auto api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();\n'
+            body += indent + 'auto enable_exclusive_lock = VulkanCaptureManager::Get()->GetEnableExclusiveLock();\n'
+            body += indent + 'std::shared_lock<CaptureManager::ApiCallMutexT> shared_api_call_lock;\n'
+            body += indent + 'std::unique_lock<CaptureManager::ApiCallMutexT> exclusive_api_call_lock;\n'
+            body += indent + 'if (enable_exclusive_lock) exclusive_api_call_lock = VulkanCaptureManager::AcquireExclusiveApiCallLock();\n'
+            body += indent + 'else shared_api_call_lock = VulkanCaptureManager::AcquireSharedApiCallLock();\n'
 
         body += '\n'
 
