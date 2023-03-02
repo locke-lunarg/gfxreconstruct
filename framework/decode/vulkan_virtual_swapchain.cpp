@@ -24,6 +24,9 @@
 
 #include "decode/vulkan_resource_allocator.h"
 
+#include "generated/generated_vulkan_enum_to_string.h"
+
+
 #include <array>
 
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
@@ -54,7 +57,15 @@ VkResult VulkanVirtualSwapchain::CreateSwapchainKHR(PFN_vkCreateSwapchainKHR    
     VkSurfaceCapabilitiesKHR surfCapabilities;
     auto                     result = instance_table_->GetPhysicalDeviceSurfaceCapabilitiesKHR(
         physical_device, create_info->surface, &surfCapabilities);
-    GFXRECON_ASSERT(result == VK_SUCCESS);
+
+    GFXRECON_LOG_INFO(
+        "VulkanVirtualSwapchain::CreateSwapchainKHR instance_table_->GetPhysicalDeviceSurfaceCapabilitiesKHR %s",
+        util::ToString<VkResult>(result).c_str());
+    if (result != VK_SUCCESS)
+    {
+        GFXRECON_LOG_INFO("VulkanVirtualSwapchain::CreateSwapchainKHR result != VK_SUCCESS");
+    }
+    // GFXRECON_ASSERT(result == VK_SUCCESS);
 
     if (modified_create_info.minImageCount < surfCapabilities.minImageCount)
     {
