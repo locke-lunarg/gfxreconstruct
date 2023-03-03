@@ -79,6 +79,13 @@ class VulkanStateTableBase
     {
         const std::lock_guard<std::mutex> lock(mutex_);
         const auto&                       inserted = map.insert(std::make_pair(handle, wrapper));
+
+        auto it = handles.insert(reinterpret_cast<uint64_t>(handle));
+        if (it.second == false)
+        {
+            GFXRECON_LOG_WARNING(
+                "Create a duplicated Handle: %" PRIu64 ". They could be the same or different hande type.", handle);
+        }
         return inserted.second;
     }
 
@@ -87,6 +94,7 @@ class VulkanStateTableBase
                      std::unordered_map<typename Wrapper::HandleType, Wrapper*>& map)
     {
         const std::lock_guard<std::mutex> lock(mutex_);
+        handles.erase(reinterpret_cast<uint64_t>(handle));
         return (map.erase(handle) != 0);
     }
 
@@ -109,6 +117,7 @@ class VulkanStateTableBase
     }
 
     mutable std::mutex mutex_;
+    std::set<uint64_t> handles;
 };
 
 GFXRECON_END_NAMESPACE(encode)
