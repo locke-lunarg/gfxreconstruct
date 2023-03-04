@@ -415,13 +415,19 @@ struct SwapchainKHRInfo : public VulkanObjectInfo<VkSwapchainKHR>
         VulkanResourceAllocator::MemoryData   memory_allocator_data{ 0 };
         VulkanResourceAllocator::ResourceData resource_allocator_data{ 0 };
     };
-    uint32_t                     replay_image_count{ 0 };
-    std::vector<VirtualImage>    virtual_images; // Images created by replay, returned in place of the swapchain images.
-    std::vector<VkImage>         swapchain_images; // The real swapchain images.
-    VkQueue                      blit_queue{ VK_NULL_HANDLE };
-    VkCommandPool                blit_command_pool{ VK_NULL_HANDLE };
-    std::vector<VkCommandBuffer> blit_command_buffers;
-    std::vector<VkSemaphore>     blit_semaphores;
+    uint32_t replay_image_count{ 0 };
+
+    struct VirtualSwapchain
+    {
+        std::vector<VirtualImage>
+                             virtual_images;   // Images created by replay, returned in place of the swapchain images.
+        std::vector<VkImage> swapchain_images; // The real swapchain images.
+        VkQueue              queue{ VK_NULL_HANDLE };
+        VkCommandPool        command_pool{ VK_NULL_HANDLE };
+        std::vector<VkCommandBuffer> get_swapchain_images_cmdbufs;
+        std::vector<VkCommandBuffer> queue_present_cmdbufs;
+        std::vector<VkSemaphore>     queue_present_semaphores;
+    } virtual_swapchain_;
 };
 
 struct ValidationCacheEXTInfo : public VulkanObjectInfo<VkValidationCacheEXT>

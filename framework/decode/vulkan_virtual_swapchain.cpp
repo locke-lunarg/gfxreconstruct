@@ -142,10 +142,10 @@ VkResult VulkanVirtualSwapchain::GetSwapchainImagesKHR(PFN_vkGetSwapchainImagesK
 
     if ((result == VK_SUCCESS) && (image_count != nullptr))
     {
-        if (swapchain_info->blit_command_pool == VK_NULL_HANDLE)
+        if (swapchain_info->virtual_swapchain_.command_pool == VK_NULL_HANDLE)
         {
             device_table_->GetDeviceQueue(
-                device, swapchain_info->queue_family_indices[0], 0, &swapchain_info->blit_queue);
+                device, swapchain_info->queue_family_indices[0], 0, &swapchain_info->virtual_swapchain_.queue);
 
             VkCommandPoolCreateInfo command_pool_create_info = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
             command_pool_create_info.flags =
