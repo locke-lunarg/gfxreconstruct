@@ -378,7 +378,17 @@ VkResult VulkanVirtualSwapchain::AcquireNextImageKHR(PFN_vkAcquireNextImageKHR f
         swapchain = swapchain_info->handle;
     }
 
-    return func(device, swapchain, timeout, semaphore, fence, image_index);
+    auto ret = func(device, swapchain, timeout, semaphore, fence, image_index);
+    if (fence != VK_NULL_HANDLE)
+    {
+        device_table_->WaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+        swapchain_info->acquire_next_image_semaphore = VK_NULL_HANDLE;
+    }
+    else if (semaphore != VK_NULL_HANDLE)
+    {
+        swapchain_info->acquire_next_image_semaphore = semaphore;
+    }
+    return ret;
 }
 
 VkResult VulkanVirtualSwapchain::AcquireNextImage2KHR(PFN_vkAcquireNextImage2KHR       func,
@@ -395,7 +405,19 @@ VkResult VulkanVirtualSwapchain::AcquireNextImage2KHR(PFN_vkAcquireNextImage2KHR
         device = device_info->handle;
     }
 
-    return func(device, acquire_info, image_index);
+    auto ret       = func(device, acquire_info, image_index);
+    auto fence     = acquire_info->fence;
+    auto semaphore = acquire_info->semaphore;
+    if (fence != VK_NULL_HANDLE)
+    {
+        device_table_->WaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+        swapchain_info->acquire_next_image_semaphore = VK_NULL_HANDLE;
+    }
+    else if (semaphore != VK_NULL_HANDLE)
+    {
+        swapchain_info->acquire_next_image_semaphore = semaphore;
+    }
+    return ret;
 }
 
 VkResult VulkanVirtualSwapchain::QueuePresentKHR(PFN_vkQueuePresentKHR                 func,
@@ -562,12 +584,25 @@ VkResult VulkanVirtualSwapchain::QueuePresentKHR(PFN_vkQueuePresentKHR          
             return result;
         }
 
-        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        std::vector<VkPipelineStageFlags> wait_stages;
+        std::vector<VkSemaphore>          wait_semaphores;
+        if (present_info->waitSemaphoreCount > 0)
+        {
+            wait_semaphores.insert(wait_semaphores.end(),
+                                   present_info->pWaitSemaphores,
+                                   present_info->pWaitSemaphores + present_info->waitSemaphoreCount);
+            wait_stages.insert(wait_stages.end(), present_info->waitSemaphoreCount, VK_PIPELINE_STAGE_TRANSFER_BIT);
+        }
+        if (swapchain_info->acquire_next_image_semaphore)
+        {
+            wait_semaphores.emplace_back(swapchain_info->acquire_next_image_semaphore);
+            wait_stages.emplace_back(VK_PIPELINE_STAGE_TRANSFER_BIT);
+        }
 
         VkSubmitInfo submit_info         = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-        submit_info.waitSemaphoreCount   = present_info->waitSemaphoreCount;
-        submit_info.pWaitSemaphores      = present_info->pWaitSemaphores;
-        submit_info.pWaitDstStageMask    = &wait_stage;
+        submit_info.waitSemaphoreCount   = static_cast<uint32_t>(wait_semaphores.size());
+        submit_info.pWaitSemaphores      = wait_semaphores.data();
+        submit_info.pWaitDstStageMask    = wait_stages.data();
         submit_info.commandBufferCount   = 1;
         submit_info.pCommandBuffers      = &command_buffer;
         submit_info.signalSemaphoreCount = 1;

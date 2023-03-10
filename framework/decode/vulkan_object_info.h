@@ -422,6 +422,7 @@ struct SwapchainKHRInfo : public VulkanObjectInfo<VkSwapchainKHR>
     VkCommandPool                blit_command_pool{ VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> blit_command_buffers;
     std::vector<VkSemaphore>     blit_semaphores;
+    VkSemaphore                  acquire_next_image_semaphore;
 };
 
 struct ValidationCacheEXTInfo : public VulkanObjectInfo<VkValidationCacheEXT>
