@@ -4155,21 +4155,27 @@ VulkanReplayConsumerBase::OverrideCreateBuffer(PFN_vkCreateBuffer               
 
     VkResult                              result = VK_SUCCESS;
     VulkanResourceAllocator::ResourceData allocator_data;
-    auto                                  replay_buffer               = pBuffer->GetHandlePointer();
-    auto                                  capture_id                  = (*pBuffer->GetPointer());
-    auto                                  replay_create_info          = pCreateInfo->GetPointer();
-    VkBufferCreateInfo                    modified_create_info        = *replay_create_info;
-    uint32_t                              modified_queue_family_index = 0;
+    auto                                  replay_buffer        = pBuffer->GetHandlePointer();
+    auto                                  capture_id           = (*pBuffer->GetPointer());
+    auto                                  replay_create_info   = pCreateInfo->GetPointer();
+    VkBufferCreateInfo                    modified_create_info = *replay_create_info;
     // Check for a buffer device address.
     bool                uses_address         = false;
     VkBufferCreateFlags address_create_flags = 0;
     VkBufferUsageFlags  address_usage_flags  = 0;
 
     if ((modified_create_info.sharingMode == VK_SHARING_MODE_CONCURRENT) &&
-        (modified_create_info.queueFamilyIndexCount > 0) && (modified_create_info.pQueueFamilyIndices != nullptr))
+        (modified_create_info.queueFamilyIndexCount > 0) && (modified_create_info.pQueueFamilyIndices != nullptr) &&
+        (modified_create_info.pQueueFamilyIndices[0] != 0))
     {
-        modified_create_info.queueFamilyIndexCount = 1;
-        modified_create_info.pQueueFamilyIndices   = &modified_queue_family_index;
+        std::vector<uint32_t> queue_family_indices;
+        queue_family_indices.emplace_back(0);
+        queue_family_indices.insert(queue_family_indices.end(),
+                                    modified_create_info.pQueueFamilyIndices,
+                                    modified_create_info.pQueueFamilyIndices +
+                                        modified_create_info.queueFamilyIndexCount);
+        modified_create_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_family_indices.size());
+        modified_create_info.pQueueFamilyIndices   = queue_family_indices.data();
     }
 
     if (device_info->property_feature_info.feature_bufferDeviceAddressCaptureReplay)
@@ -4229,18 +4235,9 @@ VulkanReplayConsumerBase::OverrideCreateBuffer(PFN_vkCreateBuffer               
         auto buffer_info = reinterpret_cast<BufferInfo*>(pBuffer->GetConsumerData(0));
         assert(buffer_info != nullptr);
 
-        buffer_info->allocator_data = allocator_data;
-        buffer_info->usage          = modified_create_info.usage;
-
-        if ((modified_create_info.sharingMode == VK_SHARING_MODE_CONCURRENT) &&
-            (modified_create_info.queueFamilyIndexCount > 0) && (modified_create_info.pQueueFamilyIndices != nullptr))
-        {
-            buffer_info->queue_family_index = modified_create_info.pQueueFamilyIndices[0];
-        }
-        else
-        {
-            buffer_info->queue_family_index = 0;
-        }
+        buffer_info->allocator_data     = allocator_data;
+        buffer_info->usage              = modified_create_info.usage;
+        buffer_info->queue_family_index = 0;
     }
 
     return result;
@@ -4290,17 +4287,23 @@ VulkanReplayConsumerBase::OverrideCreateImage(PFN_vkCreateImage                 
     assert(allocator != nullptr);
 
     VulkanResourceAllocator::ResourceData allocator_data;
-    auto                                  replay_image                = pImage->GetHandlePointer();
-    auto                                  capture_id                  = (*pImage->GetPointer());
-    auto                                  replay_create_info          = pCreateInfo->GetPointer();
-    VkImageCreateInfo                     modified_create_info        = *replay_create_info;
-    uint32_t                              modified_queue_family_index = 0;
+    auto                                  replay_image         = pImage->GetHandlePointer();
+    auto                                  capture_id           = (*pImage->GetPointer());
+    auto                                  replay_create_info   = pCreateInfo->GetPointer();
+    VkImageCreateInfo                     modified_create_info = *replay_create_info;
 
     if ((modified_create_info.sharingMode == VK_SHARING_MODE_CONCURRENT) &&
-        (modified_create_info.queueFamilyIndexCount > 0) && (modified_create_info.pQueueFamilyIndices != nullptr))
+        (modified_create_info.queueFamilyIndexCount > 0) && (modified_create_info.pQueueFamilyIndices != nullptr) &&
+        (modified_create_info.pQueueFamilyIndices[0] != 0))
     {
-        modified_create_info.queueFamilyIndexCount = 1;
-        modified_create_info.pQueueFamilyIndices   = &modified_queue_family_index;
+        std::vector<uint32_t> queue_family_indices;
+        queue_family_indices.emplace_back(0);
+        queue_family_indices.insert(queue_family_indices.end(),
+                                    modified_create_info.pQueueFamilyIndices,
+                                    modified_create_info.pQueueFamilyIndices +
+                                        modified_create_info.queueFamilyIndexCount);
+        modified_create_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_family_indices.size());
+        modified_create_info.pQueueFamilyIndices   = queue_family_indices.data();
     }
 
     VkResult result = allocator->CreateImage(
@@ -4311,26 +4314,17 @@ VulkanReplayConsumerBase::OverrideCreateImage(PFN_vkCreateImage                 
         auto image_info = reinterpret_cast<ImageInfo*>(pImage->GetConsumerData(0));
         assert(image_info != nullptr);
 
-        image_info->allocator_data = allocator_data;
-        image_info->usage          = modified_create_info.usage;
-        image_info->type           = modified_create_info.imageType;
-        image_info->format         = modified_create_info.format;
-        image_info->extent         = modified_create_info.extent;
-        image_info->tiling         = modified_create_info.tiling;
-        image_info->sample_count   = modified_create_info.samples;
-        image_info->initial_layout = modified_create_info.initialLayout;
-        image_info->layer_count    = modified_create_info.arrayLayers;
-        image_info->level_count    = modified_create_info.mipLevels;
-
-        if ((modified_create_info.sharingMode == VK_SHARING_MODE_CONCURRENT) &&
-            (modified_create_info.queueFamilyIndexCount > 0) && (modified_create_info.pQueueFamilyIndices != nullptr))
-        {
-            image_info->queue_family_index = modified_create_info.pQueueFamilyIndices[0];
-        }
-        else
-        {
-            image_info->queue_family_index = 0;
-        }
+        image_info->allocator_data     = allocator_data;
+        image_info->usage              = modified_create_info.usage;
+        image_info->type               = modified_create_info.imageType;
+        image_info->format             = modified_create_info.format;
+        image_info->extent             = modified_create_info.extent;
+        image_info->tiling             = modified_create_info.tiling;
+        image_info->sample_count       = modified_create_info.samples;
+        image_info->initial_layout     = modified_create_info.initialLayout;
+        image_info->layer_count        = modified_create_info.arrayLayers;
+        image_info->level_count        = modified_create_info.mipLevels;
+        image_info->queue_family_index = 0;
     }
 
     return result;
