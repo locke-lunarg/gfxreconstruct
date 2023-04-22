@@ -1167,6 +1167,45 @@ void VulkanStateWriter::ProcessBufferMemory(const DeviceWrapper*                
     assert(device_wrapper != nullptr);
 
     const DeviceTable* device_table = &device_wrapper->layer_table;
+    bool               using_commandbuffer = false;
+    VkResult           submit_result       = VK_NOT_READY;
+
+    for (const auto& snapshot_entry : buffer_snapshot_info)
+    {
+        const BufferWrapper* buffer_wrapper = snapshot_entry.buffer_wrapper;
+        assert(buffer_wrapper != nullptr);
+
+        if (snapshot_entry.need_staging_copy)
+        {
+            VkResult                 result     = VK_SUCCESS;
+            if (!using_commandbuffer)
+            {
+                using_commandbuffer                 = true;
+                VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+                begin_info.pNext                    = nullptr;
+                begin_info.flags                    = 0;
+                begin_info.pInheritanceInfo         = nullptr;
+            
+                result = device_table->BeginCommandBuffer(command_buffer, &begin_info);
+            }
+
+            if (result == VK_SUCCESS)
+            {
+                VkBufferCopy copy_region;
+                copy_region.srcOffset = 0;
+                copy_region.dstOffset = 0;
+                copy_region.size      = buffer_wrapper->created_size;
+
+                device_table->CmdCopyBuffer(command_buffer, buffer_wrapper->handle, staging_buffer, 1, &copy_region);
+            }
+        }
+    }
+
+    if (using_commandbuffer)
+    {
+        device_table->EndCommandBuffer(command_buffer);
+        submit_result = SubmitCommandBuffer(queue, command_buffer, device_table);
+    }
 
     for (const auto& snapshot_entry : buffer_snapshot_info)
     {
@@ -1178,38 +1217,19 @@ void VulkanStateWriter::ProcessBufferMemory(const DeviceWrapper*                
 
         if (snapshot_entry.need_staging_copy)
         {
-            VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-            begin_info.pNext                    = nullptr;
-            begin_info.flags                    = 0;
-            begin_info.pInheritanceInfo         = nullptr;
-
-            VkResult result = device_table->BeginCommandBuffer(command_buffer, &begin_info);
-
-            if (result == VK_SUCCESS)
+            if (submit_result == VK_SUCCESS)
             {
-                VkBufferCopy copy_region;
-                copy_region.srcOffset = 0;
-                copy_region.dstOffset = 0;
-                copy_region.size      = buffer_wrapper->created_size;
-
-                device_table->CmdCopyBuffer(command_buffer, buffer_wrapper->handle, staging_buffer, 1, &copy_region);
-                device_table->EndCommandBuffer(command_buffer);
-
-                result = SubmitCommandBuffer(queue, command_buffer, device_table);
+                void* data = nullptr;
+                VkResult result = device_table->MapMemory(
+                    device_wrapper->handle, staging_memory, 0, buffer_wrapper->created_size, 0, &data);
                 if (result == VK_SUCCESS)
                 {
-                    void* data = nullptr;
-                    result     = device_table->MapMemory(
-                        device_wrapper->handle, staging_memory, 0, buffer_wrapper->created_size, 0, &data);
-                    if (result == VK_SUCCESS)
-                    {
-                        bytes = reinterpret_cast<uint8_t*>(data);
+                    bytes = reinterpret_cast<uint8_t*>(data);
 
-                        if (!is_staging_memory_coherent)
-                        {
-                            InvalidateMappedMemoryRange(
-                                device_wrapper, staging_memory, 0, buffer_wrapper->created_size);
-                        }
+                    if (!is_staging_memory_coherent)
+                    {
+                        InvalidateMappedMemoryRange(
+                            device_wrapper, staging_memory, 0, buffer_wrapper->created_size);
                     }
                 }
             }
@@ -1313,17 +1333,17 @@ void VulkanStateWriter::ProcessImageMemory(const DeviceWrapper*                 
     assert(device_wrapper != nullptr);
 
     const DeviceTable* device_table = &device_wrapper->layer_table;
+    bool               using_commandbuffer = false;
+    VkResult           submit_result       = VK_NOT_READY;
+    std::vector<VkImage> resolve_images;
+    std::vector<VkDeviceMemory> resolve_memories;
 
     for (const auto& snapshot_entry : image_snapshot_info)
     {
-        const ImageWrapper*        image_wrapper  = snapshot_entry.image_wrapper;
-        const DeviceMemoryWrapper* memory_wrapper = snapshot_entry.memory_wrapper;
-        const uint8_t*             bytes          = nullptr;
+        const ImageWrapper* image_wrapper = snapshot_entry.image_wrapper;
+        assert(image_wrapper != nullptr);
 
-        assert((image_wrapper != nullptr) && ((image_wrapper->is_swapchain_image && memory_wrapper == nullptr) ||
-                                              (!image_wrapper->is_swapchain_image && memory_wrapper != nullptr)));
-
-        if (snapshot_entry.need_staging_copy)
+       if (snapshot_entry.need_staging_copy)
         {
             VkImage        resolve_image  = VK_NULL_HANDLE;
             VkDeviceMemory resolve_memory = VK_NULL_HANDLE;
@@ -1340,6 +1360,9 @@ void VulkanStateWriter::ProcessImageMemory(const DeviceWrapper*                 
                                           &resolve_image,
                                           &resolve_memory,
                                           state_table);
+
+                    resolve_images.emplace_back(resolve_image);
+                    resolve_memories.emplace_back(resolve_memory);
                 }
                 else
                 {
@@ -1350,12 +1373,16 @@ void VulkanStateWriter::ProcessImageMemory(const DeviceWrapper*                 
 
             if (result == VK_SUCCESS)
             {
-                VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-                begin_info.pNext                    = nullptr;
-                begin_info.flags                    = 0;
-                begin_info.pInheritanceInfo         = nullptr;
+                if (!using_commandbuffer)
+                {
+                    using_commandbuffer = true;
+                    VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+                    begin_info.pNext                    = nullptr;
+                    begin_info.flags                    = 0;
+                    begin_info.pInheritanceInfo         = nullptr;
 
-                result = device_table->BeginCommandBuffer(command_buffer, &begin_info);
+                    result = device_table->BeginCommandBuffer(command_buffer, &begin_info);
+                }
 
                 if (result == VK_SUCCESS)
                 {
@@ -1458,34 +1485,44 @@ void VulkanStateWriter::ProcessImageMemory(const DeviceWrapper*                 
                                                          1,
                                                          &memory_barrier);
                     }
-
-                    device_table->EndCommandBuffer(command_buffer);
-
-                    result = SubmitCommandBuffer(queue, command_buffer, device_table);
-
-                    if (result == VK_SUCCESS)
-                    {
-                        void* data = nullptr;
-                        result     = device_table->MapMemory(
-                            device_wrapper->handle, staging_memory, 0, snapshot_entry.resource_size, 0, &data);
-
-                        if (result == VK_SUCCESS)
-                        {
-                            bytes = reinterpret_cast<uint8_t*>(data);
-
-                            if (!is_staging_memory_coherent)
-                            {
-                                InvalidateMappedMemoryRange(
-                                    device_wrapper, staging_memory, 0, snapshot_entry.resource_size);
-                            }
-                        }
-                    }
                 }
+            }
+        }
+    }
 
-                if (image_wrapper->samples != VK_SAMPLE_COUNT_1_BIT)
+    if (using_commandbuffer)
+    {
+        device_table->EndCommandBuffer(command_buffer);
+        submit_result = SubmitCommandBuffer(queue, command_buffer, device_table);
+    }
+
+    for (const auto& snapshot_entry : image_snapshot_info)
+    {
+        const ImageWrapper*        image_wrapper  = snapshot_entry.image_wrapper;
+        const DeviceMemoryWrapper* memory_wrapper = snapshot_entry.memory_wrapper;
+        const uint8_t*             bytes          = nullptr;
+
+        assert((image_wrapper != nullptr) && ((image_wrapper->is_swapchain_image && memory_wrapper == nullptr) ||
+                                              (!image_wrapper->is_swapchain_image && memory_wrapper != nullptr)));
+
+        if (snapshot_entry.need_staging_copy)
+        {
+           
+            if (submit_result == VK_SUCCESS)
+            {
+                void* data = nullptr;
+                VkResult result     = device_table->MapMemory(
+                    device_wrapper->handle, staging_memory, 0, snapshot_entry.resource_size, 0, &data);
+
+                if (result == VK_SUCCESS)
                 {
-                    device_table->DestroyImage(device_wrapper->handle, resolve_image, nullptr);
-                    device_table->FreeMemory(device_wrapper->handle, resolve_memory, nullptr);
+                    bytes = reinterpret_cast<uint8_t*>(data);
+
+                    if (!is_staging_memory_coherent)
+                    {
+                        InvalidateMappedMemoryRange(
+                            device_wrapper, staging_memory, 0, snapshot_entry.resource_size);
+                    }
                 }
             }
         }
@@ -1594,6 +1631,18 @@ void VulkanStateWriter::ProcessImageMemory(const DeviceWrapper*                 
             }
         }
     }
+
+    for (auto resolve_image : resolve_images)
+    {
+        device_table->DestroyImage(device_wrapper->handle, resolve_image, nullptr);
+    }
+    resolve_images.clear();
+
+    for (auto resolve_memory : resolve_memories)
+    {
+        device_table->FreeMemory(device_wrapper->handle, resolve_memory, nullptr);
+    }
+    resolve_memories.clear();
 }
 
 void VulkanStateWriter::WriteBufferMemoryState(const VulkanStateTable& state_table,
