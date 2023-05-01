@@ -383,7 +383,6 @@ struct SwapchainKHRInfo : public VulkanObjectInfo<VkSwapchainKHR>
     uint32_t             width{ 0 };
     uint32_t             height{ 0 };
     VkFormat             format{ VK_FORMAT_UNDEFINED };
-    std::vector<VkImage> images; // This image could be virtual or real according to if it uses VirutalSwapchain.
     std::unordered_map<uint32_t, size_t> array_counts;
 
     // The acquired_indices value and the remapping performed with it.
@@ -392,6 +391,7 @@ struct SwapchainKHRInfo : public VulkanObjectInfo<VkSwapchainKHR>
         uint32_t index = { 0 };
         bool     acquired{ false };
     };
+    // index of array is captured image index. AcquiredData.index is replated image index.
     std::vector<AcquiredData> acquired_indices;
 
     // The following values are only used when loading the initial state for trimmed files.

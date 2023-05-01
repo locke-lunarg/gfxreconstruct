@@ -2118,8 +2118,7 @@ void VulkanReplayConsumerBase::WriteScreenshots(const Decoded_VkPresentInfoKHR* 
         for (uint32_t i = 0; i < present_info->swapchainCount; ++i)
         {
             auto swapchain_info = object_info_table_.GetSwapchainKHRInfo(swapchain_ids[i]);
-            if ((swapchain_info != nullptr) && (swapchain_info->device_info != nullptr) &&
-                (swapchain_info->images.size() > 0))
+            if ((swapchain_info != nullptr) && (swapchain_info->device_info != nullptr))
             {
                 auto     device_info = swapchain_info->device_info;
                 uint32_t image_index = present_info->pImageIndices[i];
@@ -2141,13 +2140,13 @@ void VulkanReplayConsumerBase::WriteScreenshots(const Decoded_VkPresentInfoKHR* 
 
                 filename_prefix += "_frame_";
                 filename_prefix += std::to_string(screenshot_handler_->GetCurrentFrame());
-
+                auto image = swapchain_->GetSwapchainImage(swapchain_info, image_index);
                 screenshot_handler_->WriteImage(filename_prefix,
                                                 device_info->handle,
                                                 GetDeviceTable(device_info->handle),
                                                 memory_properties,
                                                 device_info->allocator.get(),
-                                                swapchain_info->images[image_index],
+                                                image,
                                                 swapchain_info->format,
                                                 swapchain_info->width,
                                                 swapchain_info->height);
@@ -5012,22 +5011,6 @@ VkResult VulkanReplayConsumerBase::OverrideGetSwapchainImagesKHR(PFN_vkGetSwapch
                 assert(image_info != nullptr);
 
                 image_info->is_swapchain_image = true;
-            }
-
-            // Store image handles for screenshot generation.
-            if ((screenshot_handler_ != nullptr) && (swapchain_info->images.size() < count))
-            {
-                if (!swapchain_info->images.empty())
-                {
-                    // Clear any images that may have been stored by a previous, incomplete call to
-                    // vkGetSwapchainImagesKHR.
-                    swapchain_info->images.clear();
-                }
-
-                for (uint32_t i = 0; i < count; ++i)
-                {
-                    swapchain_info->images.push_back(replay_images[i]);
-                }
             }
         }
     }

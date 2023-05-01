@@ -797,5 +797,12 @@ int32_t VulkanVirtualSwapchain::FindFirstPresentSrcLayout(uint32_t count, const 
     return -1;
 }
 
+VkImage VulkanVirtualSwapchain::GetSwapchainImage(const SwapchainKHRInfo* swapchain_info,
+                                                  uint32_t                captured_image_index) const
+{
+    GFXRECON_ASSERT(captured_image_index < swapchain_info->virtual_images.size());
+    return swapchain_info->virtual_images[captured_image_index].image;
+}
+
 GFXRECON_END_NAMESPACE(decode)
 GFXRECON_END_NAMESPACE(gfxrecon)

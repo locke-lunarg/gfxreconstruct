@@ -116,6 +116,10 @@ class VulkanCapturedSwapchain : public VulkanSwapchain
                                                       const VulkanObjectInfoTable& object_info_table,
                                                       SwapchainImageTracker&       swapchain_image_tracker) override;
 
+    virtual VkImage GetSwapchainImage(const SwapchainKHRInfo* swapchain_info,
+                                      uint32_t                captured_image_index) const override;
+
+
   private:
     // When processing swapchain image state for the trimming state setup, acquire all swapchain images to transition to
     // the expected layout and keep them acquired until first use.

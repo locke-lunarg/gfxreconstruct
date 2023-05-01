@@ -117,6 +117,9 @@ class VulkanVirtualSwapchain : public VulkanSwapchain
                                                       SwapchainImageTracker&       swapchain_image_tracker) override
     {}
 
+    virtual VkImage GetSwapchainImage(const SwapchainKHRInfo* swapchain_info,
+                                      uint32_t                captured_image_index) const override;
+
   private:
     VkResult CreateSwapchainImage(const DeviceInfo*               device_info,
                                   const VkImageCreateInfo&        image_create_info,

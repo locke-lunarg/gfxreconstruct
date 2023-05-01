@@ -856,5 +856,12 @@ void VulkanCapturedSwapchain::ProcessSetSwapchainImageStateQueueSubmit(
     }
 }
 
+VkImage VulkanCapturedSwapchain::GetSwapchainImage(const SwapchainKHRInfo* swapchain_info,
+                                                   uint32_t                captured_image_index) const
+{
+    GFXRECON_ASSERT(captured_image_index < swapchain_info->swapchain_images.size());
+    return swapchain_info->swapchain_images[captured_image_index];
+}
+
 GFXRECON_END_NAMESPACE(decode)
 GFXRECON_END_NAMESPACE(gfxrecon)

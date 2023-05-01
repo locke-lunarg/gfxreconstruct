@@ -122,6 +122,8 @@ class VulkanSwapchain
                                                       const VulkanObjectInfoTable& object_info_table,
                                                       SwapchainImageTracker&       swapchain_image_tracker) = 0;
 
+    virtual VkImage GetSwapchainImage(const SwapchainKHRInfo* swapchain_info, uint32_t captured_image_index) const = 0;
+
   protected:
     const encode::InstanceTable* instance_table_{ nullptr };
     const encode::DeviceTable*   device_table_{ nullptr };
