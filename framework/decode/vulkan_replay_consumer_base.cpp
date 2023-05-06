@@ -5588,6 +5588,14 @@ VulkanReplayConsumerBase::OverrideQueuePresentKHR(PFN_vkQueuePresentKHR         
         }
     }
 
+    /*if ((screenshot_handler_ != nullptr) && (screenshot_handler_->IsScreenshotFrame()))
+    {
+        auto meta_info = pPresentInfo->GetMetaStructPointer();
+        assert((meta_info != nullptr) && !meta_info->pSwapchains.IsNull());
+
+        WriteScreenshots(meta_info);
+    }*/
+
     if (screenshot_handler_ != nullptr)
     {
         screenshot_handler_->EndFrame();
