@@ -230,6 +230,11 @@ void VulkanReplayConsumer::Process_vkQueueSubmit(
 
     VkResult replay_result = OverrideQueueSubmit(GetDeviceTable(in_queue->handle)->QueueSubmit, returnValue, in_queue, submitCount, pSubmits, in_fence);
     CheckResult("vkQueueSubmit", returnValue, replay_result);
+
+    if(call_info.index == 342773){
+        auto device = GetObjectInfoTable().GetDeviceInfo(in_fence->parent_id);
+        GetDeviceTable(in_queue->handle)->WaitForFences(device->handle, 1, &in_fence->handle, false, UINT64_MAX);
+    }
 }
 
 void VulkanReplayConsumer::Process_vkQueueWaitIdle(
