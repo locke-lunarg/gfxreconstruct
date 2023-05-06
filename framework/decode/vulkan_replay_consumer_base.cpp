@@ -5282,14 +5282,6 @@ VulkanReplayConsumerBase::OverrideQueuePresentKHR(PFN_vkQueuePresentKHR         
     std::vector<uint32_t>             capture_image_indices;
     std::vector<SwapchainKHRInfo*>    swapchain_infos;
 
-    if ((screenshot_handler_ != nullptr) && (screenshot_handler_->IsScreenshotFrame()))
-    {
-        auto meta_info = pPresentInfo->GetMetaStructPointer();
-        assert((meta_info != nullptr) && !meta_info->pSwapchains.IsNull());
-
-        WriteScreenshots(meta_info);
-    }
-
     // If rendering is restricted to a specific surface, need to check for dummy swapchains at present.
     if (options_.surface_index != -1)
     {
@@ -5603,6 +5595,14 @@ VulkanReplayConsumerBase::OverrideQueuePresentKHR(PFN_vkQueuePresentKHR         
                 }
             }
         }
+    }
+    
+    if ((screenshot_handler_ != nullptr) && (screenshot_handler_->IsScreenshotFrame()))
+    {
+        auto meta_info = pPresentInfo->GetMetaStructPointer();
+        assert((meta_info != nullptr) && !meta_info->pSwapchains.IsNull());
+
+        WriteScreenshots(meta_info);
     }
 
     if (screenshot_handler_ != nullptr)
