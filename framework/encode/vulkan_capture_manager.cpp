@@ -1124,6 +1124,114 @@ VkResult VulkanCaptureManager::OverrideGetPhysicalDeviceToolPropertiesEXT(
     return result;
 }
 
+VkResult VulkanCaptureManager::OverrideCreateComputePipelines(VkDevice                           device,
+                                                              VkPipelineCache                    pipelineCache,
+                                                              uint32_t                           createInfoCount,
+                                                              const VkComputePipelineCreateInfo* pCreateInfos,
+                                                              const VkAllocationCallbacks*       pAllocator,
+                                                              VkPipeline*                        pPipelines)
+{
+    auto                               handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
+    const VkComputePipelineCreateInfo* pCreateInfos_unwrapped =
+        UnwrapStructArrayHandles(pCreateInfos, createInfoCount, handle_unwrap_memory);
+
+    std::vector<VkComputePipelineCreateInfo> modified_create_infos;
+    modified_create_infos.resize(createInfoCount);
+    for (uint32_t i = 0; i < createInfoCount; ++i)
+    {
+        modified_create_infos[i] = pCreateInfos_unwrapped[i];
+        if (modified_create_infos[i].flags && VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT)
+        {
+            modified_create_infos[i].flags =
+                modified_create_infos[i].flags & ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT;
+            GFXRECON_LOG_WARNING("VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT isn't suppported. Remove it "
+                                 "from CreateComputePipelines.");
+        }
+    }
+
+    VkResult result = GetDeviceTable(device)->CreateComputePipelines(
+        device, pipelineCache, createInfoCount, modified_create_infos.data(), pAllocator, pPipelines);
+
+    if (result >= 0)
+    {
+        CreateWrappedHandles<DeviceWrapper, PipelineCacheWrapper, PipelineWrapper>(
+            device, pipelineCache, pPipelines, createInfoCount, VulkanCaptureManager::GetUniqueId);
+    }
+    return result;
+}
+
+VkResult VulkanCaptureManager::OverrideCreateGraphicsPipelines(VkDevice                            device,
+                                                               VkPipelineCache                     pipelineCache,
+                                                               uint32_t                            createInfoCount,
+                                                               const VkGraphicsPipelineCreateInfo* pCreateInfos,
+                                                               const VkAllocationCallbacks*        pAllocator,
+                                                               VkPipeline*                         pPipelines)
+{
+    auto                                handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
+    const VkGraphicsPipelineCreateInfo* pCreateInfos_unwrapped =
+        UnwrapStructArrayHandles(pCreateInfos, createInfoCount, handle_unwrap_memory);
+
+    std::vector<VkGraphicsPipelineCreateInfo> modified_create_infos;
+    modified_create_infos.resize(createInfoCount);
+    for (uint32_t i = 0; i < createInfoCount; ++i)
+    {
+        modified_create_infos[i] = pCreateInfos_unwrapped[i];
+        if (modified_create_infos[i].flags && VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT)
+        {
+            modified_create_infos[i].flags =
+                modified_create_infos[i].flags & ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT;
+            GFXRECON_LOG_WARNING("VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT isn't suppported. Remove it "
+                                 "from CreateGraphicsPipelines.");
+        }
+    }
+
+    VkResult result = GetDeviceTable(device)->CreateGraphicsPipelines(
+        device, pipelineCache, createInfoCount, modified_create_infos.data(), pAllocator, pPipelines);
+
+    if (result >= 0)
+    {
+        CreateWrappedHandles<DeviceWrapper, PipelineCacheWrapper, PipelineWrapper>(
+            device, pipelineCache, pPipelines, createInfoCount, VulkanCaptureManager::GetUniqueId);
+    }
+    return result;
+}
+
+VkResult VulkanCaptureManager::OverrideCreateRayTracingPipelinesNV(VkDevice        device,
+                                                                   VkPipelineCache pipelineCache,
+                                                                   uint32_t        createInfoCount,
+                                                                   const VkRayTracingPipelineCreateInfoNV* pCreateInfos,
+                                                                   const VkAllocationCallbacks*            pAllocator,
+                                                                   VkPipeline*                             pPipelines)
+{
+    auto                                    handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
+    const VkRayTracingPipelineCreateInfoNV* pCreateInfos_unwrapped =
+        UnwrapStructArrayHandles(pCreateInfos, createInfoCount, handle_unwrap_memory);
+
+    std::vector<VkRayTracingPipelineCreateInfoNV> modified_create_infos;
+    modified_create_infos.resize(createInfoCount);
+    for (uint32_t i = 0; i < createInfoCount; ++i)
+    {
+        modified_create_infos[i] = pCreateInfos_unwrapped[i];
+        if (modified_create_infos[i].flags && VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT)
+        {
+            modified_create_infos[i].flags =
+                modified_create_infos[i].flags & ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT;
+            GFXRECON_LOG_WARNING("VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT isn't suppported. Remove it "
+                                 "from CreateRayTracingPipelinesNV.");
+        }
+    }
+
+    VkResult result = GetDeviceTable(device)->CreateRayTracingPipelinesNV(
+        device, pipelineCache, createInfoCount, modified_create_infos.data(), pAllocator, pPipelines);
+
+    if (result >= 0)
+    {
+        CreateWrappedHandles<DeviceWrapper, PipelineCacheWrapper, PipelineWrapper>(
+            device, pipelineCache, pPipelines, createInfoCount, VulkanCaptureManager::GetUniqueId);
+    }
+    return result;
+}
+
 VkResult
 VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice                                 device,
                                                            VkDeferredOperationKHR                   deferredOperation,
@@ -1162,19 +1270,31 @@ VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice             
     const VkRayTracingPipelineCreateInfoKHR* pCreateInfos_unwrapped =
         UnwrapStructArrayHandles(pCreateInfos, createInfoCount, handle_unwrap_memory);
 
+    std::vector<VkRayTracingPipelineCreateInfoKHR> modified_create_infos;
+    modified_create_infos.resize(createInfoCount);
+    for (uint32_t i = 0; i < createInfoCount; ++i)
+    {
+        modified_create_infos[i] = pCreateInfos_unwrapped[i];
+        if (modified_create_infos[i].flags && VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT)
+        {
+            modified_create_infos[i].flags =
+                modified_create_infos[i].flags & ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT;
+            GFXRECON_LOG_WARNING("VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT isn't suppported. Remove it "
+                                 "from CreateRayTracingPipelinesKHR.");
+        }
+    }
+
     VkResult result;
     if (device_wrapper->property_feature_info.feature_rayTracingPipelineShaderGroupHandleCaptureReplay)
     {
-        auto modified_create_infos = std::make_unique<VkRayTracingPipelineCreateInfoKHR[]>(createInfoCount);
         for (uint32_t i = 0; i < createInfoCount; ++i)
         {
-            modified_create_infos[i] = pCreateInfos_unwrapped[i];
             modified_create_infos[i].flags |= VK_PIPELINE_CREATE_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR;
         }
         if (deferred_operation_wrapper)
         {
             std::memcpy(deferred_operation_wrapper->create_infos.data(),
-                        modified_create_infos.get(),
+                        modified_create_infos.data(),
                         sizeof(VkRayTracingPipelineCreateInfoKHR) * createInfoCount);
             result = device_table->CreateRayTracingPipelinesKHR(device,
                                                                 deferredOperation,
@@ -1192,7 +1312,7 @@ VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice             
                                                                 deferredOperation,
                                                                 pipelineCache,
                                                                 createInfoCount,
-                                                                modified_create_infos.get(),
+                                                                modified_create_infos.data(),
                                                                 pAllocator,
                                                                 pPipelines);
         }
@@ -1207,7 +1327,7 @@ VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice             
         if (deferred_operation_wrapper)
         {
             std::memcpy(deferred_operation_wrapper->create_infos.data(),
-                        pCreateInfos_unwrapped,
+                        modified_create_infos.data(),
                         sizeof(VkRayTracingPipelineCreateInfoKHR) * createInfoCount);
             result = device_table->CreateRayTracingPipelinesKHR(device,
                                                                 deferredOperation,
@@ -1225,7 +1345,7 @@ VulkanCaptureManager::OverrideCreateRayTracingPipelinesKHR(VkDevice             
                                                                 deferredOperation,
                                                                 pipelineCache,
                                                                 createInfoCount,
-                                                                pCreateInfos_unwrapped,
+                                                                modified_create_infos.data(),
                                                                 pAllocator,
                                                                 pPipelines);
         }

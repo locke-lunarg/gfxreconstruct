@@ -283,6 +283,27 @@ class VulkanCaptureManager : public CaptureManager
                                                         uint32_t*                          pToolCount,
                                                         VkPhysicalDeviceToolPropertiesEXT* pToolProperties);
 
+    VkResult OverrideCreateComputePipelines(VkDevice                           device,
+                                            VkPipelineCache                    pipelineCache,
+                                            uint32_t                           createInfoCount,
+                                            const VkComputePipelineCreateInfo* pCreateInfos,
+                                            const VkAllocationCallbacks*       pAllocator,
+                                            VkPipeline*                        pPipelines);
+
+    VkResult OverrideCreateGraphicsPipelines(VkDevice                            device,
+                                             VkPipelineCache                     pipelineCache,
+                                             uint32_t                            createInfoCount,
+                                             const VkGraphicsPipelineCreateInfo* pCreateInfos,
+                                             const VkAllocationCallbacks*        pAllocator,
+                                             VkPipeline*                         pPipelines);
+
+    VkResult OverrideCreateRayTracingPipelinesNV(VkDevice                                device,
+                                                 VkPipelineCache                         pipelineCache,
+                                                 uint32_t                                createInfoCount,
+                                                 const VkRayTracingPipelineCreateInfoNV* pCreateInfos,
+                                                 const VkAllocationCallbacks*            pAllocator,
+                                                 VkPipeline*                             pPipelines);
+
     VkResult OverrideCreateRayTracingPipelinesKHR(VkDevice                                 device,
                                                   VkDeferredOperationKHR                   deferredOperation,
                                                   VkPipelineCache                          pipelineCache,

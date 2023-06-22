@@ -2366,16 +2366,8 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateGraphicsPipelines(
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkCreateGraphicsPipelines>::Dispatch(VulkanCaptureManager::Get(), device, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
 
-    auto handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
-    const VkGraphicsPipelineCreateInfo* pCreateInfos_unwrapped = UnwrapStructArrayHandles(pCreateInfos, createInfoCount, handle_unwrap_memory);
-
-    VkResult result = GetDeviceTable(device)->CreateGraphicsPipelines(device, pipelineCache, createInfoCount, pCreateInfos_unwrapped, pAllocator, pPipelines);
-
-    if (result >= 0)
-    {
-        CreateWrappedHandles<DeviceWrapper, PipelineCacheWrapper, PipelineWrapper>(device, pipelineCache, pPipelines, createInfoCount, VulkanCaptureManager::GetUniqueId);
-    }
-    else
+    VkResult result = VulkanCaptureManager::Get()->OverrideCreateGraphicsPipelines(device, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
+    if (result < 0)
     {
         omit_output_data = true;
     }
@@ -2422,16 +2414,8 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateComputePipelines(
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkCreateComputePipelines>::Dispatch(VulkanCaptureManager::Get(), device, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
 
-    auto handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
-    const VkComputePipelineCreateInfo* pCreateInfos_unwrapped = UnwrapStructArrayHandles(pCreateInfos, createInfoCount, handle_unwrap_memory);
-
-    VkResult result = GetDeviceTable(device)->CreateComputePipelines(device, pipelineCache, createInfoCount, pCreateInfos_unwrapped, pAllocator, pPipelines);
-
-    if (result >= 0)
-    {
-        CreateWrappedHandles<DeviceWrapper, PipelineCacheWrapper, PipelineWrapper>(device, pipelineCache, pPipelines, createInfoCount, VulkanCaptureManager::GetUniqueId);
-    }
-    else
+    VkResult result = VulkanCaptureManager::Get()->OverrideCreateComputePipelines(device, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
+    if (result < 0)
     {
         omit_output_data = true;
     }
@@ -16213,16 +16197,8 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateRayTracingPipelinesNV(
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkCreateRayTracingPipelinesNV>::Dispatch(VulkanCaptureManager::Get(), device, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
 
-    auto handle_unwrap_memory = VulkanCaptureManager::Get()->GetHandleUnwrapMemory();
-    const VkRayTracingPipelineCreateInfoNV* pCreateInfos_unwrapped = UnwrapStructArrayHandles(pCreateInfos, createInfoCount, handle_unwrap_memory);
-
-    VkResult result = GetDeviceTable(device)->CreateRayTracingPipelinesNV(device, pipelineCache, createInfoCount, pCreateInfos_unwrapped, pAllocator, pPipelines);
-
-    if (result >= 0)
-    {
-        CreateWrappedHandles<DeviceWrapper, PipelineCacheWrapper, PipelineWrapper>(device, pipelineCache, pPipelines, createInfoCount, VulkanCaptureManager::GetUniqueId);
-    }
-    else
+    VkResult result = VulkanCaptureManager::Get()->OverrideCreateRayTracingPipelinesNV(device, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
+    if (result < 0)
     {
         omit_output_data = true;
     }
