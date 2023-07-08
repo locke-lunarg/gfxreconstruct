@@ -1722,6 +1722,8 @@ VKAPI_ATTR VkResult VKAPI_CALL GetQueryPoolResults(
     return result;
 }
 
+ std::mutex buffer_wrapper_lock_;
+
 VKAPI_ATTR VkResult VKAPI_CALL CreateBuffer(
     VkDevice                                    device,
     const VkBufferCreateInfo*                   pCreateInfo,
@@ -1744,25 +1746,29 @@ VKAPI_ATTR VkResult VKAPI_CALL CreateBuffer(
 
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkCreateBuffer>::Dispatch(VulkanCaptureManager::Get(), device, pCreateInfo, pAllocator, pBuffer);
 
-    VkResult result = VulkanCaptureManager::Get()->OverrideCreateBuffer(device, pCreateInfo, pAllocator, pBuffer);
-    if (result < 0)
+    VkResult result;
     {
-        omit_output_data = true;
+        std::unique_lock<std::mutex> lock(buffer_wrapper_lock_);
+        result = VulkanCaptureManager::Get()->OverrideCreateBuffer(device, pCreateInfo, pAllocator, pBuffer);
+
+        if (result < 0)
+        {
+            omit_output_data = true;
+        }
+
+        auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkCreateBuffer);
+        if (encoder)
+        {
+            encoder->EncodeHandleValue<DeviceWrapper>(device);
+            EncodeStructPtr(encoder, pCreateInfo);
+            EncodeStructPtr(encoder, pAllocator);
+            encoder->EncodeHandlePtr<BufferWrapper>(pBuffer, omit_output_data);
+            encoder->EncodeEnumValue(result);
+            VulkanCaptureManager::Get()->EndCreateApiCallCapture<VkDevice, BufferWrapper, VkBufferCreateInfo>(result, device, pBuffer, pCreateInfo);
+        }
+
+        CustomEncoderPostCall<format::ApiCallId::ApiCall_vkCreateBuffer>::Dispatch(VulkanCaptureManager::Get(), result, device, pCreateInfo, pAllocator, pBuffer);
     }
-
-    auto encoder = VulkanCaptureManager::Get()->BeginTrackedApiCallCapture(format::ApiCallId::ApiCall_vkCreateBuffer);
-    if (encoder)
-    {
-        encoder->EncodeHandleValue<DeviceWrapper>(device);
-        EncodeStructPtr(encoder, pCreateInfo);
-        EncodeStructPtr(encoder, pAllocator);
-        encoder->EncodeHandlePtr<BufferWrapper>(pBuffer, omit_output_data);
-        encoder->EncodeEnumValue(result);
-        VulkanCaptureManager::Get()->EndCreateApiCallCapture<VkDevice, BufferWrapper, VkBufferCreateInfo>(result, device, pBuffer, pCreateInfo);
-    }
-
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkCreateBuffer>::Dispatch(VulkanCaptureManager::Get(), result, device, pCreateInfo, pAllocator, pBuffer);
-
     return result;
 }
 
@@ -1793,12 +1799,14 @@ VKAPI_ATTR void VKAPI_CALL DestroyBuffer(
         EncodeStructPtr(encoder, pAllocator);
         VulkanCaptureManager::Get()->EndDestroyApiCallCapture<BufferWrapper>(buffer);
     }
+    {
+        std::unique_lock<std::mutex> lock(buffer_wrapper_lock_);
+        GetDeviceTable(device)->DestroyBuffer(device, buffer, pAllocator);
 
-    GetDeviceTable(device)->DestroyBuffer(device, buffer, pAllocator);
+        CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyBuffer>::Dispatch(VulkanCaptureManager::Get(), device, buffer, pAllocator);
 
-    CustomEncoderPostCall<format::ApiCallId::ApiCall_vkDestroyBuffer>::Dispatch(VulkanCaptureManager::Get(), device, buffer, pAllocator);
-
-    DestroyWrappedHandle<BufferWrapper>(buffer);
+        DestroyWrappedHandle<BufferWrapper>(buffer);
+    }
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL CreateBufferView(
