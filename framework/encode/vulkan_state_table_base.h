@@ -78,8 +78,7 @@ class VulkanStateTableBase
                      Wrapper*                                                    wrapper,
                      std::unordered_map<typename Wrapper::HandleType, Wrapper*>& map)
     {
-        const std::unique_lock<std::shared_mutex> lock(mutex_);
-        const auto&                               inserted = map.insert(std::make_pair(handle, wrapper));
+        const auto& inserted = map.insert(std::make_pair(handle, wrapper));
         return inserted.second;
     }
 
@@ -87,7 +86,6 @@ class VulkanStateTableBase
     bool RemoveEntry(const typename Wrapper::HandleType                          handle,
                      std::unordered_map<typename Wrapper::HandleType, Wrapper*>& map)
     {
-        const std::unique_lock<std::shared_mutex> lock(mutex_);
         return (map.erase(handle) != 0);
     }
 
@@ -95,8 +93,7 @@ class VulkanStateTableBase
     Wrapper* GetWrapper(typename Wrapper::HandleType                                      handle,
                         const std::unordered_map<typename Wrapper::HandleType, Wrapper*>& map)
     {
-        const std::shared_lock<std::shared_mutex> lock(mutex_);
-        auto                                      entry = map.find(handle);
+        auto entry = map.find(handle);
         return (entry != map.end()) ? entry->second : nullptr;
     }
 
@@ -104,13 +101,9 @@ class VulkanStateTableBase
     const Wrapper* GetWrapper(typename Wrapper::HandleType                                      handle,
                               const std::unordered_map<typename Wrapper::HandleType, Wrapper*>& map) const
     {
-        const std::shared_lock<std::shared_mutex> lock(mutex_);
-        auto                                      entry = map.find(handle);
+        auto entry = map.find(handle);
         return (entry != map.end()) ? entry->second : nullptr;
     }
-
-  private:
-    mutable std::shared_mutex mutex_;
 };
 
 GFXRECON_END_NAMESPACE(encode)
