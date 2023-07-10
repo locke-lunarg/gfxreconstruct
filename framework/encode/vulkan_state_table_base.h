@@ -33,6 +33,7 @@
 #include <functional>
 #include <map>
 #include <shared_mutex>
+#include <chrono>
 
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(encode)
@@ -82,10 +83,34 @@ class VulkanStateTableBase
         return inserted.second;
     }
 
+    template <>
+    bool InsertEntry(typename BufferWrapper::HandleType                                      handle,
+                     BufferWrapper*                                                          wrapper,
+                     std::unordered_map<typename BufferWrapper::HandleType, BufferWrapper*>& map)
+    {
+        uint64_t time =
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+                .count();
+        GFXRECON_LOG_WARNING("InsertEntry Buffer: %" PRIu64 ", time: %" PRIu64 "", handle, time);
+        const auto& inserted = map.insert(std::make_pair(handle, wrapper));
+        return inserted.second;
+    }
+
     template <typename Wrapper>
     bool RemoveEntry(const typename Wrapper::HandleType                          handle,
                      std::unordered_map<typename Wrapper::HandleType, Wrapper*>& map)
     {
+        return (map.erase(handle) != 0);
+    }
+
+    template <>
+    bool RemoveEntry(const typename BufferWrapper::HandleType                                handle,
+                     std::unordered_map<typename BufferWrapper::HandleType, BufferWrapper*>& map)
+    {
+        uint64_t time =
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+                .count();
+        GFXRECON_LOG_WARNING("RemoveEntry Buffer: %" PRIu64 ", time: %" PRIu64 "", handle, time);
         return (map.erase(handle) != 0);
     }
 
