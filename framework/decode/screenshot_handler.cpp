@@ -335,6 +335,9 @@ void ScreenshotHandler::WriteImage(const std::string&                      filen
 
                 // Make sure any pending work is finished, as we are not waiting on any semaphores from previous
                 // submissions.
+
+                // This DeivceWaitIdle could fix sync issues from the game. This is why "Captured" swapchain is correct.
+                // Another part explains why virtual swapchain has the issue.
                 result = device_table->DeviceWaitIdle(device);
 
                 if (result == VK_SUCCESS)
