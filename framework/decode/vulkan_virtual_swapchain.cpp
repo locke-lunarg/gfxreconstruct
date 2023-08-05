@@ -481,27 +481,27 @@ VkResult VulkanVirtualSwapchain::QueuePresentKHR(PFN_vkQueuePresentKHR          
     auto                     length = present_info->swapchainCount;
     std::vector<VkSemaphore> semaphores;
 
-    if (present_info->waitSemaphoreCount == 0)
-    {
-        GFXRECON_LOG_WARNING(
-            "Add QueueWaitIdle before BlitImage on Virtual Swapchain because PresentInfo has no WaitSemaphores.");
-        // It might copy a old image during re-captured replay(not the first time captured) if it doesn't has a wait
-        // command for it.
-        //
-        // The first time captured replay without issue is because DeviceWaitIdle on screenshot runs before BlitImage.
-        //
-        // The re-captured replay has the issue that is because BlitImage(captured) runs before DeviceWaitIdle on
-        // screenshot. The copied image could be old.
-        //
-        // But QueueWaitIdle might not fix everything. It might be good for only this case because
-        // 1. We don't know what Queue that the QueueSubmit uses. The Queue of QueueSubmit and QueuePresent could be
-        // different, so DeviceWaitIdle is a better solution.
-        // 2. Even though VkPresentInfoKHR sets waitSemaphoreCount, and it might still have other sync issues.
+    // if (present_info->waitSemaphoreCount == 0)
+    // {
+    // GFXRECON_LOG_WARNING(
+    //    "Add QueueWaitIdle before BlitImage on Virtual Swapchain because PresentInfo has no WaitSemaphores.");
+    //  It might copy a old image during re-captured replay(not the first time captured) if it doesn't has a wait
+    //  command for it.
+    //
+    //  The first time captured replay without issue is because DeviceWaitIdle on screenshot runs before BlitImage.
+    //
+    //  The re-captured replay has the issue that is because BlitImage(captured) runs before DeviceWaitIdle on
+    //  screenshot. The copied image could be old.
+    //
+    //  But QueueWaitIdle might not fix everything. It might be good for only this case because
+    //  1. We don't know what Queue that the QueueSubmit uses. The Queue of QueueSubmit and QueuePresent could be
+    //  different, so DeviceWaitIdle is a better solution.
+    //  2. Even though VkPresentInfoKHR sets waitSemaphoreCount, and it might still have other sync issues.
 
-        device_table_->QueueWaitIdle(queue);
-        // VkDevice device = swapchain_infos[0]->device_info->handle;
-        // device_table_->DeviceWaitIdle(device);
-    }
+    // device_table_->QueueWaitIdle(queue);
+    // VkDevice device = swapchain_infos[0]->device_info->handle;
+    // device_table_->DeviceWaitIdle(device);
+    // }
 
     for (uint32_t i = 0; i < length; ++i)
     {
@@ -618,7 +618,11 @@ VkResult VulkanVirtualSwapchain::QueuePresentKHR(PFN_vkQueuePresentKHR          
         submit_info.signalSemaphoreCount = 1;
         submit_info.pSignalSemaphores    = &semaphore;
 
-        result = device_table_->QueueSubmit(swapchain_info->blit_queue, 1, &submit_info, VK_NULL_HANDLE);
+        if (queue != swapchain_info->blit_queue)
+        {
+            GFXRECON_LOG_WARNING("CmdBlitImage and QueuePresentKHR use different Queue.");
+        }
+        result = device_table_->QueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
         if (result != VK_SUCCESS)
         {
             return result;
