@@ -390,6 +390,7 @@ gfxrecon-replay         [-h | --help] [--version] [--gpu <index>]
                         [--surface-index <N>] [--remove-unsupported] [--validate]
                         [-m <mode> | --memory-translation <mode>]
                         [--use-captured-swapchain-indices]
+                        [--offscreen]
                         [--log-level <level>] [--log-file <file>] [--log-debugview]
                         [--api <api>] [--no-debug-popup] <file>
 
@@ -503,6 +504,7 @@ Optional arguments:
                         setup for replay. The default without this option is to use a Virtual Swapchain
                         of images which match the swapchain in effect at capture time and which are
                         copied to the underlying swapchain of the implementation being replayed on.
+  --offscreen           Output the rendering image, and do not create a window.
 ```
 
 ### Key Controls
