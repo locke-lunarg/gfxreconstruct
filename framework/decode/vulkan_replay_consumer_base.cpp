@@ -27,6 +27,7 @@
 #include "decode/resource_util.h"
 #include "decode/vulkan_captured_swapchain.h"
 #include "decode/vulkan_virtual_swapchain.h"
+#include "decode/vulkan_offscreen_swapchain.h"
 #include "decode/vulkan_enum_util.h"
 #include "decode/vulkan_feature_util.h"
 #include "decode/vulkan_object_cleanup_util.h"
@@ -166,7 +167,8 @@ VulkanReplayConsumerBase::VulkanReplayConsumerBase(std::shared_ptr<application::
     assert(application_ != nullptr);
     assert(options.create_resource_allocator != nullptr);
 
-    if (!options.screenshot_ranges.empty())
+    // TODO: rename screenshot_handler_ for offscreen
+    if (!options.screenshot_ranges.empty() || options_.enable_offscreen)
     {
         InitializeScreenshotHandler();
     }
@@ -178,7 +180,14 @@ VulkanReplayConsumerBase::VulkanReplayConsumerBase(std::shared_ptr<application::
     }
     else
     {
-        swapchain_ = std::make_unique<VulkanVirtualSwapchain>();
+        if (options.enable_offscreen)
+        {
+            swapchain_ = std::make_unique<VulkanOffscreenSwapchain>();
+        }
+        else
+        {
+            swapchain_ = std::make_unique<VulkanVirtualSwapchain>();
+        }
     }
 
     if (options_.enable_debug_device_lost)
@@ -2283,8 +2292,8 @@ VulkanReplayConsumerBase::OverrideCreateInstance(VkResult original_result,
     {
         modified_create_info = (*replay_create_info);
 
-        // If VkDebugUtilsMessengerCreateInfoEXT or VkDebugReportCallbackCreateInfoEXT are in the pNext chain, update
-        // the callback pointers.
+        // If VkDebugUtilsMessengerCreateInfoEXT or VkDebugReportCallbackCreateInfoEXT are in the pNext chain,
+        // update the callback pointers.
         ProcessCreateInstanceDebugCallbackInfo(pCreateInfo->GetMetaStructPointer());
 
         // Proc addresses that can't be used in layers so are not generated into shared dispatch table, but are
@@ -2316,8 +2325,8 @@ VulkanReplayConsumerBase::OverrideCreateInstance(VkResult original_result,
             for (const auto& itr : application_->GetWsiContexts())
             {
                 // TODO : It's kinda ugly to be referencing Dx12 (even if just by name) in the Vulkan codepath, but
-                // having a string associated with the WSI context isn't really something Dx12 has a concept of...this
-                // should be able to be refactored away in another PR
+                // having a string associated with the WSI context isn't really something Dx12 has a concept
+                // of...this should be able to be refactored away in another PR
                 if (gfxrecon::util::platform::StringCompareNoCase(itr.first.c_str(), "Dx12WsiContext"))
                 {
                     filtered_extensions.push_back(itr.first.c_str());
@@ -2373,8 +2382,8 @@ VulkanReplayConsumerBase::OverrideCreateInstance(VkResult original_result,
                 {
                     filtered_layers.push_back(kValidationLayerName);
 
-                    // Create a debug util messenger if replay was run with the enable_validation_layer option and the
-                    // VK_EXT_debug_utils extension is available. Note that if the app also included one or more
+                    // Create a debug util messenger if replay was run with the enable_validation_layer option and
+                    // the VK_EXT_debug_utils extension is available. Note that if the app also included one or more
                     // VkDebugUtilsMessengerCreateInfoEXT structs in the pNext chain, those messengers will also be
                     // created.
                     if (feature_util::IsSupportedExtension(available_extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
@@ -2396,7 +2405,8 @@ VulkanReplayConsumerBase::OverrideCreateInstance(VkResult original_result,
                     else
                     {
                         GFXRECON_LOG_WARNING(
-                            "Failed to create debug utils callback for the validation layer enabled by replay option "
+                            "Failed to create debug utils callback for the validation layer enabled by replay "
+                            "option "
                             "'--validate'. VK_EXT_debug_utils extension is not available for the replay instance.");
                     }
                 }
@@ -2441,8 +2451,8 @@ VulkanReplayConsumerBase::OverrideCreateInstance(VkResult original_result,
     // Enable any required layers.
     if (!filtered_layers.empty())
     {
-        GFXRECON_LOG_INFO(
-            "Replay has added the following required layers to VkInstanceCreateInfo when calling vkCreateInstance:");
+        GFXRECON_LOG_INFO("Replay has added the following required layers to VkInstanceCreateInfo when calling "
+                          "vkCreateInstance:");
 
         for (auto layer : filtered_layers)
         {
@@ -2759,8 +2769,8 @@ VulkanReplayConsumerBase::OverrideEnumeratePhysicalDevices(PFN_vkEnumeratePhysic
         if ((replay_device_count > 0) && (replay_device_count < capture_device_count))
         {
             // Make sure all of the capture physical device IDs map to a valid replay physical device handle.
-            // The generated code will only add handle mappings for handles returned by vkEnumeratePhysicalDevices on
-            // replay, so we add mappings for the handle IDs without matching devices here.
+            // The generated code will only add handle mappings for handles returned by vkEnumeratePhysicalDevices
+            // on replay, so we add mappings for the handle IDs without matching devices here.
             VkPhysicalDevice overflow_device = replay_devices[0];
 
             for (uint32_t i = replay_device_count; i < capture_device_count; ++i)
@@ -2864,8 +2874,8 @@ VkResult VulkanReplayConsumerBase::OverrideEnumeratePhysicalDeviceGroups(
             }
         }
 
-        // Build lists of capture physical device IDs and replay physical device handles, inserting ID/handle values at
-        // matching indexes at the start of the lists, with unpaired values appended to the end.
+        // Build lists of capture physical device IDs and replay physical device handles, inserting ID/handle values
+        // at matching indexes at the start of the lists, with unpaired values appended to the end.
         std::vector<format::HandleId> capture_devices;
         std::vector<VkPhysicalDevice> replay_devices;
 
@@ -2877,9 +2887,9 @@ VkResult VulkanReplayConsumerBase::OverrideEnumeratePhysicalDeviceGroups(
             {
                 replay_devices.push_back(entry.second);
 
-                // There is currently no way to provide pre-initialized info data for a newly created handle that is a
-                // member of a struct, so we insert the handle here.  The generated code will also perform a handle
-                // insertion, which will be ignored.
+                // There is currently no way to provide pre-initialized info data for a newly created handle that is
+                // a member of a struct, so we insert the handle here.  The generated code will also perform a
+                // handle insertion, which will be ignored.
                 PhysicalDeviceInfo physical_device_info;
 
                 physical_device_info.handle     = entry.second;
@@ -2902,8 +2912,8 @@ VkResult VulkanReplayConsumerBase::OverrideEnumeratePhysicalDeviceGroups(
         if ((!replay_devices.empty()) && (replay_devices.size() < capture_devices.size()))
         {
             // Make sure all of the capture physical device IDs map to a valid replay physical device handle.
-            // The generated code will only add handle mappings for handles returned by vkEnumeratePhysicalDevices on
-            // replay, so we add mappings for the handle IDs without matching devices here.
+            // The generated code will only add handle mappings for handles returned by vkEnumeratePhysicalDevices
+            // on replay, so we add mappings for the handle IDs without matching devices here.
             VkPhysicalDevice overflow_device = replay_devices[0];
 
             for (size_t i = replay_devices.size(); i < capture_devices.size(); ++i)
@@ -3254,8 +3264,8 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit(PFN_vkQueueSubmit func,
     }
     else
     {
-        // Check for imported semaphores in the current submission list, mapping the pSubmits array index to a vector of
-        // imported semaphore info structures.
+        // Check for imported semaphores in the current submission list, mapping the pSubmits array index to a
+        // vector of imported semaphore info structures.
         std::unordered_map<uint32_t, std::vector<const SemaphoreInfo*>> altered_submits;
         std::vector<const SemaphoreInfo*>                               removed_semaphores;
 
@@ -3266,8 +3276,8 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit(PFN_vkQueueSubmit func,
                 GetImportedSemaphores(submit_info_data[i].pWaitSemaphores, &removed_semaphores);
                 GetShadowSemaphores(submit_info_data[i].pWaitSemaphores, &removed_semaphores);
 
-                // If rendering is restricted to a specific surface, need to track forward progress for semaphores that
-                // have been submitted with a null-swapchain.
+                // If rendering is restricted to a specific surface, need to track forward progress for semaphores
+                // that have been submitted with a null-swapchain.
                 TrackSemaphoreForwardProgress(submit_info_data[i].pWaitSemaphores, &removed_semaphores);
 
                 // Remove non-forward progress of signal semaphores.
@@ -3287,8 +3297,8 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit(PFN_vkQueueSubmit func,
         }
         else
         {
-            // Make shallow copies of the VkSubmit info structures and change pWaitSemaphores to reference a copy of the
-            // original semaphore array with the imported semaphores omitted.
+            // Make shallow copies of the VkSubmit info structures and change pWaitSemaphores to reference a copy of
+            // the original semaphore array with the imported semaphores omitted.
             std::vector<VkSubmitInfo> modified_submit_infos(submit_infos, std::next(submit_infos, submitCount));
             std::vector<std::vector<VkSemaphore>> semaphore_memory(altered_submits.size());
 
@@ -3414,8 +3424,8 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit2(PFN_vkQueueSubmit2 func,
     }
     else
     {
-        // Check for imported semaphores in the current submission list, mapping the pSubmits array index to a vector of
-        // imported semaphore info structures.
+        // Check for imported semaphores in the current submission list, mapping the pSubmits array index to a
+        // vector of imported semaphore info structures.
         std::unordered_map<uint32_t, std::vector<const SemaphoreInfo*>> altered_submits;
         std::vector<const SemaphoreInfo*>                               removed_semaphores;
 
@@ -3426,8 +3436,8 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit2(PFN_vkQueueSubmit2 func,
                 GetImportedSemaphores(submit_info_data[i].pWaitSemaphoreInfos, &removed_semaphores);
                 GetShadowSemaphores(submit_info_data[i].pWaitSemaphoreInfos, &removed_semaphores);
 
-                // If rendering is restricted to a specific surface, need to track forward progress for semaphores that
-                // have been submitted with a null-swapchain.
+                // If rendering is restricted to a specific surface, need to track forward progress for semaphores
+                // that have been submitted with a null-swapchain.
                 TrackSemaphoreForwardProgress(submit_info_data[i].pWaitSemaphoreInfos, &removed_semaphores);
 
                 // Remove non-forward progress of signal semaphores.
@@ -3447,8 +3457,8 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit2(PFN_vkQueueSubmit2 func,
         }
         else
         {
-            // Make shallow copies of the VkSubmit info structures and change pWaitSemaphores to reference a copy of the
-            // original semaphore array with the imported semaphores omitted.
+            // Make shallow copies of the VkSubmit info structures and change pWaitSemaphores to reference a copy of
+            // the original semaphore array with the imported semaphores omitted.
             std::vector<VkSubmitInfo2> modified_submit_infos(submit_infos, std::next(submit_infos, submitCount));
             std::vector<std::vector<VkSemaphore>> semaphore_memory(altered_submits.size());
 
@@ -3571,8 +3581,8 @@ VulkanReplayConsumerBase::OverrideQueueBindSparse(PFN_vkQueueBindSparse         
     }
     else
     {
-        // Check for imported semaphores in the current bind info list, mapping the pBindInfo array index to a vector of
-        // imported semaphore info structures.
+        // Check for imported semaphores in the current bind info list, mapping the pBindInfo array index to a
+        // vector of imported semaphore info structures.
         std::unordered_map<uint32_t, std::vector<const SemaphoreInfo*>> altered_submits;
         std::vector<const SemaphoreInfo*>                               removed_semaphores;
 
@@ -3584,8 +3594,8 @@ VulkanReplayConsumerBase::OverrideQueueBindSparse(PFN_vkQueueBindSparse         
                 GetImportedSemaphores(bind_info_data[i].pWaitSemaphores, &removed_semaphores);
                 GetShadowSemaphores(bind_info_data[i].pWaitSemaphores, &removed_semaphores);
 
-                // If rendering is restricted to a specific surface, need to track forward progress for semaphores that
-                // have been submitted with a null-swapchain.
+                // If rendering is restricted to a specific surface, need to track forward progress for semaphores
+                // that have been submitted with a null-swapchain.
                 TrackSemaphoreForwardProgress(bind_info_data[i].pWaitSemaphores, &removed_semaphores);
 
                 // Remove non-forward progress of signal semaphores.
@@ -3605,8 +3615,8 @@ VulkanReplayConsumerBase::OverrideQueueBindSparse(PFN_vkQueueBindSparse         
         }
         else
         {
-            // Make shallow copies of the VkBindSparseInfo structures and change pWaitSemaphores to reference a copy of
-            // the original semaphore array with the imported semaphores omitted.
+            // Make shallow copies of the VkBindSparseInfo structures and change pWaitSemaphores to reference a copy
+            // of the original semaphore array with the imported semaphores omitted.
             std::vector<VkBindSparseInfo>         modified_bind_infos(bind_infos, std::next(bind_infos, bindInfoCount));
             std::vector<std::vector<VkSemaphore>> semaphore_memory(altered_submits.size());
 
@@ -3684,8 +3694,9 @@ VkResult VulkanReplayConsumerBase::OverrideCreateDescriptorPool(
     if (result >= 0)
     {
         // Due to capture and replay differences, it is possible for descriptor set allocation to fail with the
-        // descriptor pool running out of memory.  To handle this case, replay will store the pool creation info so that
-        // it can attempt to recover from an out of pool memory event by creating a new pool with the same properties.
+        // descriptor pool running out of memory.  To handle this case, replay will store the pool creation info so
+        // that it can attempt to recover from an out of pool memory event by creating a new pool with the same
+        // properties.
         auto pool_info = reinterpret_cast<DescriptorPoolInfo*>(pDescriptorPool->GetConsumerData(0));
         assert(pool_info != nullptr);
 
@@ -3735,8 +3746,8 @@ void VulkanReplayConsumerBase::OverrideDestroyDescriptorPool(
     {
         descriptor_pool = descriptor_pool_info->handle;
 
-        // If descriptor allocation ran out of pool memory one or more times, there will be one or more descriptor pools
-        // that need to be destroyed.
+        // If descriptor allocation ran out of pool memory one or more times, there will be one or more descriptor
+        // pools that need to be destroyed.
         for (auto retired_pool : descriptor_pool_info->retired_pools)
         {
             func(device, retired_pool, GetAllocationCallbacks(pAllocator));
@@ -3792,13 +3803,14 @@ VkResult VulkanReplayConsumerBase::OverrideAllocateDescriptorSets(
 
             if (result == VK_SUCCESS)
             {
-                GFXRECON_LOG_INFO(
-                    "A new VkDescriptorPool object (handle = 0x%" PRIx64
-                    ") has been created to replace a VkDescriptorPool object (ID = %" PRIu64 ", handle = 0x%" PRIx64
-                    ") that has run our of pool memory (vkAllocateDescriptorSets returned VK_ERROR_OUT_OF_POOL_MEMORY)",
-                    new_pool,
-                    pool_info->capture_id,
-                    pool_info->handle);
+                GFXRECON_LOG_INFO("A new VkDescriptorPool object (handle = 0x%" PRIx64
+                                  ") has been created to replace a VkDescriptorPool object (ID = %" PRIu64
+                                  ", handle = 0x%" PRIx64
+                                  ") that has run our of pool memory (vkAllocateDescriptorSets returned "
+                                  "VK_ERROR_OUT_OF_POOL_MEMORY)",
+                                  new_pool,
+                                  pool_info->capture_id,
+                                  pool_info->handle);
 
                 // Retire old pool and swap it with the new pool.
                 pool_info->retired_pools.push_back(pool_info->handle);
@@ -3918,8 +3930,8 @@ VkResult VulkanReplayConsumerBase::OverrideAllocateMemory(
                 host_pointer_size =
                     util::platform::GetAlignedSize(allocation_size, util::platform::GetSystemPageSize());
 
-                // VkAllocateMemory fails when memory was allocated with default malloc func, probably because of extra
-                // memory bytes allocated for malloc private info
+                // VkAllocateMemory fails when memory was allocated with default malloc func, probably because of
+                // extra memory bytes allocated for malloc private info
                 import_info->pHostPointer = util::platform::AllocateRawMemory(host_pointer_size);
 
                 if (import_info->pHostPointer == nullptr)
@@ -3951,9 +3963,9 @@ VkResult VulkanReplayConsumerBase::OverrideAllocateMemory(
 
             VkMemoryAllocateInfo                     modified_allocate_info = (*replay_allocate_info);
             VkMemoryOpaqueCaptureAddressAllocateInfo address_info           = {
-                          VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO,
-                          modified_allocate_info.pNext,
-                          opaque_address
+                VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO,
+                modified_allocate_info.pNext,
+                opaque_address
             };
             modified_allocate_info.pNext = &address_info;
 
@@ -3979,8 +3991,8 @@ VkResult VulkanReplayConsumerBase::OverrideAllocateMemory(
         }
         else if (original_result == VK_SUCCESS)
         {
-            // When memory allocation fails at replay, but succeeded at capture, check for memory incompatibilities and
-            // recommend enabling memory translation.
+            // When memory allocation fails at replay, but succeeded at capture, check for memory incompatibilities
+            // and recommend enabling memory translation.
             allocator->ReportAllocateMemoryIncompatibility(replay_allocate_info);
         }
 
@@ -4404,9 +4416,9 @@ VulkanReplayConsumerBase::OverrideCreateBuffer(PFN_vkCreateBuffer               
         {
             address_info.opaqueCaptureAddress = entry->second;
 
-            // The shallow copy of VkBufferCreateInfo references the same pNext list from the copy source.  We insert
-            // the buffer address extension struct at the start of the list to avoid modifying the original by appending
-            // to the end.
+            // The shallow copy of VkBufferCreateInfo references the same pNext list from the copy source.  We
+            // insert the buffer address extension struct at the start of the list to avoid modifying the original
+            // by appending to the end.
             address_info.pNext         = modified_create_info.pNext;
             modified_create_info.pNext = &address_info;
 
@@ -4691,9 +4703,10 @@ VkResult VulkanReplayConsumerBase::OverrideCreateDescriptorUpdateTemplate(
 
     if (replay_create_info != nullptr)
     {
-        // Modify the layout of the update template entries to match the tight packing performed by the trace encoding.
-        // The trace encoding wrote the update template entries as a tightly packed array of VkDescriptorImageInfo
-        // values, followed by an array of VkDescriptorBufferInfo values, followed by an array of VkBufferView values.
+        // Modify the layout of the update template entries to match the tight packing performed by the trace
+        // encoding. The trace encoding wrote the update template entries as a tightly packed array of
+        // VkDescriptorImageInfo values, followed by an array of VkDescriptorBufferInfo values, followed by an array
+        // of VkBufferView values.
         VkDescriptorUpdateTemplateCreateInfo override_create_info = (*replay_create_info);
 
         std::vector<VkDescriptorUpdateTemplateEntry> entries(
@@ -5065,7 +5078,8 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
                                                     replay_swapchain,
                                                     physical_device,
                                                     instance_table,
-                                                    device_table);
+                                                    device_table,
+                                                    screenshot_handler_.get());
         }
         else
         {
@@ -5079,7 +5093,8 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
                                                     replay_swapchain,
                                                     physical_device,
                                                     instance_table,
-                                                    device_table);
+                                                    device_table,
+                                                    screenshot_handler_.get());
         }
     }
     else
@@ -5291,9 +5306,9 @@ VkResult VulkanReplayConsumerBase::OverrideAcquireNextImageKHR(PFN_vkAcquireNext
 
     VkResult result = VK_SUCCESS;
 
-    // If image acquire failed at capture, there is nothing worth replaying as the fence and semaphore aren't processed
-    // and a successful acquire on replay of an image that does not have a corresponding present to replay can lead to
-    // OUT_OF_DATE errors.
+    // If image acquire failed at capture, there is nothing worth replaying as the fence and semaphore aren't
+    // processed and a successful acquire on replay of an image that does not have a corresponding present to replay
+    // can lead to OUT_OF_DATE errors.
     if (original_result != VK_SUCCESS && original_result != VK_SUBOPTIMAL_KHR)
     {
         result = original_result;
@@ -5326,18 +5341,18 @@ VkResult VulkanReplayConsumerBase::OverrideAcquireNextImageKHR(PFN_vkAcquireNext
             // The image has already been acquired. Swap the synchronization objects.
             if (semaphore != VK_NULL_HANDLE)
             {
-                // TODO: This should be processed at a higher level where the original handle IDs are available, so that
-                // the swap can be performed with the original handle ID and the semaphore can be guaranteed not to be
-                // used after destroy.
+                // TODO: This should be processed at a higher level where the original handle IDs are available, so
+                // that the swap can be performed with the original handle ID and the semaphore can be guaranteed
+                // not to be used after destroy.
                 object_info_table_.ReplaceSemaphore(semaphore, preacquire_semaphore);
                 preacquire_semaphore = semaphore;
             }
 
             if (fence != VK_NULL_HANDLE)
             {
-                // TODO: This should be processed at a higher level where the original handle IDs are available, so that
-                // the swap can be performed with the original handle ID and the fence can be guaranteed not to be used
-                // after destroy.
+                // TODO: This should be processed at a higher level where the original handle IDs are available, so
+                // that the swap can be performed with the original handle ID and the fence can be guaranteed not to
+                // be used after destroy.
                 object_info_table_.ReplaceFence(fence, preacquire_fence);
                 preacquire_fence = fence;
             }
@@ -5409,9 +5424,9 @@ VkResult VulkanReplayConsumerBase::OverrideAcquireNextImage2KHR(
     SwapchainKHRInfo* swapchain_info    = object_info_table_.GetSwapchainKHRInfo(acquire_meta_info->swapchain);
     assert(swapchain_info != nullptr);
 
-    // If image acquire failed at capture, there is nothing worth replaying as the fence and semaphore aren't processed
-    // and a successful acquire on replay of an image that does not have a corresponding present to replay can lead to
-    // OUT_OF_DATE errors.
+    // If image acquire failed at capture, there is nothing worth replaying as the fence and semaphore aren't
+    // processed and a successful acquire on replay of an image that does not have a corresponding present to replay
+    // can lead to OUT_OF_DATE errors.
     if (original_result < 0)
     {
         result = original_result;
@@ -5445,18 +5460,18 @@ VkResult VulkanReplayConsumerBase::OverrideAcquireNextImage2KHR(
             // The image has already been acquired. Swap the synchronization objects.
             if (replay_acquire_info->semaphore != VK_NULL_HANDLE)
             {
-                // TODO: This should be processed at a higher level where the original handle IDs are available, so that
-                // the swap can be performed with the original handle ID and the semaphore can be guaranteed not to be
-                // used after destroy.
+                // TODO: This should be processed at a higher level where the original handle IDs are available, so
+                // that the swap can be performed with the original handle ID and the semaphore can be guaranteed
+                // not to be used after destroy.
                 object_info_table_.ReplaceSemaphore(replay_acquire_info->semaphore, preacquire_semaphore);
                 preacquire_semaphore = replay_acquire_info->semaphore;
             }
 
             if (replay_acquire_info->fence != VK_NULL_HANDLE)
             {
-                // TODO: This should be processed at a higher level where the original handle IDs are available, so that
-                // the swap can be performed with the original handle ID and the fence can be guaranteed not to be used
-                // after destroy.
+                // TODO: This should be processed at a higher level where the original handle IDs are available, so
+                // that the swap can be performed with the original handle ID and the fence can be guaranteed not to
+                // be used after destroy.
                 object_info_table_.ReplaceFence(replay_acquire_info->fence, preacquire_fence);
                 preacquire_fence = replay_acquire_info->fence;
             }
@@ -5807,7 +5822,8 @@ VulkanReplayConsumerBase::OverrideQueuePresentKHR(PFN_vkQueuePresentKHR         
     }
     else
     {
-        // Check for imported semaphores in the present info, creating a vector of imported semaphore info structures.
+        // Check for imported semaphores in the present info, creating a vector of imported semaphore info
+        // structures.
         if (present_info_data != nullptr)
         {
             GetImportedSemaphores(present_info_data->pWaitSemaphores, &removed_semaphores_);
@@ -6451,9 +6467,9 @@ VkDeviceAddress VulkanReplayConsumerBase::OverrideGetBufferDeviceAddress(
 
     if (!device_info->allocator->SupportsOpaqueDeviceAddresses())
     {
-        GFXRECON_LOG_WARNING_ONCE(
-            "The captured application used vkGetBufferDeviceAddress. The specified replay option '-m rebind' may not "
-            "support the replay of captured device addresses, so replay may fail.");
+        GFXRECON_LOG_WARNING_ONCE("The captured application used vkGetBufferDeviceAddress. The specified replay "
+                                  "option '-m rebind' may not "
+                                  "support the replay of captured device addresses, so replay may fail.");
     }
 
     VkDevice                         device       = device_info->handle;
@@ -6479,7 +6495,8 @@ void VulkanReplayConsumerBase::OverrideGetAccelerationStructureDeviceAddressKHR(
     if (!device_info->allocator->SupportsOpaqueDeviceAddresses())
     {
         GFXRECON_LOG_WARNING_ONCE(
-            "The captured application used vkGetAccelerationStructureDeviceAddressKHR. The specified replay option '-m "
+            "The captured application used vkGetAccelerationStructureDeviceAddressKHR. The specified replay option "
+            "'-m "
             "rebind' may not support the replay of captured device addresses, so replay may fail.");
     }
 
