@@ -40,7 +40,8 @@ class VulkanCapturedSwapchain : public VulkanSwapchain
                                         VkSwapchainKHR*                 swapchain,
                                         const VkPhysicalDevice          physical_device,
                                         const encode::InstanceTable*    instance_table,
-                                        const encode::DeviceTable*      device_table) override;
+                                        const encode::DeviceTable*      device_table,
+                                        ScreenshotHandler*              screenshot_handler) override;
 
     virtual void DestroySwapchainKHR(PFN_vkDestroySwapchainKHR    func,
                                      const DeviceInfo*            device_info,

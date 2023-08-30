@@ -27,6 +27,7 @@
 #include "decode/resource_util.h"
 #include "decode/vulkan_captured_swapchain.h"
 #include "decode/vulkan_virtual_swapchain.h"
+#include "decode/vulkan_offscreen_swapchain.h"
 #include "decode/vulkan_enum_util.h"
 #include "decode/vulkan_feature_util.h"
 #include "decode/vulkan_object_cleanup_util.h"
@@ -166,7 +167,8 @@ VulkanReplayConsumerBase::VulkanReplayConsumerBase(std::shared_ptr<application::
     assert(application_ != nullptr);
     assert(options.create_resource_allocator != nullptr);
 
-    if (!options.screenshot_ranges.empty())
+    // TODO: rename screenshot_handler_ for offscreen
+    if (!options.screenshot_ranges.empty() || options_.enable_offscreen)
     {
         InitializeScreenshotHandler();
     }
@@ -178,7 +180,14 @@ VulkanReplayConsumerBase::VulkanReplayConsumerBase(std::shared_ptr<application::
     }
     else
     {
-        swapchain_ = std::make_unique<VulkanVirtualSwapchain>();
+        if (options.enable_offscreen)
+        {
+            swapchain_ = std::make_unique<VulkanOffscreenSwapchain>();
+        }
+        else
+        {
+            swapchain_ = std::make_unique<VulkanVirtualSwapchain>();
+        }
     }
 
     if (options_.enable_debug_device_lost)
@@ -5065,7 +5074,8 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
                                                     replay_swapchain,
                                                     physical_device,
                                                     instance_table,
-                                                    device_table);
+                                                    device_table,
+                                                    screenshot_handler_.get());
         }
         else
         {
@@ -5079,7 +5089,8 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
                                                     replay_swapchain,
                                                     physical_device,
                                                     instance_table,
-                                                    device_table);
+                                                    device_table,
+                                                    screenshot_handler_.get());
         }
     }
     else
