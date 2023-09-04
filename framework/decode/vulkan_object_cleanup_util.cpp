@@ -663,15 +663,7 @@ void FreeAllLiveObjects(VulkanObjectInfoTable*                                  
         [&](const InstanceInfo* parent_info, const SurfaceKHRInfo* object_info) {
             assert((parent_info != nullptr) && (object_info != nullptr));
             auto table  = get_instance_table(parent_info->handle);
-            auto window = object_info->window;
-            if (window != nullptr)
-            {
-                window->DestroySurface(table, parent_info->handle, object_info->handle);
-            }
-            else
-            {
-                table->DestroySurfaceKHR(parent_info->handle, object_info->handle, nullptr);
-            }
+            swapchain->DestroySurface(table->DestroySurfaceKHR, parent_info, object_info, nullptr);
         });
 
     FreeParentObjects<DeviceInfo>(table,
