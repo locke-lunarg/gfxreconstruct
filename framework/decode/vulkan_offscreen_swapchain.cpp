@@ -33,26 +33,89 @@ const char kDefaultOffscreenDir[] = "/sdcard/";
 const char kDefaultOffscreenDir[] = "";
 #endif
 
+VkResult VulkanOffscreenSwapchain::CreateSurface(InstanceInfo*                      instance_info,
+                                                const std::string&                  wsi_extension,
+                                                VkFlags                             flags,
+                                                HandlePointerDecoder<VkSurfaceKHR>* surface,
+                                                const encode::InstanceTable*        instance_table,
+                                                application::Application*           application,
+                                                int32_t                             options_surface_index)
+{
+    instance_table_              = instance_table;
+    application_                 = application;
+    options_surface_index_       = options_surface_index;
+
+    const format::HandleId* id = surface->GetPointer();
+    VkSurfaceKHR* replay_surface = surface->GetHandlePointer();
+
+    // Give surface a fake handle. It's handle id. 
+    *replay_surface = reinterpret_cast<VkSurfaceKHR>(*id); 
+    return VK_SUCCESS;
+}
+
+void VulkanOffscreenSwapchain::DestroySurface(PFN_vkDestroySurfaceKHR      func,
+                                              InstanceInfo*                instance_info,
+                                              const SurfaceKHRInfo*        surface_info,
+                                              const VkAllocationCallbacks* allocator){}
+
 VkResult VulkanOffscreenSwapchain::CreateSwapchainKHR(PFN_vkCreateSwapchainKHR        func,
                                                       const DeviceInfo*               device_info,
                                                       const VkSwapchainCreateInfoKHR* create_info,
                                                       const VkAllocationCallbacks*    allocator,
-                                                      VkSwapchainKHR*                 swapchain,
-                                                      const VkPhysicalDevice          physical_device,
-                                                      const encode::InstanceTable*    instance_table,
+                                                      HandlePointerDecoder<VkSwapchainKHR>* swapchain,
                                                       const encode::DeviceTable*      device_table,
                                                       ScreenshotHandler*              screenshot_handler)
 {
+    GFXRECON_ASSERT(device_info);
+    device_table_ = device_table;
     screenshot_handler_ = screenshot_handler;
-    return VulkanVirtualSwapchain::CreateSwapchainKHR(func,
-                                                      device_info,
-                                                      create_info,
-                                                      allocator,
-                                                      swapchain,
-                                                      physical_device,
-                                                      instance_table,
-                                                      device_table,
-                                                      screenshot_handler);
+
+    const format::HandleId* id = swapchain->GetPointer();
+    VkSwapchainKHR* replay_swapchain = swapchain->GetHandlePointer();
+
+    // Give swapchain a fake handle. It's handle id. 
+    *replay_swapchain = reinterpret_cast<VkSwapchainKHR>(*id); 
+    if (!AddSwapchainResourceData(*replay_swapchain))
+    {
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    VkDevice device = device = device_info->handle;
+    device_table_->GetDeviceQueue(device, default_queue_family_index_, 0, &default_queue_);
+ 
+    return VK_SUCCESS;
+}
+
+void VulkanOffscreenSwapchain::DestroySwapchainKHR(PFN_vkDestroySwapchainKHR    func,
+                                                   const DeviceInfo*            device_info,
+                                                   const SwapchainKHRInfo*      swapchain_info,
+                                                   const VkAllocationCallbacks* allocator)
+{
+    if ((device_info != nullptr) && (swapchain_info != nullptr))
+    {
+        CleanSwapchainResourceData(device_info, swapchain_info);
+    }
+}
+
+VkResult VulkanOffscreenSwapchain::GetSwapchainImagesKHR(PFN_vkGetSwapchainImagesKHR func,
+                                                         const DeviceInfo*           device_info,
+                                                         SwapchainKHRInfo*           swapchain_info,
+                                                         uint32_t                    capture_image_count,
+                                                         uint32_t*                   image_count,
+                                                         VkImage*                    images)
+{
+    GFXRECON_ASSERT(swapchain_info);
+    uint32_t* replay_image_count = &swapchain_info->replay_image_count;
+
+    if (images == nullptr)
+    {
+        (*image_count)        = capture_image_count;
+        (*replay_image_count) = capture_image_count;
+        return VK_SUCCESS;
+    }
+
+    return CreateSwapchainResourceData(
+        device_info, swapchain_info, capture_image_count, replay_image_count, images, true);
 }
 
 VkResult VulkanOffscreenSwapchain::AcquireNextImageKHR(PFN_vkAcquireNextImageKHR func,
@@ -182,7 +245,7 @@ VkResult VulkanOffscreenSwapchain::QueuePresentKHR(PFN_vkQueuePresentKHR        
     return VK_SUCCESS;
 }
 
-// queue_info could be nullptr. It means it doesn't specify a VkQueue and use a default VkQueue(0, 0). Its purpose is to singal semaphores or fence. All VkQueue should work.
+// queue_info could be nullptr. It means it doesn't specify a VkQueue and use default_queue. Its purpose is to singal semaphores or fence. All VkQueue should work.
 VkResult VulkanOffscreenSwapchain::SingalSemaphoresFence(SwapchainKHRInfo*  swapchain_info,
                                                          uint32_t           capture_image_index,
                                                          const QueueInfo*   queue_info,
@@ -204,7 +267,7 @@ VkResult VulkanOffscreenSwapchain::SingalSemaphoresFence(SwapchainKHRInfo*  swap
     auto& swapchain_resources = swapchain_resources_[swapchain_info->handle];
     assert(swapchain_resources != nullptr);
 
-    uint32_t queue_family_index = 0;
+    uint32_t queue_family_index = default_queue_family_index_;
     if (queue_info)
     {
         queue_family_index = queue_info->family_index;
@@ -265,15 +328,9 @@ VkResult VulkanOffscreenSwapchain::SingalSemaphoresFence(SwapchainKHRInfo*  swap
     {
         queue = queue_info->handle;
     }
-    if (queue == VK_NULL_HANDLE)
+    else
     {
-        auto     device_info = swapchain_info->device_info;
-        VkDevice device      = VK_NULL_HANDLE;
-        if (device_info != nullptr)
-        {
-            device = device_info->handle;
-        }
-        device_table_->GetDeviceQueue(device, queue_family_index, 0, &queue);
+        queue = default_queue_;
     }
     return device_table_->QueueSubmit(queue, 1, &submit_info, fence);
 }

@@ -37,9 +37,7 @@ class VulkanCapturedSwapchain : public VulkanSwapchain
                                         const DeviceInfo*               device_info,
                                         const VkSwapchainCreateInfoKHR* create_info,
                                         const VkAllocationCallbacks*    allocator,
-                                        VkSwapchainKHR*                 swapchain,
-                                        const VkPhysicalDevice          physical_device,
-                                        const encode::InstanceTable*    instance_table,
+                                        HandlePointerDecoder<VkSwapchainKHR>* swapchain,
                                         const encode::DeviceTable*      device_table,
                                         ScreenshotHandler*              screenshot_handler) override;
 
