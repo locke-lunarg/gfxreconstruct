@@ -44,7 +44,7 @@ class VulkanOffscreenSwapchain : public VulkanVirtualSwapchain
                                    int32_t                             options_surface_index) override;
 
     virtual void DestroySurface(PFN_vkDestroySurfaceKHR      func,
-                                InstanceInfo*                instance_info,
+                                const InstanceInfo*          instance_info,
                                 const SurfaceKHRInfo*        surface_info,
                                 const VkAllocationCallbacks* allocator) override;
 

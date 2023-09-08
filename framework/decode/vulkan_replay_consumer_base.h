@@ -981,6 +981,8 @@ class VulkanReplayConsumerBase : public VulkanConsumer
                                        StructPointerDecoder<Decoded_VkAllocationCallbacks>*   allocator_decoder,
                                        HandlePointerDecoder<VkFramebuffer>*                   frame_buffer_decoder);
 
+    const VulkanReplayOptions options_;
+
   private:
     void RaiseFatalError(const char* message) const;
 
@@ -1131,7 +1133,6 @@ class VulkanReplayConsumerBase : public VulkanConsumer
     std::function<void(const char*)>                                 fatal_error_handler_;
     std::shared_ptr<application::Application>                        application_;
     VulkanObjectInfoTable                                            object_info_table_;
-    const VulkanReplayOptions                                        options_;
     bool                                                             loading_trim_state_;
     SwapchainImageTracker                                            swapchain_image_tracker_;
     HardwareBufferMap                                                hardware_buffers_;

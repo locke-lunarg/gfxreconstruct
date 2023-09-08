@@ -133,7 +133,7 @@ VkResult VulkanSwapchain::CreateSurface(InstanceInfo*                       inst
 }
 
 void VulkanSwapchain::DestroySurface(PFN_vkDestroySurfaceKHR      func,
-                            InstanceInfo*                instance_info,
+                            const InstanceInfo*                instance_info,
                             const SurfaceKHRInfo*        surface_info,
                             const VkAllocationCallbacks* allocator)
 {

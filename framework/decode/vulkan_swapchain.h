@@ -56,7 +56,7 @@ class VulkanSwapchain
                                    int32_t                             options_surface_index);
 
     virtual void DestroySurface(PFN_vkDestroySurfaceKHR      func,
-                                InstanceInfo*                instance_info,
+                                const InstanceInfo*                instance_info,
                                 const SurfaceKHRInfo*        surface_info,
                                 const VkAllocationCallbacks* allocator);
 
