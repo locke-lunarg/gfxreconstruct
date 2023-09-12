@@ -1497,3 +1497,13 @@ class BaseGenerator(OutputGenerator):
     def is_flags_enum_64bit(self, enum):
         flag_type = BitsEnumToFlagsTypedef(enum)
         return self.is_64bit_flags(flag_type)
+    
+    def is_has_specific_key_word_in_type(self, value, key_word):
+        if key_word in value.base_type:
+            return True
+        
+        values = self.feature_struct_members.get(value.base_type)
+        if values:
+            for value in values:
+                return self.is_has_specific_key_word_in_type(value, key_word)
+        return False  

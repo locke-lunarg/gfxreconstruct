@@ -3127,6 +3127,11 @@ void VulkanReplayConsumer::Process_vkGetPhysicalDeviceSurfaceSupportKHR(
     format::HandleId                            surface,
     PointerDecoder<VkBool32>*                   pSupported)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetPhysicalDeviceSurfaceSupportKHR for offscreen.");
+        return;
+    }
     VkPhysicalDevice in_physicalDevice = MapHandle<PhysicalDeviceInfo>(physicalDevice, &VulkanObjectInfoTable::GetPhysicalDeviceInfo);
     VkSurfaceKHR in_surface = MapHandle<SurfaceKHRInfo>(surface, &VulkanObjectInfoTable::GetSurfaceKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(surface) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(surface)->surface_creation_skipped) { return; }
@@ -3143,6 +3148,11 @@ void VulkanReplayConsumer::Process_vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
     format::HandleId                            surface,
     StructPointerDecoder<Decoded_VkSurfaceCapabilitiesKHR>* pSurfaceCapabilities)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetPhysicalDeviceSurfaceCapabilitiesKHR for offscreen.");
+        return;
+    }
     auto in_physicalDevice = GetObjectInfoTable().GetPhysicalDeviceInfo(physicalDevice);
     auto in_surface = GetObjectInfoTable().GetSurfaceKHRInfo(surface);
     if (in_surface == nullptr || in_surface->surface_creation_skipped) { return; }
@@ -3160,6 +3170,11 @@ void VulkanReplayConsumer::Process_vkGetPhysicalDeviceSurfaceFormatsKHR(
     PointerDecoder<uint32_t>*                   pSurfaceFormatCount,
     StructPointerDecoder<Decoded_VkSurfaceFormatKHR>* pSurfaceFormats)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetPhysicalDeviceSurfaceFormatsKHR for offscreen.");
+        return;
+    }
     VkPhysicalDevice in_physicalDevice = MapHandle<PhysicalDeviceInfo>(physicalDevice, &VulkanObjectInfoTable::GetPhysicalDeviceInfo);
     VkSurfaceKHR in_surface = MapHandle<SurfaceKHRInfo>(surface, &VulkanObjectInfoTable::GetSurfaceKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(surface) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(surface)->surface_creation_skipped) { return; }
@@ -3180,6 +3195,11 @@ void VulkanReplayConsumer::Process_vkGetPhysicalDeviceSurfacePresentModesKHR(
     PointerDecoder<uint32_t>*                   pPresentModeCount,
     PointerDecoder<VkPresentModeKHR>*           pPresentModes)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetPhysicalDeviceSurfacePresentModesKHR for offscreen.");
+        return;
+    }
     VkPhysicalDevice in_physicalDevice = MapHandle<PhysicalDeviceInfo>(physicalDevice, &VulkanObjectInfoTable::GetPhysicalDeviceInfo);
     VkSurfaceKHR in_surface = MapHandle<SurfaceKHRInfo>(surface, &VulkanObjectInfoTable::GetSurfaceKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(surface) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(surface)->surface_creation_skipped) { return; }
@@ -3303,6 +3323,11 @@ void VulkanReplayConsumer::Process_vkGetDeviceGroupSurfacePresentModesKHR(
     format::HandleId                            surface,
     PointerDecoder<VkDeviceGroupPresentModeFlagsKHR>* pModes)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetDeviceGroupSurfacePresentModesKHR for offscreen.");
+        return;
+    }
     VkDevice in_device = MapHandle<DeviceInfo>(device, &VulkanObjectInfoTable::GetDeviceInfo);
     VkSurfaceKHR in_surface = MapHandle<SurfaceKHRInfo>(surface, &VulkanObjectInfoTable::GetSurfaceKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(surface) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(surface)->surface_creation_skipped) { return; }
@@ -3320,6 +3345,11 @@ void VulkanReplayConsumer::Process_vkGetPhysicalDevicePresentRectanglesKHR(
     PointerDecoder<uint32_t>*                   pRectCount,
     StructPointerDecoder<Decoded_VkRect2D>*     pRects)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetPhysicalDevicePresentRectanglesKHR for offscreen.");
+        return;
+    }
     VkPhysicalDevice in_physicalDevice = MapHandle<PhysicalDeviceInfo>(physicalDevice, &VulkanObjectInfoTable::GetPhysicalDeviceInfo);
     VkSurfaceKHR in_surface = MapHandle<SurfaceKHRInfo>(surface, &VulkanObjectInfoTable::GetSurfaceKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(surface) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(surface)->surface_creation_skipped) { return; }
@@ -4312,6 +4342,11 @@ void VulkanReplayConsumer::Process_vkGetSwapchainStatusKHR(
     format::HandleId                            device,
     format::HandleId                            swapchain)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetSwapchainStatusKHR for offscreen.");
+        return;
+    }
     VkDevice in_device = MapHandle<DeviceInfo>(device, &VulkanObjectInfoTable::GetDeviceInfo);
     VkSwapchainKHR in_swapchain = MapHandle<SwapchainKHRInfo>(swapchain, &VulkanObjectInfoTable::GetSwapchainKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id)->surface_creation_skipped) { return; }
@@ -4810,6 +4845,11 @@ void VulkanReplayConsumer::Process_vkWaitForPresentKHR(
     uint64_t                                    presentId,
     uint64_t                                    timeout)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkWaitForPresentKHR for offscreen.");
+        return;
+    }
     auto in_device = GetObjectInfoTable().GetDeviceInfo(device);
     auto in_swapchain = GetObjectInfoTable().GetSwapchainKHRInfo(swapchain);
 
@@ -5835,6 +5875,11 @@ void VulkanReplayConsumer::Process_vkGetPhysicalDeviceSurfaceCapabilities2EXT(
     format::HandleId                            surface,
     StructPointerDecoder<Decoded_VkSurfaceCapabilities2EXT>* pSurfaceCapabilities)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetPhysicalDeviceSurfaceCapabilities2EXT for offscreen.");
+        return;
+    }
     VkPhysicalDevice in_physicalDevice = MapHandle<PhysicalDeviceInfo>(physicalDevice, &VulkanObjectInfoTable::GetPhysicalDeviceInfo);
     VkSurfaceKHR in_surface = MapHandle<SurfaceKHRInfo>(surface, &VulkanObjectInfoTable::GetSurfaceKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(surface) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(surface)->surface_creation_skipped) { return; }
@@ -5910,6 +5955,11 @@ void VulkanReplayConsumer::Process_vkGetSwapchainCounterEXT(
     VkSurfaceCounterFlagBitsEXT                 counter,
     PointerDecoder<uint64_t>*                   pCounterValue)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetSwapchainCounterEXT for offscreen.");
+        return;
+    }
     VkDevice in_device = MapHandle<DeviceInfo>(device, &VulkanObjectInfoTable::GetDeviceInfo);
     VkSwapchainKHR in_swapchain = MapHandle<SwapchainKHRInfo>(swapchain, &VulkanObjectInfoTable::GetSwapchainKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id)->surface_creation_skipped) { return; }
@@ -5926,6 +5976,11 @@ void VulkanReplayConsumer::Process_vkGetRefreshCycleDurationGOOGLE(
     format::HandleId                            swapchain,
     StructPointerDecoder<Decoded_VkRefreshCycleDurationGOOGLE>* pDisplayTimingProperties)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetRefreshCycleDurationGOOGLE for offscreen.");
+        return;
+    }
     VkDevice in_device = MapHandle<DeviceInfo>(device, &VulkanObjectInfoTable::GetDeviceInfo);
     VkSwapchainKHR in_swapchain = MapHandle<SwapchainKHRInfo>(swapchain, &VulkanObjectInfoTable::GetSwapchainKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id)->surface_creation_skipped) { return; }
@@ -5943,6 +5998,11 @@ void VulkanReplayConsumer::Process_vkGetPastPresentationTimingGOOGLE(
     PointerDecoder<uint32_t>*                   pPresentationTimingCount,
     StructPointerDecoder<Decoded_VkPastPresentationTimingGOOGLE>* pPresentationTimings)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkGetPastPresentationTimingGOOGLE for offscreen.");
+        return;
+    }
     VkDevice in_device = MapHandle<DeviceInfo>(device, &VulkanObjectInfoTable::GetDeviceInfo);
     VkSwapchainKHR in_swapchain = MapHandle<SwapchainKHRInfo>(swapchain, &VulkanObjectInfoTable::GetSwapchainKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id)->surface_creation_skipped) { return; }
@@ -5995,6 +6055,11 @@ void VulkanReplayConsumer::Process_vkSetHdrMetadataEXT(
     HandlePointerDecoder<VkSwapchainKHR>*       pSwapchains,
     StructPointerDecoder<Decoded_VkHdrMetadataEXT>* pMetadata)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkSetHdrMetadataEXT for offscreen.");
+        return;
+    }
     VkDevice in_device = MapHandle<DeviceInfo>(device, &VulkanObjectInfoTable::GetDeviceInfo);
     const VkSwapchainKHR* in_pSwapchains = MapHandles<SwapchainKHRInfo>(pSwapchains, swapchainCount, &VulkanObjectInfoTable::GetSwapchainKHRInfo);
     const VkHdrMetadataEXT* in_pMetadata = pMetadata->GetPointer();
@@ -6882,6 +6947,11 @@ void VulkanReplayConsumer::Process_vkSetLocalDimmingAMD(
     format::HandleId                            swapChain,
     VkBool32                                    localDimmingEnable)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkSetLocalDimmingAMD for offscreen.");
+        return;
+    }
     VkDevice in_device = MapHandle<DeviceInfo>(device, &VulkanObjectInfoTable::GetDeviceInfo);
     VkSwapchainKHR in_swapChain = MapHandle<SwapchainKHRInfo>(swapChain, &VulkanObjectInfoTable::GetSwapchainKHRInfo);
 
@@ -7021,6 +7091,11 @@ void VulkanReplayConsumer::Process_vkAcquireFullScreenExclusiveModeEXT(
     format::HandleId                            device,
     format::HandleId                            swapchain)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkAcquireFullScreenExclusiveModeEXT for offscreen.");
+        return;
+    }
     VkDevice in_device = MapHandle<DeviceInfo>(device, &VulkanObjectInfoTable::GetDeviceInfo);
     VkSwapchainKHR in_swapchain = MapHandle<SwapchainKHRInfo>(swapchain, &VulkanObjectInfoTable::GetSwapchainKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id)->surface_creation_skipped) { return; }
@@ -7035,6 +7110,11 @@ void VulkanReplayConsumer::Process_vkReleaseFullScreenExclusiveModeEXT(
     format::HandleId                            device,
     format::HandleId                            swapchain)
 {
+    if (options_.enable_offscreen)
+    {
+        GFXRECON_LOG_DEBUG("Skip vkReleaseFullScreenExclusiveModeEXT for offscreen.");
+        return;
+    }
     VkDevice in_device = MapHandle<DeviceInfo>(device, &VulkanObjectInfoTable::GetDeviceInfo);
     VkSwapchainKHR in_swapchain = MapHandle<SwapchainKHRInfo>(swapchain, &VulkanObjectInfoTable::GetSwapchainKHRInfo);
     if (GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id) == nullptr || GetObjectInfoTable().GetSurfaceKHRInfo(GetObjectInfoTable().GetSwapchainKHRInfo(swapchain)->surface_id)->surface_creation_skipped) { return; }
