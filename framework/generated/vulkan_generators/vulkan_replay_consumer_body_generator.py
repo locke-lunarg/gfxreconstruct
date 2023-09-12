@@ -1,7 +1,7 @@
 #!/usr/bin/python3 -i
 #
 # Copyright (c) 2018-2020 Valve Corporation
-# Copyright (c) 2018-2020 LunarG, Inc.
+# Copyright (c) 2018-2023 LunarG, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -238,6 +238,18 @@ class VulkanReplayConsumerBodyGenerator(
         """Return VulkanReplayConsumer class member function definition."""
         body = ''
         is_override = name in self.REPLAY_OVERRIDES
+
+        if ('Create' not in name) and ('Destroy' not in name) and ('GetSwapchainImages' not in name) and\
+           ('AcquireNextImage' not in name):
+            for value in values:
+                if self.is_has_specific_key_word_in_type(value, 'VkSurfaceKHR') or\
+                   self.is_has_specific_key_word_in_type(value, 'VkSwapchainKHR'):
+                    body += '    if (options_.enable_offscreen)\n'
+                    body += '    {\n'
+                    body += '        GFXRECON_LOG_DEBUG("Skip ' + name + ' for offscreen.");\n'
+                    body += '        return;\n'
+                    body += '    }\n'
+                    break
 
         args, preexpr, postexpr = self.make_body_expressions(
             return_type, name, values, is_override
