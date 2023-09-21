@@ -504,7 +504,8 @@ Optional arguments:
                         setup for replay. The default without this option is to use a Virtual Swapchain
                         of images which match the swapchain in effect at capture time and which are
                         copied to the underlying swapchain of the implementation being replayed on.
-  --offscreen           Output the rendering image, and do not create a window.
+  --offscreen           Disable creating swapchains, surfaces and windows.
+                        To see rendering, add the --screenshots option.
 ```
 
 ### Key Controls
