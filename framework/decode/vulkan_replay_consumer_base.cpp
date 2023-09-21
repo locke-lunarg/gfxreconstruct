@@ -3868,9 +3868,9 @@ VkResult VulkanReplayConsumerBase::OverrideAllocateMemory(
 
             VkMemoryAllocateInfo                     modified_allocate_info = (*replay_allocate_info);
             VkMemoryOpaqueCaptureAddressAllocateInfo address_info           = {
-                          VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO,
-                          modified_allocate_info.pNext,
-                          opaque_address
+                VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO,
+                modified_allocate_info.pNext,
+                opaque_address
             };
             modified_allocate_info.pNext = &address_info;
 
@@ -5047,6 +5047,24 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
     }
 
     return result;
+}
+
+VkResult VulkanReplayConsumerBase::OverrideCreateSharedSwapchainsKHR(
+    PFN_vkCreateSharedSwapchainsKHR                               func,
+    VkResult                                                      original_result,
+    DeviceInfo*                                                   device_info,
+    uint32_t                                                      swapchainCount,
+    const StructPointerDecoder<Decoded_VkSwapchainCreateInfoKHR>* pCreateInfos,
+    const StructPointerDecoder<Decoded_VkAllocationCallbacks>*    pAllocator,
+    HandlePointerDecoder<VkSwapchainKHR>*                         pSwapchains)
+{
+    // TODO: It should do something similar to OverrideCreateSwapchainKHR.
+    GFXRECON_LOG_ERROR("vkCreateSharedSwapchainsKHR is unsupported");
+    return func(device_info->handle,
+                swapchainCount,
+                pCreateInfos->GetPointer(),
+                GetAllocationCallbacks(pAllocator),
+                pSwapchains->GetHandlePointer());
 }
 
 void VulkanReplayConsumerBase::OverrideDestroySwapchainKHR(

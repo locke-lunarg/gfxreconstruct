@@ -60,6 +60,7 @@
     "vkCreateDebugReportCallbackEXT": "OverrideCreateDebugReportCallbackEXT",
     "vkCreateDebugUtilsMessengerEXT": "OverrideCreateDebugUtilsMessengerEXT",
     "vkCreateSwapchainKHR": "OverrideCreateSwapchainKHR",
+    "vkCreateSharedSwapchainsKHR": "OverrideCreateSharedSwapchainsKHR",
     "vkDestroySwapchainKHR": "OverrideDestroySwapchainKHR",
     "vkGetSwapchainImagesKHR": "OverrideGetSwapchainImagesKHR",
     "vkAcquireNextImageKHR": "OverrideAcquireNextImageKHR",

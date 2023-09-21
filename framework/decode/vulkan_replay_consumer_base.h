@@ -749,6 +749,15 @@ class VulkanReplayConsumerBase : public VulkanConsumer
                                         const StructPointerDecoder<Decoded_VkAllocationCallbacks>*    pAllocator,
                                         HandlePointerDecoder<VkSwapchainKHR>*                         pSwapchain);
 
+    VkResult
+    OverrideCreateSharedSwapchainsKHR(PFN_vkCreateSharedSwapchainsKHR                               func,
+                                      VkResult                                                      original_result,
+                                      DeviceInfo*                                                   device_info,
+                                      uint32_t                                                      swapchainCount,
+                                      const StructPointerDecoder<Decoded_VkSwapchainCreateInfoKHR>* pCreateInfos,
+                                      const StructPointerDecoder<Decoded_VkAllocationCallbacks>*    pAllocator,
+                                      HandlePointerDecoder<VkSwapchainKHR>*                         pSwapchains);
+
     void OverrideDestroySwapchainKHR(PFN_vkDestroySwapchainKHR                                  func,
                                      DeviceInfo*                                                device_info,
                                      SwapchainKHRInfo*                                          swapchain_info,

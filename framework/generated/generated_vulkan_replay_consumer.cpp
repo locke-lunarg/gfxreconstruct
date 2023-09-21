@@ -3527,17 +3527,17 @@ void VulkanReplayConsumer::Process_vkCreateSharedSwapchainsKHR(
     StructPointerDecoder<Decoded_VkAllocationCallbacks>* pAllocator,
     HandlePointerDecoder<VkSwapchainKHR>*       pSwapchains)
 {
-    VkDevice in_device = MapHandle<DeviceInfo>(device, &VulkanObjectInfoTable::GetDeviceInfo);
-    const VkSwapchainCreateInfoKHR* in_pCreateInfos = pCreateInfos->GetPointer();
-    MapStructArrayHandles(pCreateInfos->GetMetaStructPointer(), pCreateInfos->GetLength(), GetObjectInfoTable());
-    const VkAllocationCallbacks* in_pAllocator = GetAllocationCallbacks(pAllocator);
-    if (!pSwapchains->IsNull()) { pSwapchains->SetHandleLength(swapchainCount); }
-    VkSwapchainKHR* out_pSwapchains = pSwapchains->GetHandlePointer();
+    auto in_device = GetObjectInfoTable().GetDeviceInfo(device);
 
-    VkResult replay_result = GetDeviceTable(in_device)->CreateSharedSwapchainsKHR(in_device, swapchainCount, in_pCreateInfos, in_pAllocator, out_pSwapchains);
+    MapStructArrayHandles(pCreateInfos->GetMetaStructPointer(), pCreateInfos->GetLength(), GetObjectInfoTable());
+    if (!pSwapchains->IsNull()) { pSwapchains->SetHandleLength(swapchainCount); }
+    std::vector<SwapchainKHRInfo> handle_info(swapchainCount);
+    for (size_t i = 0; i < swapchainCount; ++i) { pSwapchains->SetConsumerData(i, &handle_info[i]); }
+
+    VkResult replay_result = OverrideCreateSharedSwapchainsKHR(GetDeviceTable(in_device->handle)->CreateSharedSwapchainsKHR, returnValue, in_device, swapchainCount, pCreateInfos, pAllocator, pSwapchains);
     CheckResult("vkCreateSharedSwapchainsKHR", returnValue, replay_result, call_info);
 
-    AddHandles<SwapchainKHRInfo>(device, pSwapchains->GetPointer(), pSwapchains->GetLength(), out_pSwapchains, swapchainCount, &VulkanObjectInfoTable::AddSwapchainKHRInfo);
+    AddHandles<SwapchainKHRInfo>(device, pSwapchains->GetPointer(), pSwapchains->GetLength(), pSwapchains->GetHandlePointer(), swapchainCount, std::move(handle_info), &VulkanObjectInfoTable::AddSwapchainKHRInfo);
 }
 
 void VulkanReplayConsumer::Process_vkCreateXlibSurfaceKHR(
