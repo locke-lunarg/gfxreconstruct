@@ -77,6 +77,8 @@
     "vkCreateXlibSurfaceKHR": "OverrideCreateXlibSurfaceKHR",
     "vkGetPhysicalDeviceXlibPresentationSupportKHR": "OverrideGetPhysicalDeviceXlibPresentationSupportKHR",
     "vkCreateWaylandSurfaceKHR": "OverrideCreateWaylandSurfaceKHR",
+    "vkCreateDisplayPlaneSurfaceKHR": "OverrideCreateDisplayPlaneSurfaceKHR",
+    "vkCreateHeadlessSurfaceEXT": "OverrideCreateHeadlessSurfaceEXT",
     "vkGetPhysicalDeviceWaylandPresentationSupportKHR": "OverrideGetPhysicalDeviceWaylandPresentationSupportKHR",
     "vkDestroySurfaceKHR": "OverrideDestroySurfaceKHR",
     "vkCreateAccelerationStructureKHR": "OverrideCreateAccelerationStructureKHR",

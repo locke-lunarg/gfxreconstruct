@@ -869,6 +869,22 @@ class VulkanReplayConsumerBase : public VulkanConsumer
                                     const StructPointerDecoder<Decoded_VkAllocationCallbacks>*         pAllocator,
                                     HandlePointerDecoder<VkSurfaceKHR>*                                pSurface);
 
+    VkResult
+    OverrideCreateDisplayPlaneSurfaceKHR(PFN_vkCreateDisplayPlaneSurfaceKHR func,
+                                         VkResult                           original_result,
+                                         InstanceInfo*                      instance_info,
+                                         const StructPointerDecoder<Decoded_VkDisplaySurfaceCreateInfoKHR>* pCreateInfo,
+                                         const StructPointerDecoder<Decoded_VkAllocationCallbacks>*         pAllocator,
+                                         HandlePointerDecoder<VkSurfaceKHR>*                                pSurface);
+
+    VkResult
+    OverrideCreateHeadlessSurfaceEXT(PFN_vkCreateHeadlessSurfaceEXT func,
+                                     VkResult                       original_result,
+                                     InstanceInfo*                  instance_info,
+                                     const StructPointerDecoder<Decoded_VkHeadlessSurfaceCreateInfoEXT>* pCreateInfo,
+                                     const StructPointerDecoder<Decoded_VkAllocationCallbacks>*          pAllocator,
+                                     HandlePointerDecoder<VkSurfaceKHR>*                                 pSurface);
+
     VkBool32
     OverrideGetPhysicalDeviceWaylandPresentationSupportKHR(PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR func,
                                                            const PhysicalDeviceInfo* physical_device_info,

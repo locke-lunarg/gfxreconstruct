@@ -77,7 +77,11 @@ class VulkanReplayConsumerBodyGenerator(
         'VkDescriptorPool': 'VkDescriptorSet'
     }
 
-    SKIP_PNEXT_STRUCT_TYPES = [ 'VK_STRUCTURE_TYPE_BASE_IN_STRUCTURE', 'VK_STRUCTURE_TYPE_BASE_OUT_STRUCTURE' ]    
+    SKIP_PNEXT_STRUCT_TYPES = [ 'VK_STRUCTURE_TYPE_BASE_IN_STRUCTURE', 'VK_STRUCTURE_TYPE_BASE_OUT_STRUCTURE' ]
+
+    NOT_SKIP_FUNCTIONS_OFFSCREEN = ['Create', 'Destroy', 'GetSwapchainImages', 'AcquireNextImage', 'QueuePresent']
+    
+    SKIP_FUNCTIONS_OFFSCREEN = ['Surface', 'Swapchain', 'Present']
 
     def __init__(
         self, err_file=sys.stderr, warn_file=sys.stderr, diag_file=sys.stdout
@@ -239,16 +243,26 @@ class VulkanReplayConsumerBodyGenerator(
         body = ''
         is_override = name in self.REPLAY_OVERRIDES
 
-        if ('Create' not in name) and ('Destroy' not in name) and ('GetSwapchainImages' not in name) and\
-           ('AcquireNextImage' not in name):
+        is_skip_offscreen = True
+        
+        for key in self.NOT_SKIP_FUNCTIONS_OFFSCREEN:
+            if key in name:
+                is_skip_offscreen = False
+                break
+
+        if is_skip_offscreen:
+            is_print = False
             for value in values:
-                if self.is_has_specific_key_word_in_type(value, 'VkSurfaceKHR') or\
-                   self.is_has_specific_key_word_in_type(value, 'VkSwapchainKHR'):
-                    body += '    if (options_.enable_offscreen)\n'
-                    body += '    {\n'
-                    body += '        GFXRECON_LOG_DEBUG("Skip ' + name + ' for offscreen.");\n'
-                    body += '        return;\n'
-                    body += '    }\n'
+                for key in self.SKIP_FUNCTIONS_OFFSCREEN:
+                    if self.is_has_specific_key_word_in_type(value, key):
+                        body += '    if (options_.enable_offscreen)\n'
+                        body += '    {\n'
+                        body += '        GFXRECON_LOG_DEBUG("Skip ' + name + ' for offscreen.");\n'
+                        body += '        return;\n'
+                        body += '    }\n'
+                        is_print = True
+                        break
+                if is_print:
                     break
 
         args, preexpr, postexpr = self.make_body_expressions(
