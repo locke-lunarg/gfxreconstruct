@@ -60,6 +60,10 @@ class Application final
 
     const std::string& GetWsiCliContext() const { return cli_wsi_extension_; }
 
+    decode::Window* CreateWindowB(const std::string& wsi_extension);
+
+    void DestroyWindow(decode::Window* window);
+
     bool IsRunning() const { return running_; }
 
     void Run();

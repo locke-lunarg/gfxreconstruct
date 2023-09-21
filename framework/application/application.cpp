@@ -53,6 +53,11 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(application)
 
+const int32_t  kDefaultWindowPositionX = 0;
+const int32_t  kDefaultWindowPositionY = 0;
+const uint32_t kDefaultWindowWidth     = 320;
+const uint32_t kDefaultWindowHeight    = 240;
+
 Application::Application(const std::string& name, decode::FileProcessor* file_processor) :
     Application(name, std::string(), file_processor)
 {}
@@ -108,6 +113,27 @@ WsiContext* Application::GetWsiContext(const std::string& wsi_extension, bool au
     auto const_this  = const_cast<const Application*>(this);
     auto wsi_context = const_this->GetWsiContext(wsi_extension, auto_select);
     return const_cast<WsiContext*>(wsi_context);
+}
+
+decode::Window* Application::CreateWindowB(const std::string& wsi_extension)
+{
+    auto wsi_context = GetWsiContext(wsi_extension, true);
+    GFXRECON_ASSERT(wsi_context);
+    auto window_factory = wsi_context ? wsi_context->GetWindowFactory() : nullptr;
+    GFXRECON_ASSERT(window_factory);
+    return (window_factory
+                ? window_factory->Create(
+                      kDefaultWindowPositionX, kDefaultWindowPositionY, kDefaultWindowWidth, kDefaultWindowHeight)
+                : nullptr);
+}
+
+void Application::DestroyWindow(decode::Window* window)
+{
+    auto wsi_context = GetWsiContext(window->GetWsiExtension(), true);
+    GFXRECON_ASSERT(wsi_context);
+    auto window_factory = wsi_context ? wsi_context->GetWindowFactory() : nullptr;
+    GFXRECON_ASSERT(window_factory);
+    window_factory->Destroy(window);
 }
 
 void Application::SetFpsInfo(graphics::FpsInfo* fps_info)

@@ -25,11 +25,6 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
 
-const int32_t  kDefaultWindowPositionX = 0;
-const int32_t  kDefaultWindowPositionY = 0;
-const uint32_t kDefaultWindowWidth     = 320;
-const uint32_t kDefaultWindowHeight    = 240;
-
 void VulkanSwapchain::Clean()
 {
     if (options_surface_index_ >= create_surface_count_)
@@ -41,12 +36,10 @@ void VulkanSwapchain::Clean()
     }
 
     // Destroy any windows that were created for Vulkan surfaces.
+    GFXRECON_ASSERT(application_);
     for (auto window : active_windows_)
     {
-        auto wsi_context    = application_ ? application_->GetWsiContext(window->GetWsiExtension()) : nullptr;
-        auto window_factory = wsi_context ? wsi_context->GetWindowFactory() : nullptr;
-        GFXRECON_ASSERT(window_factory);
-        window_factory->Destroy(window);
+        application_->DestroyWindow(window);
     }
 }
 
@@ -78,16 +71,8 @@ VkResult VulkanSwapchain::CreateSurface(InstanceInfo*                       inst
     if ((options_surface_index_ == -1) || (options_surface_index_ == create_surface_count_))
     {
         // Create a window for our surface.
-        assert(application_);
-        auto wsi_context = application_ ? application_->GetWsiContext(wsi_extension, true) : nullptr;
-        assert(wsi_context);
-        auto window_factory = wsi_context ? wsi_context->GetWindowFactory() : nullptr;
-        assert(window_factory);
-        auto window =
-            window_factory
-                ? window_factory->Create(
-                      kDefaultWindowPositionX, kDefaultWindowPositionY, kDefaultWindowWidth, kDefaultWindowHeight)
-                : nullptr;
+        GFXRECON_ASSERT(application_);
+        auto window = application_->CreateWindowB(wsi_extension);
 
         if (window == nullptr)
         {
@@ -110,7 +95,7 @@ VkResult VulkanSwapchain::CreateSurface(InstanceInfo*                       inst
         }
         else
         {
-            window_factory->Destroy(window);
+            application_->DestroyWindow(window);
         }
     }
     else
@@ -151,12 +136,9 @@ void VulkanSwapchain::DestroySurface(PFN_vkDestroySurfaceKHR      func,
     {
         window->DestroySurface(instance_table_, instance, surface);
         active_windows_.erase(window);
-        auto wsi_context    = application_ ? application_->GetWsiContext(window->GetWsiExtension()) : nullptr;
-        auto window_factory = wsi_context ? wsi_context->GetWindowFactory() : nullptr;
-        if (window_factory)
-        {
-            window_factory->Destroy(window);
-        }
+
+        GFXRECON_ASSERT(application_);
+        application_->DestroyWindow(window);
     }
     else
     {
