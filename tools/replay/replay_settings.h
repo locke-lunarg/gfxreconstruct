@@ -208,8 +208,8 @@ static void PrintUsage(const char* exe_name)
     GFXRECON_WRITE_CONSOLE("          \t\treturned by vkEnumeratePhysicalDeviceGroups.  Replay may fail");
     GFXRECON_WRITE_CONSOLE("          \t\tif the specified device group is not compatible with the");
     GFXRECON_WRITE_CONSOLE("          \t\toriginal capture device group.");
-    // TODO: offscreen needs more options as screenshot.
-    GFXRECON_WRITE_CONSOLE("  --offscreen \t\t.");
+    GFXRECON_WRITE_CONSOLE("  --offscreen \t\t Disable creating VkSurface, VkSwapchain and a window. If users want to");
+    GFXRECON_WRITE_CONSOLE("          \t\tsee the rendering images, please add --screenshots option.");
 
 #if defined(WIN32)
     GFXRECON_WRITE_CONSOLE("")
