@@ -3297,7 +3297,7 @@ void VulkanReplayConsumer::Process_vkQueuePresentKHR(
     auto in_queue = GetObjectInfoTable().GetQueueInfo(queue);
 
     MapStructHandles(pPresentInfo->GetMetaStructPointer(), GetObjectInfoTable());
-
+    GFXRECON_LOG_INFO("code index: %" PRIu64 "", call_info.index);
     VkResult replay_result = OverrideQueuePresentKHR(GetDeviceTable(in_queue->handle)->QueuePresentKHR, returnValue, in_queue, pPresentInfo);
     CheckResult("vkQueuePresentKHR", returnValue, replay_result, call_info);
 }

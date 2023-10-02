@@ -3884,9 +3884,9 @@ VkResult VulkanReplayConsumerBase::OverrideAllocateMemory(
 
             VkMemoryAllocateInfo                     modified_allocate_info = (*replay_allocate_info);
             VkMemoryOpaqueCaptureAddressAllocateInfo address_info           = {
-                          VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO,
-                          modified_allocate_info.pNext,
-                          opaque_address
+                VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO,
+                modified_allocate_info.pNext,
+                opaque_address
             };
             modified_allocate_info.pNext = &address_info;
 
@@ -5523,6 +5523,7 @@ VulkanReplayConsumerBase::OverrideQueuePresentKHR(PFN_vkQueuePresentKHR         
 
     if ((screenshot_handler_ != nullptr) && (screenshot_handler_->IsScreenshotFrame()))
     {
+        GFXRECON_LOG_INFO("screenshot_handler_");
         auto meta_info = pPresentInfo->GetMetaStructPointer();
         assert((meta_info != nullptr) && !meta_info->pSwapchains.IsNull());
 
