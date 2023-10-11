@@ -115,6 +115,7 @@ const char kApiFamilyOption[]             = "--api";
 const char kDxTwoPassReplay[]             = "--dx12-two-pass-replay";
 const char kDxOverrideObjectNames[]       = "--dx12-override-object-names";
 const char kBatchingMemoryUsageArgument[] = "--batching-memory-usage";
+const char kDumpResourcesArgument[]       = "--dump-resources";
 #endif
 
 enum class WsiPlatform
@@ -926,6 +927,28 @@ static gfxrecon::decode::DxReplayOptions GetDxReplayOptions(const gfxrecon::util
     if (arg_parser.IsOptionSet(kDxOverrideObjectNames))
     {
         replay_options.override_object_names = true;
+    }
+
+    const std::string& dump_resources = arg_parser.GetArgumentValue(kDumpResourcesArgument);
+    if (!dump_resources.empty())
+    {
+        std::vector<std::string> values = gfxrecon::util::strings::SplitString(dump_resources, '-');
+        if (!values.empty())
+        {
+            if (values.size() != 2)
+            {
+                GFXRECON_LOG_ERROR("The parameter to --dump-resources is invalid. Ignore it.");
+            }
+            else if (values[0].compare("drawcall") == 0)
+            {
+                replay_options.dump_resources_type     = gfxrecon::decode::DumpResourcesType::kDrawCall;
+                replay_options.dump_resources_argument = std::stoi(values[1]);
+            }
+            else
+            {
+                GFXRECON_LOG_ERROR("The parameter to --dump-resources is invalid. Ignore it.");
+            }
+        }
     }
 
     const std::string& memory_usage = arg_parser.GetArgumentValue(kBatchingMemoryUsageArgument);
