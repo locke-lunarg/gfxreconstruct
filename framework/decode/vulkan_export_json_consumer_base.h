@@ -27,7 +27,7 @@
 #include "annotation_handler.h"
 #include "format/platform_types.h"
 #include "generated/generated_vulkan_consumer.h"
-#include "decode/vulkan_json_util.h"
+#include "util/json_util.h"
 #include "vulkan/vulkan.h"
 
 #include <cstdio>
@@ -43,10 +43,10 @@ class VulkanExportJsonConsumerBase : public VulkanConsumer, public AnnotationHan
 
     virtual ~VulkanExportJsonConsumerBase() override;
 
-    void Initialize(const JsonOptions&     options,
-                    const std::string_view gfxrVersion,
-                    const std::string_view vulkanVersion,
-                    const std::string_view inputFilepath);
+    void Initialize(const util::JsonOptions& options,
+                    const std::string_view   gfxrVersion,
+                    const std::string_view   vulkanVersion,
+                    const std::string_view   inputFilepath);
 
     void Destroy();
 
@@ -281,7 +281,7 @@ class VulkanExportJsonConsumerBase : public VulkanConsumer, public AnnotationHan
 
     void ResetCommandBufferRecordIndex(format::HandleId command_buffer) { rec_cmd_index_[command_buffer] = 0; }
 
-    JsonOptions                                    json_options_;
+    util::JsonOptions                              json_options_;
     uint32_t                                       submit_index_{ 0 }; // index of submissions across the trace
     std::unordered_map<format::HandleId, uint32_t> rec_cmd_index_;
 

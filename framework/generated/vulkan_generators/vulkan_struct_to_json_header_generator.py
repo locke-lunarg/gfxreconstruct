@@ -93,7 +93,7 @@ class VulkanStructToJsonHeaderGenerator(BaseGenerator):
     # yapf: disable
     def endFile(self):
         body = inspect.cleandoc('''
-            void FieldToJson(nlohmann::ordered_json& jdata, const PNextNode* data, const JsonOptions& options = JsonOptions());
+            void FieldToJson(nlohmann::ordered_json& jdata, const PNextNode* data, const util::JsonOptions& options = util::JsonOptions());
 
             GFXRECON_END_NAMESPACE(decode)
             GFXRECON_END_NAMESPACE(gfxrecon)
@@ -119,7 +119,7 @@ class VulkanStructToJsonHeaderGenerator(BaseGenerator):
         for struct in self.get_filtered_struct_names():
             if not struct in self.customImplementationRequired:
                 body = inspect.cleandoc('''
-                    void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_{0}* data, const JsonOptions& options = JsonOptions());
+                    void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_{0}* data, const util::JsonOptions& options = util::JsonOptions());
                     '''.format(struct))
                 write(body, file=self.outFile)
     # yapf: enable
