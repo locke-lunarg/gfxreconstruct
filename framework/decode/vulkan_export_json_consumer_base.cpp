@@ -70,10 +70,10 @@ VulkanExportJsonConsumerBase::~VulkanExportJsonConsumerBase()
     Destroy();
 }
 
-void VulkanExportJsonConsumerBase::Initialize(const JsonOptions&     options,
-                                              const std::string_view gfxrVersion,
-                                              const std::string_view vulkanVersion,
-                                              const std::string_view inputFilepath)
+void VulkanExportJsonConsumerBase::Initialize(const util::JsonOptions& options,
+                                              const std::string_view   gfxrVersion,
+                                              const std::string_view   vulkanVersion,
+                                              const std::string_view   inputFilepath)
 {
     num_objects_  = 0;
     json_options_ = options;
@@ -93,7 +93,7 @@ void VulkanExportJsonConsumerBase::StartFile(FILE* file)
     assert(file);
     file_        = file;
     num_objects_ = 0;
-    if (json_options_.format == JsonFormat::JSON)
+    if (json_options_.format == util::JsonFormat::JSON)
     {
         FilePuts("[\n", file_);
     }
@@ -108,7 +108,7 @@ void VulkanExportJsonConsumerBase::EndFile()
 {
     if (file_ != nullptr)
     {
-        if (json_options_.format == JsonFormat::JSON)
+        if (json_options_.format == util::JsonFormat::JSON)
         {
             FilePuts("\n]\n", file_);
         }
@@ -260,7 +260,7 @@ void VulkanExportJsonConsumerBase::ProcessSetDevicePropertiesCommand(
         FieldToJson(jdata["device_id"], device_id, json_options_);
         FieldToJson(jdata["device_type"], device_type, json_options_);
         FieldToJson(
-            jdata["pipeline_cache_uuid"], uuid_to_string(format::kUuidSize, pipeline_cache_uuid), json_options_);
+            jdata["pipeline_cache_uuid"], util::uuid_to_string(format::kUuidSize, pipeline_cache_uuid), json_options_);
         FieldToJson(jdata["device_name"], device_name, json_options_);
     });
 }
@@ -282,7 +282,7 @@ void VulkanExportJsonConsumerBase::ProcessSetOpaqueAddressCommand(format::Handle
     WriteMetaCommandToFile("SetOpaqueAddressCommand", [&](auto& jdata) {
         HandleToJson(jdata["device_id"], device_id, json_options_);
         HandleToJson(jdata["object_id"], object_id, json_options_);
-        FieldToJson(jdata["address"], to_hex_variable_width(address), json_options_);
+        FieldToJson(jdata["address"], util::to_hex_variable_width(address), json_options_);
     });
 }
 
@@ -462,10 +462,10 @@ void VulkanExportJsonConsumerBase::Process_vkCreateShaderModule(
 
         if (json_options_.dump_binaries)
         {
-            uint64_t    handle_id     = *pShaderModule->GetPointer();
-            std::string filename      = GenerateFilename("shader_module_" + to_hex_fixed_width(handle_id) + ".bin");
-            std::string basename      = gfxrecon::util::filepath::Join(json_options_.data_sub_dir, filename);
-            std::string filepath      = gfxrecon::util::filepath::Join(json_options_.root_dir, basename);
+            uint64_t    handle_id = *pShaderModule->GetPointer();
+            std::string filename  = GenerateFilename("shader_module_" + util::to_hex_fixed_width(handle_id) + ".bin");
+            std::string basename  = gfxrecon::util::filepath::Join(json_options_.data_sub_dir, filename);
+            std::string filepath  = gfxrecon::util::filepath::Join(json_options_.root_dir, basename);
             auto        decoded_value = pCreateInfo->GetPointer();
 
             if (WriteBinaryFile(filepath, decoded_value->codeSize, (uint8_t*)decoded_value->pCode))
@@ -647,10 +647,11 @@ void VulkanExportJsonConsumerBase::WriteBlockEnd()
 
     if (num_objects_ > 1)
     {
-        FilePuts(json_options_.format == JsonFormat::JSONL ? "\n" : ",\n", file_);
+        FilePuts(json_options_.format == util::JsonFormat::JSONL ? "\n" : ",\n", file_);
     }
     // Dominates profiling (2/2):
-    const std::string block = json_data_.dump(json_options_.format == JsonFormat::JSONL ? -1 : util::kJsonIndentWidth);
+    const std::string block =
+        json_data_.dump(json_options_.format == util::JsonFormat::JSONL ? -1 : util::kJsonIndentWidth);
     FileWriteNoLock(block.data(), sizeof(std::string::value_type), block.length(), file_);
     FileFlush(file_); /// @todo Implement a FileFlushNoLock() for all platforms.
 }

@@ -33,8 +33,6 @@
 #include "generated/generated_dx12_ascii_consumer.h"
 #endif
 
-using gfxrecon::decode::JsonFormat;
-
 const char kOptions[] = "-h|--help,--version,--no-debug-popup,--file-per-frame,--include-binaries,--expand-flags";
 
 const char kArguments[] = "--output,--format";
@@ -81,7 +79,7 @@ static void PrintUsage(const char* exe_name)
 
 static std::string GetOutputFileName(const gfxrecon::util::ArgumentParser& arg_parser,
                                      const std::string&                    input_filename,
-                                     gfxrecon::decode::JsonFormat          output_format)
+                                     gfxrecon::util::JsonFormat            output_format)
 {
     std::string output_filename;
     if (arg_parser.IsArgumentSet(kOutput))
@@ -97,40 +95,20 @@ static std::string GetOutputFileName(const gfxrecon::util::ArgumentParser& arg_p
         {
             output_filename = output_filename.substr(0, ext_pos);
         }
-        switch (output_format)
-        {
-            case gfxrecon::decode::JsonFormat::JSONL:
-                output_filename += ".jsonl";
-                break;
-            case gfxrecon::decode::JsonFormat::JSON:
-            default:
-                output_filename += ".json";
-        }
+        output_filename += "." + gfxrecon::util::get_json_format(output_format);
     }
     return output_filename;
 }
 
-static gfxrecon::decode::JsonFormat GetOutputFormat(const gfxrecon::util::ArgumentParser& arg_parser)
+static gfxrecon::util::JsonFormat GetOutputFormat(const gfxrecon::util::ArgumentParser& arg_parser)
 {
     std::string output_format;
     if (arg_parser.IsArgumentSet(kFormatArgument))
     {
         output_format = arg_parser.GetArgumentValue(kFormatArgument);
-        if (output_format == "json")
-        {
-            return gfxrecon::decode::JsonFormat::JSON;
-        }
-        else if (output_format == "jsonl")
-        {
-            return gfxrecon::decode::JsonFormat::JSONL;
-        }
-        else
-        {
-            GFXRECON_LOG_WARNING("Unrecognized format %s. Defaulting to JSON format.", output_format.c_str());
-            return gfxrecon::decode::JsonFormat::JSON;
-        }
+        return gfxrecon::util::get_json_format(output_format);
     }
-    return gfxrecon::decode::JsonFormat::JSON;
+    return gfxrecon::util::JsonFormat::JSON;
 }
 
 std::string FormatFrameNumber(uint32_t frame_number)
@@ -172,17 +150,17 @@ int main(int argc, const char** argv)
     }
 #endif
 
-    const auto& positional_arguments = arg_parser.GetPositionalArguments();
-    std::string input_filename       = positional_arguments[0];
-    JsonFormat  output_format        = GetOutputFormat(arg_parser);
-    std::string output_filename      = GetOutputFileName(arg_parser, input_filename, output_format);
-    std::string filename_stem        = gfxrecon::util::filepath::GetFilenameStem(output_filename);
-    std::string output_dir           = gfxrecon::util::filepath::GetBasedir(output_filename);
-    std::string data_dir             = gfxrecon::util::filepath::Join(output_dir, filename_stem);
-    bool        dump_binaries        = arg_parser.IsOptionSet(kIncludeBinariesOption);
-    bool        expand_flags         = arg_parser.IsOptionSet(kExpandFlagsOption);
-    bool        file_per_frame       = arg_parser.IsOptionSet(kFilePerFrameOption);
-    bool        output_to_stdout     = output_filename == "stdout";
+    const auto&                positional_arguments = arg_parser.GetPositionalArguments();
+    std::string                input_filename       = positional_arguments[0];
+    gfxrecon::util::JsonFormat output_format        = GetOutputFormat(arg_parser);
+    std::string                output_filename      = GetOutputFileName(arg_parser, input_filename, output_format);
+    std::string                filename_stem        = gfxrecon::util::filepath::GetFilenameStem(output_filename);
+    std::string                output_dir           = gfxrecon::util::filepath::GetBasedir(output_filename);
+    std::string                data_dir             = gfxrecon::util::filepath::Join(output_dir, filename_stem);
+    bool                       dump_binaries        = arg_parser.IsOptionSet(kIncludeBinariesOption);
+    bool                       expand_flags         = arg_parser.IsOptionSet(kExpandFlagsOption);
+    bool                       file_per_frame       = arg_parser.IsOptionSet(kFilePerFrameOption);
+    bool                       output_to_stdout     = output_filename == "stdout";
 
     gfxrecon::decode::FileProcessor file_processor;
 
@@ -241,7 +219,7 @@ int main(int argc, const char** argv)
         else
         {
             gfxrecon::decode::VulkanExportJsonConsumer json_consumer;
-            gfxrecon::decode::JsonOptions              json_options;
+            gfxrecon::util::JsonOptions                json_options;
             gfxrecon::decode::VulkanDecoder            decoder;
             decoder.AddConsumer(&json_consumer);
             file_processor.AddDecoder(&decoder);
@@ -267,8 +245,9 @@ int main(int argc, const char** argv)
 
             dx12_decoder.AddConsumer(&dx12_ascii_consumer);
             file_processor.AddDecoder(&dx12_decoder);
-            auto dx12_json_flags = output_format == JsonFormat::JSON ? gfxrecon::util::kToString_Formatted
-                                                                     : gfxrecon::util::kToString_Unformatted;
+            auto dx12_json_flags = output_format == gfxrecon::util::JsonFormat::JSON
+                                       ? gfxrecon::util::kToString_Formatted
+                                       : gfxrecon::util::kToString_Unformatted;
             dx12_ascii_consumer.Initialize(out_file_handle, dx12_json_flags);
 #endif
 
