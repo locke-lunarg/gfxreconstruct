@@ -28,7 +28,6 @@
 #include "util/platform.h"
 #include "util/json_util.h"
 
-#include "nlohmann/json.hpp"
 #include <cinttypes>
 
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)

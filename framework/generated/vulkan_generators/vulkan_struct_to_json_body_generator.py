@@ -115,7 +115,7 @@ class VulkanStructToJsonBodyGenerator(BaseGenerator):
     # yapf: disable
     def endFile(self):
         body = '''
-            void FieldToJson(nlohmann::ordered_json& jdata, const PNextNode* data, const JsonOptions& options)
+            void FieldToJson(nlohmann::ordered_json& jdata, const PNextNode* data, const util::JsonOptions& options)
             {
                 if (data && data->GetPointer())
                 {
@@ -157,7 +157,7 @@ class VulkanStructToJsonBodyGenerator(BaseGenerator):
         for struct in self.get_filtered_struct_names():
             if not struct in self.customImplementationRequired:
                 body = '''
-                    void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_{0}* data, const JsonOptions& options)
+                    void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_{0}* data, const util::JsonOptions& options)
                     {{
                         if (data && data->decoded_value)
                         {{
@@ -193,7 +193,7 @@ class VulkanStructToJsonBodyGenerator(BaseGenerator):
             to_json = 'FieldToJson(jdata["{0}"], decoded_value.{0}, options)'
 
             if 'pfn' in value.name or 'pUserData' in value.name:
-                to_json = 'FieldToJson(jdata["{0}"], to_hex_variable_width(meta_struct.{0}), options)'
+                to_json = 'FieldToJson(jdata["{0}"], util::to_hex_variable_width(meta_struct.{0}), options)'
             elif value.is_pointer:
                 if 'String' in type_name:
                     to_json = 'FieldToJson(jdata["{0}"], &meta_struct.{0}, options)'
@@ -206,7 +206,7 @@ class VulkanStructToJsonBodyGenerator(BaseGenerator):
             else:
                 if value.is_array:
                     if 'UUID' in value.array_length or 'LUID' in value.array_length:
-                        to_json = 'FieldToJson(jdata["{0}"], uuid_to_string(sizeof(decoded_value.{0}), decoded_value.{0}), options)'
+                        to_json = 'FieldToJson(jdata["{0}"], util::uuid_to_string(sizeof(decoded_value.{0}), decoded_value.{0}), options)'
                     elif 'String' in type_name:
                         to_json = 'FieldToJson(jdata["{0}"], &meta_struct.{0}, options)'
                     elif self.is_handle(value.base_type):
@@ -224,7 +224,7 @@ class VulkanStructToJsonBodyGenerator(BaseGenerator):
                     if (self.is_handle(value.base_type) or value.name in self.formatAsHandle) and not (name in self.notDecoded):
                         to_json = 'HandleToJson(jdata["{0}"], meta_struct.{0}, options)'
                     elif value.base_type in self.formatAsHex:
-                        to_json = 'FieldToJson(jdata["{0}"], to_hex_variable_width(decoded_value.{0}), options)'
+                        to_json = 'FieldToJson(jdata["{0}"], util::to_hex_variable_width(decoded_value.{0}), options)'
                     elif self.is_struct(value.base_type):
                         to_json = 'FieldToJson(jdata["{0}"], meta_struct.{0}, options)'
                     elif self.is_flags(value.base_type):

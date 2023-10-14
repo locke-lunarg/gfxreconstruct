@@ -34,7 +34,7 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
 
-void FieldToJson(nlohmann::ordered_json& jdata, float data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json& jdata, float data, const util::JsonOptions& options)
 {
     if (std::isnan(data))
     {
@@ -58,10 +58,10 @@ void FieldToJson(nlohmann::ordered_json& jdata, float data, const JsonOptions& o
     jdata = data;
 }
 
-void HandleToJson(nlohmann::ordered_json& jdata,
-                  const format::HandleId* data,
-                  size_t                  num_elements,
-                  const JsonOptions&      options)
+void HandleToJson(nlohmann::ordered_json&  jdata,
+                  const format::HandleId*  data,
+                  size_t                   num_elements,
+                  const util::JsonOptions& options)
 {
     if (data)
     {
@@ -76,7 +76,7 @@ void HandleToJson(nlohmann::ordered_json& jdata,
     }
 }
 
-void FieldToJson(nlohmann::ordered_json& jdata, const StringArrayDecoder* data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json& jdata, const StringArrayDecoder* data, const util::JsonOptions& options)
 {
     if (data && data->GetPointer())
     {
@@ -88,7 +88,7 @@ void FieldToJson(nlohmann::ordered_json& jdata, const StringArrayDecoder* data, 
     }
 }
 
-void FieldToJson(nlohmann::ordered_json& jdata, const StringDecoder* data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json& jdata, const StringDecoder* data, const util::JsonOptions& options)
 {
     if (data && data->GetPointer())
     {
@@ -97,12 +97,12 @@ void FieldToJson(nlohmann::ordered_json& jdata, const StringDecoder* data, const
     }
 }
 
-void FieldToJson(nlohmann::ordered_json& jdata, const StringDecoder& data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json& jdata, const StringDecoder& data, const util::JsonOptions& options)
 {
     FieldToJson(jdata, &data, options);
 }
 
-void FieldToJson(nlohmann::ordered_json& jdata, const WStringDecoder* data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json& jdata, const WStringDecoder* data, const util::JsonOptions& options)
 {
     if (data && data->GetPointer())
     {
@@ -114,7 +114,7 @@ void FieldToJson(nlohmann::ordered_json& jdata, const WStringDecoder* data, cons
 void FieldToJson(nlohmann::ordered_json&                               jdata,
                  VkGeometryTypeKHR                                     discriminant,
                  const Decoded_VkAccelerationStructureGeometryDataKHR* data,
-                 const JsonOptions&                                    options)
+                 const util::JsonOptions&                              options)
 {
     if (data)
     {
@@ -137,7 +137,7 @@ void FieldToJson(nlohmann::ordered_json&                               jdata,
 
 void FieldToJson(nlohmann::ordered_json&                           jdata,
                  const Decoded_VkAccelerationStructureGeometryKHR* data,
-                 const JsonOptions&                                options)
+                 const util::JsonOptions&                          options)
 {
     if (data && data->decoded_value)
     {
@@ -150,7 +150,7 @@ void FieldToJson(nlohmann::ordered_json&                           jdata,
     }
 }
 
-void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkClearValue* data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkClearValue* data, const util::JsonOptions& options)
 {
     if (data && data->decoded_value)
     {
@@ -162,7 +162,7 @@ void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkClearValue* data
     }
 }
 
-void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkClearColorValue* data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkClearColorValue* data, const util::JsonOptions& options)
 {
     if (data && data->decoded_value)
     {
@@ -177,7 +177,7 @@ void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkClearColorValue*
 void FieldToJson(nlohmann::ordered_json&                      jdata,
                  int                                          discriminant,
                  const Decoded_VkDeviceOrHostAddressConstKHR* data,
-                 const JsonOptions&                           options)
+                 const util::JsonOptions&                     options)
 {
     if (data && data->decoded_value)
     {
@@ -196,7 +196,7 @@ void FieldToJson(nlohmann::ordered_json&                      jdata,
 
 void FieldToJson(nlohmann::ordered_json&                      jdata,
                  const Decoded_VkDeviceOrHostAddressConstKHR* data,
-                 const JsonOptions&                           options)
+                 const util::JsonOptions&                     options)
 {
     FieldToJson(jdata, 0, data, options);
 }
@@ -204,7 +204,7 @@ void FieldToJson(nlohmann::ordered_json&                      jdata,
 void FieldToJson(nlohmann::ordered_json&                 jdata,
                  int                                     discriminant,
                  const Decoded_VkDeviceOrHostAddressKHR* data,
-                 const JsonOptions&                      options)
+                 const util::JsonOptions&                options)
 {
     if (data && data->decoded_value)
     {
@@ -223,7 +223,7 @@ void FieldToJson(nlohmann::ordered_json&                 jdata,
 
 void FieldToJson(nlohmann::ordered_json&                 jdata,
                  const Decoded_VkDeviceOrHostAddressKHR* data,
-                 const JsonOptions&                      options)
+                 const util::JsonOptions&                options)
 {
     FieldToJson(jdata, 0, data, options);
 }
@@ -231,7 +231,7 @@ void FieldToJson(nlohmann::ordered_json&                 jdata,
 void FieldToJson(nlohmann::ordered_json&                              jdata,
                  VkPipelineExecutableStatisticFormatKHR               discriminant,
                  const Decoded_VkPipelineExecutableStatisticValueKHR* data,
-                 const JsonOptions&                                   options)
+                 const util::JsonOptions&                             options)
 {
     if (data && data->decoded_value)
     {
@@ -258,7 +258,7 @@ void FieldToJson(nlohmann::ordered_json&                              jdata,
 
 void FieldToJson(nlohmann::ordered_json&                         jdata,
                  const Decoded_VkPipelineExecutableStatisticKHR* data,
-                 const JsonOptions&                              options)
+                 const util::JsonOptions&                        options)
 {
     if (data && data->decoded_value)
     {
@@ -273,7 +273,9 @@ void FieldToJson(nlohmann::ordered_json&                         jdata,
     }
 }
 
-void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_SECURITY_ATTRIBUTES* data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json&            jdata,
+                 const Decoded_SECURITY_ATTRIBUTES* data,
+                 const util::JsonOptions&           options)
 {
     if (data && data->decoded_value)
     {
@@ -285,7 +287,9 @@ void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_SECURITY_ATTRIBUTE
     }
 }
 
-void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkDescriptorImageInfo* data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json&              jdata,
+                 const Decoded_VkDescriptorImageInfo* data,
+                 const util::JsonOptions&             options)
 {
     if (data && data->decoded_value)
     {
@@ -297,7 +301,9 @@ void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkDescriptorImageI
     }
 }
 
-void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkWriteDescriptorSet* data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json&             jdata,
+                 const Decoded_VkWriteDescriptorSet* data,
+                 const util::JsonOptions&            options)
 {
     if (data && data->decoded_value)
     {
@@ -346,7 +352,7 @@ void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkWriteDescriptorS
 void FieldToJson(nlohmann::ordered_json&                    jdata,
                  const VkPerformanceValueTypeINTEL          discriminant,
                  const Decoded_VkPerformanceValueDataINTEL* data,
-                 const JsonOptions&                         options)
+                 const util::JsonOptions&                   options)
 {
     if (data && data->decoded_value)
     {
@@ -375,7 +381,9 @@ void FieldToJson(nlohmann::ordered_json&                    jdata,
     }
 }
 
-void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkPerformanceValueINTEL* data, const JsonOptions& options)
+void FieldToJson(nlohmann::ordered_json&                jdata,
+                 const Decoded_VkPerformanceValueINTEL* data,
+                 const util::JsonOptions&               options)
 {
     if (data && data->decoded_value)
     {
@@ -388,7 +396,7 @@ void FieldToJson(nlohmann::ordered_json& jdata, const Decoded_VkPerformanceValue
 
 void FieldToJson(nlohmann::ordered_json&                 jdata,
                  const Decoded_VkShaderModuleCreateInfo* data,
-                 const JsonOptions&                      options)
+                 const util::JsonOptions&                options)
 {
     if (data && data->decoded_value)
     {
@@ -406,7 +414,7 @@ void FieldToJson(nlohmann::ordered_json&                 jdata,
 
 void FieldToJson(nlohmann::ordered_json&                  jdata,
                  const Decoded_VkPipelineCacheCreateInfo* data,
-                 const JsonOptions&                       options)
+                 const util::JsonOptions&                 options)
 {
     if (data && data->decoded_value)
     {
@@ -425,7 +433,7 @@ void FieldToJson(nlohmann::ordered_json&                  jdata,
 template <>
 void FieldToJson(nlohmann::ordered_json&                   jdata,
                  const PointerDecoder<uint64_t, uint64_t>& data,
-                 const JsonOptions&                        options)
+                 const util::JsonOptions&                  options)
 {
     if (data.GetPointer())
     {
@@ -447,7 +455,7 @@ void FieldToJson(nlohmann::ordered_json&                   jdata,
 
 void FieldToJson(nlohmann::ordered_json&                      jdata,
                  const DescriptorUpdateTemplateDecoder* const pData,
-                 const JsonOptions&                           options)
+                 const util::JsonOptions&                     options)
 {
     if (pData)
     {
