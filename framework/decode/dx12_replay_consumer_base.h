@@ -30,6 +30,7 @@
 #include "decode/dx12_object_info.h"
 #include "decode/dx12_object_mapping_util.h"
 #include "decode/dx12_resource_value_mapper.h"
+#include "decode/dx12_replay_state_tracker.h"
 #include "decode/window.h"
 #include "format/format.h"
 #include "generated/generated_dx12_consumer.h"
@@ -1009,6 +1010,7 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
     std::unique_ptr<ScreenshotHandlerBase>                screenshot_handler_;
     std::unordered_map<ID3D12Resource*, ResourceInitInfo> resource_init_infos_;
     std::unique_ptr<graphics::Dx12DumpResources>          dump_resources_;
+    std::unique_ptr<Dx12ReplayStateTracker>               state_tracker_;
     graphics::TrackDumpResourcesDrawcall                  track_dump_resources_drawcall_;
 };
 

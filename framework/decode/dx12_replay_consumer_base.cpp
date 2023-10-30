@@ -107,6 +107,8 @@ Dx12ReplayConsumerBase::Dx12ReplayConsumerBase(std::shared_ptr<application::Appl
         config.type               = options.dump_resources_type;
         config.argument           = options.dump_resources_argument;
         dump_resources_           = gfxrecon::graphics::Dx12DumpResources::Create(config);
+
+        state_tracker_ = std::make_unique<Dx12ReplayStateTracker>();
     }
 
     DetectAdapters();
