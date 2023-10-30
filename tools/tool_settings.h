@@ -752,8 +752,12 @@ static std::vector<int32_t> GetFilteredMsgs(const gfxrecon::util::ArgumentParser
     return msgs;
 }
 
-static void GetReplayOptions(gfxrecon::decode::ReplayOptions& options, const gfxrecon::util::ArgumentParser& arg_parser)
+static void GetReplayOptions(gfxrecon::decode::ReplayOptions&      options,
+                             const gfxrecon::util::ArgumentParser& arg_parser,
+                             const std::string&                    filename)
 {
+    options.filename = filename;
+
     if (arg_parser.IsOptionSet(kValidateOption))
     {
         options.enable_validation_layer = true;
@@ -805,7 +809,7 @@ GetVulkanReplayOptions(const gfxrecon::util::ArgumentParser&           arg_parse
                        gfxrecon::decode::VulkanTrackedObjectInfoTable* tracked_object_info_table)
 {
     gfxrecon::decode::VulkanReplayOptions replay_options;
-    GetReplayOptions(replay_options, arg_parser);
+    GetReplayOptions(replay_options, arg_parser, filename);
 
 #if defined(WIN32)
     replay_options.enable_vulkan = IsApiFamilyIdEnabled(arg_parser, gfxrecon::format::ApiFamily_Vulkan);
@@ -899,10 +903,11 @@ GetVulkanReplayOptions(const gfxrecon::util::ArgumentParser&           arg_parse
 }
 
 #if defined(D3D12_SUPPORT)
-static gfxrecon::decode::DxReplayOptions GetDxReplayOptions(const gfxrecon::util::ArgumentParser& arg_parser)
+static gfxrecon::decode::DxReplayOptions GetDxReplayOptions(const gfxrecon::util::ArgumentParser& arg_parser,
+                                                            const std::string&                    filename)
 {
     gfxrecon::decode::DxReplayOptions replay_options;
-    GetReplayOptions(replay_options, arg_parser);
+    GetReplayOptions(replay_options, arg_parser, filename);
 
     replay_options.enable_d3d12         = IsApiFamilyIdEnabled(arg_parser, gfxrecon::format::ApiFamily_D3D12);
     replay_options.DeniedDebugMessages  = GetFilteredMsgs(arg_parser, kDeniedMessages);

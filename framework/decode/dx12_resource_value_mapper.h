@@ -148,6 +148,8 @@ class Dx12ResourceValueMapper
 
     void RemoveGpuDescriptorHeap(uint64_t capture_gpu_start);
 
+    format::HandleId FindResourceIDbyGpuVA(D3D12_GPU_VIRTUAL_ADDRESS replay_address);
+
   private:
     struct ProcessResourceMappingsArgs
     {

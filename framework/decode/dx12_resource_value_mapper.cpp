@@ -844,6 +844,13 @@ void Dx12ResourceValueMapper::RemoveGpuDescriptorHeap(uint64_t capture_gpu_start
     }
 }
 
+format::HandleId Dx12ResourceValueMapper::FindResourceIDbyGpuVA(D3D12_GPU_VIRTUAL_ADDRESS replay_address)
+{
+    format::HandleId resource_id = 0;
+    reverse_gpu_va_map_.Map(replay_address, &resource_id);
+    return resource_id;
+}
+
 void Dx12ResourceValueMapper::CopyResourceValues(const ResourceCopyInfo& copy_info,
                                                  ResourceValueInfoMap&   resource_value_info_map)
 {
