@@ -114,12 +114,53 @@ void Dx12DumpResources::WriteDrawcallResources(const TrackDumpResourcesDrawcall&
     WriteMetaCommandToFile("before", [&](auto& jdata) {
         // vertex
         WriteBeforeResources(jdata["vertex"], json_options_.data_sub_dir, resources.copy_vertex_resources);
+
+        // index
+        WriteBeforeResource(jdata["index"], json_options_.data_sub_dir, resources.copy_index_resource);
+
+        // descriptor
+        uint32_t dh_index = 0;
+        for (const auto& dh_data : resources.descriptor_heap_datas)
+        {
+            std::string filename = json_options_.data_sub_dir + "_heap_id_" + std::to_string(dh_data.id);
+            WriteBeforeResources(jdata["descriptor_heap"][dh_index]["constant_buffer"],
+                                 filename,
+                                 dh_data.copy_constant_buffer_resources);
+            WriteBeforeResources(
+                jdata["descriptor_heap"][dh_index]["shader_resource"], filename, dh_data.copy_shader_resources);
+            ++dh_index;
+        }
+
+        // render target
+        WriteBeforeResources(
+            jdata["render_target"], json_options_.data_sub_dir, resources.copy_render_target_resources);
+        WriteBeforeResource(jdata["depth_stencil"], json_options_.data_sub_dir, resources.copy_depth_stencil_resource);
     });
 
     // after
     WriteMetaCommandToFile("after", [&](auto& jdata) {
         // vertex
         WriteAfterResources(jdata["vertex"], json_options_.data_sub_dir, resources.copy_vertex_resources);
+
+        // index
+        WriteAfterResource(jdata["index"], json_options_.data_sub_dir, resources.copy_index_resource);
+
+        // descriptor
+        uint32_t dh_index = 0;
+        for (const auto& dh_data : resources.descriptor_heap_datas)
+        {
+            std::string filename = json_options_.data_sub_dir + "_heap_id_" + std::to_string(dh_data.id);
+            WriteAfterResources(jdata["descriptor_heap"][dh_index]["constant_buffer"],
+                                filename,
+                                dh_data.copy_constant_buffer_resources);
+            WriteAfterResources(
+                jdata["descriptor_heap"][dh_index]["shader_resource"], filename, dh_data.copy_shader_resources);
+            ++dh_index;
+        }
+
+        // render target
+        WriteAfterResources(jdata["render_target"], json_options_.data_sub_dir, resources.copy_render_target_resources);
+        WriteAfterResource(jdata["depth_stencil"], json_options_.data_sub_dir, resources.copy_depth_stencil_resource);
     });
 }
 

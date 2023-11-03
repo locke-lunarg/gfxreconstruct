@@ -63,6 +63,13 @@ struct CopyResourceData
     dx12::ID3D12ResourceComPtr after_resource{ nullptr };  // copy resource after drawcall
 };
 
+struct DescriptorHeapData
+{
+    format::HandleId              id;
+    std::vector<CopyResourceData> copy_constant_buffer_resources;
+    std::vector<CopyResourceData> copy_shader_resources;
+};
+
 struct TrackDumpResourcesDrawcall
 {
     int                           drawcall_index{ 0 };
@@ -71,11 +78,27 @@ struct TrackDumpResourcesDrawcall
     int                           begin_renderpass_code_index{ 0 };
     int                           drawcall_code_index{ 0 };
     DumpResourcesRenderPassStatus render_pass_status{ DumpResourcesRenderPassStatus::kNone };
+    ID3D12GraphicsCommandList*    render_pass_commad_list{ nullptr };
     ID3D12Fence*                  fence{ nullptr };
 
     // vertex
     std::vector<D3D12_GPU_VIRTUAL_ADDRESS> replay_vertex_buffer_view_gvas;
     std::vector<CopyResourceData>          copy_vertex_resources;
+
+    // index
+    D3D12_GPU_VIRTUAL_ADDRESS replay_index_buffer_view_gva;
+    CopyResourceData          copy_index_resource;
+
+    // descriptor
+    std::vector<DescriptorHeapData> descriptor_heap_datas;
+
+    // render target
+    std::vector<format::HandleId> render_target_heap_ids;
+    std::vector<size_t>           render_target_cpu_handles;
+    std::vector<CopyResourceData> copy_render_target_resources;
+    format::HandleId              depth_stencil_heap_id{ format::kNullHandleId };
+    size_t                        depth_stencil_cpu_handle{ decode::kNullCpuAddress };
+    CopyResourceData              copy_depth_stencil_resource;
 
     ~TrackDumpResourcesDrawcall() { ClearTrack(); }
 
@@ -85,6 +108,12 @@ struct TrackDumpResourcesDrawcall
         drawcall_code_index         = 0;
         commandlist_id              = 0;
         replay_vertex_buffer_view_gvas.clear();
+        replay_index_buffer_view_gva = decode::kNullGpuAddress;
+        descriptor_heap_datas.clear();
+        render_target_heap_ids.clear();
+        render_target_cpu_handles.clear();
+        depth_stencil_heap_id    = format::kNullHandleId;
+        depth_stencil_cpu_handle = decode::kNullCpuAddress;
     }
 };
 
