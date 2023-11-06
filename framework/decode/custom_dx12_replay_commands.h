@@ -86,16 +86,6 @@ struct CustomReplayPostCall<format::ApiCallId::ApiCall_ID3D12Device_CreateRender
 };
 
 template <>
-struct CustomReplayPostCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_Reset>
-{
-    template <typename... Args>
-    static void Dispatch(Dx12ReplayConsumerBase* replay, Args... args)
-    {
-        replay->PostCall_ID3D12GraphicsCommandList_Reset(args...);
-    }
-};
-
-template <>
 struct CustomReplayPostCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_OMSetRenderTargets>
 {
     template <typename... Args>

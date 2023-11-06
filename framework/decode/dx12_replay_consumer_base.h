@@ -152,19 +152,6 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
                                                  StructPointerDecoder<Decoded_D3D12_RENDER_TARGET_VIEW_DESC>* pDesc,
                                                  Decoded_D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor);
 
-    void PostCall_ID3D12GraphicsCommandList_Reset(const ApiCallInfo& api_call_info,
-                                                  DxObjectInfo*      object_info,
-                                                  format::HandleId   pAllocator,
-                                                  format::HandleId   pInitialState);
-
-    void PostCall_ID3D12GraphicsCommandList4_BeginRenderPass(
-        const ApiCallInfo&                                                  api_call_info,
-        DxObjectInfo*                                                       object_info,
-        UINT                                                                NumRenderTargets,
-        StructPointerDecoder<Decoded_D3D12_RENDER_PASS_RENDER_TARGET_DESC>* pRenderTargets,
-        StructPointerDecoder<Decoded_D3D12_RENDER_PASS_DEPTH_STENCIL_DESC>* pDepthStencil,
-        D3D12_RENDER_PASS_FLAGS                                             Flags);
-
     void PostCall_ID3D12GraphicsCommandList_OMSetRenderTargets(
         const ApiCallInfo&                                         api_call_info,
         DxObjectInfo*                                              object_info,
@@ -228,6 +215,11 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
     }
 
     void RemoveObject(DxObjectInfo* info);
+
+    void SetDumpTarget(TrackDumpCommandList& track_dump_commandlist)
+    {
+        track_dump_resources_.target = track_dump_commandlist;
+    }
 
     IDXGIAdapter* GetAdapter();
 
@@ -936,12 +928,13 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
 
     std::wstring ConstructObjectName(format::HandleId capture_id, format::ApiCallId call_id);
 
-    void AddCopyResourceCommandsForBeforeDrawcallByGPUVAs(ID3D12GraphicsCommandList* copy_command_list,
-                                                          const std::vector<D3D12_GPU_VIRTUAL_ADDRESS>& source_gpu_vas,
-                                                          std::vector<graphics::CopyResourceData>& copy_resource_datas);
+    void AddCopyResourceCommandsForBeforeDrawcallByGPUVAs(
+        ID3D12GraphicsCommandList*                    copy_command_list,
+        const std::vector<D3D12_GPU_VIRTUAL_ADDRESS>& source_captured_gpu_vas,
+        std::vector<graphics::CopyResourceData>&      copy_resource_datas);
 
     void AddCopyResourceCommandForBeforeDrawcallByGPUVA(ID3D12GraphicsCommandList*  copy_command_list,
-                                                        D3D12_GPU_VIRTUAL_ADDRESS   source_gpu_va,
+                                                        D3D12_GPU_VIRTUAL_ADDRESS   source_captured_gpu_va,
                                                         graphics::CopyResourceData& copy_resource_data);
 
     void AddCopyResourceCommandsForBeforeDrawcall(ID3D12GraphicsCommandList*               copy_command_list,
@@ -958,12 +951,12 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
 
     void AddCopyRenderTargetCommandsForBeforeDrawcall(ID3D12GraphicsCommandList*           copy_command_list,
                                                       const std::vector<format::HandleId>& heap_ids,
-                                                      const std::vector<size_t>&           render_target_cpu_handles,
+                                                      const std::vector<size_t>& captured_render_target_cpu_handles,
                                                       std::vector<graphics::CopyResourceData>& copy_resource_datas);
 
     void AddCopyDepthStencilCommandForBeforeDrawcall(ID3D12GraphicsCommandList*  copy_command_list,
                                                      format::HandleId            heap_id,
-                                                     size_t                      depth_stencil_cpu_handles,
+                                                     size_t                      captured_depth_stencil_cpu_handles,
                                                      graphics::CopyResourceData& copy_resource_data);
 
     void AddCopyResourceCommandsForBeforeDrawcall(ID3D12GraphicsCommandList* copy_command_list);
@@ -1011,7 +1004,7 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
     std::unordered_map<ID3D12Resource*, ResourceInitInfo> resource_init_infos_;
     std::unique_ptr<graphics::Dx12DumpResources>          dump_resources_;
     std::unique_ptr<Dx12ReplayStateTracker>               state_tracker_;
-    graphics::TrackDumpResourcesDrawcall                  track_dump_resources_drawcall_;
+    graphics::TrackDumpResources                          track_dump_resources_;
 };
 
 GFXRECON_END_NAMESPACE(decode)
