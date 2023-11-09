@@ -67,7 +67,7 @@ struct DxReplayOptions : public ReplayOptions
     std::vector<int32_t> DeniedDebugMessages;
     bool                 override_object_names{ false };
     DumpResourcesType    dump_resources_type{ DumpResourcesType::kNone };
-    int                  dump_resources_argument{ 0 };
+    uint64_t             dump_resources_argument{ 0 };
 
     util::ScreenshotFormat       screenshot_format{ util::ScreenshotFormat::kBmp };
     std::vector<ScreenshotRange> screenshot_ranges;

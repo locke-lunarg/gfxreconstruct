@@ -58,6 +58,7 @@ struct CopyResourceData
 
 struct DescriptorHeapData
 {
+    format::HandleId              id;
     std::vector<CopyResourceData> copy_constant_buffer_resources;
     std::vector<CopyResourceData> copy_shader_resources;
 };
@@ -69,21 +70,30 @@ struct TrackDumpResources
     ID3D12Fence*                 fence{ nullptr };
 
     // vertex
-    std::vector<CopyResourceData> copy_vertex_resources;
+    std::vector<D3D12_GPU_VIRTUAL_ADDRESS> replay_vertex_buffer_view_gvas;
+    std::vector<CopyResourceData>          copy_vertex_resources;
 
     // index
-    CopyResourceData copy_index_resource;
+    D3D12_GPU_VIRTUAL_ADDRESS replay_index_buffer_view_gva{ decode::kNullGpuAddress };
+    CopyResourceData          copy_index_resource;
 
     // descriptor
     std::vector<DescriptorHeapData> descriptor_heap_datas;
 
     // render target
+    std::vector<format::HandleId> render_target_heap_ids;
+    std::vector<size_t>           replay_render_target_cpu_handles;
     std::vector<CopyResourceData> copy_render_target_resources;
+    format::HandleId              depth_stencil_heap_id{ format::kNullHandleId };
+    size_t                        replay_depth_stencil_cpu_handle{ decode::kNullCpuAddress };
     CopyResourceData              copy_depth_stencil_resource;
 
     ~TrackDumpResources() {}
 
-    bool IsMatch(uint64_t code_index) { return (target.drawcall_code_index == code_index); }
+    bool IsMatch(uint64_t code_index)
+    {
+        return (target.drawcall_start_code_index <= code_index) && (target.drawcall_code_index >= code_index);
+    }
 };
 
 // TODO: This class copys a lot of code to write json from VulkanExportJsonConsumerBase.

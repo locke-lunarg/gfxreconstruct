@@ -119,17 +119,16 @@ void Dx12DumpResources::WriteResources(const TrackDumpResources& resources)
         WriteBeforeResource(jdata["index"], json_options_.data_sub_dir, resources.copy_index_resource);
 
         // descriptor
-        uint32_t dh_size = resources.descriptor_heap_datas.size();
-        for (uint32_t index = 0; index < dh_size; ++index)
+        uint32_t dh_index = 0;
+        for (const auto& dh_data : resources.descriptor_heap_datas)
         {
-            std::string filename =
-                json_options_.data_sub_dir + "_heap_id_" + std::to_string(resources.target.descriptor_heap_ids[index]);
-            WriteBeforeResources(jdata["descriptor_heap"][index]["constant_buffer"],
+            std::string filename = json_options_.data_sub_dir + "_heap_id_" + std::to_string(dh_data.id);
+            WriteBeforeResources(jdata["descriptor_heap"][dh_index]["constant_buffer"],
                                  filename,
-                                 resources.descriptor_heap_datas[index].copy_constant_buffer_resources);
-            WriteBeforeResources(jdata["descriptor_heap"][index]["shader_resource"],
-                                 filename,
-                                 resources.descriptor_heap_datas[index].copy_shader_resources);
+                                 dh_data.copy_constant_buffer_resources);
+            WriteBeforeResources(
+                jdata["descriptor_heap"][dh_index]["shader_resource"], filename, dh_data.copy_shader_resources);
+            ++dh_index;
         }
 
         // render target
@@ -147,17 +146,16 @@ void Dx12DumpResources::WriteResources(const TrackDumpResources& resources)
         WriteAfterResource(jdata["index"], json_options_.data_sub_dir, resources.copy_index_resource);
 
         // descriptor
-        uint32_t dh_size = resources.descriptor_heap_datas.size();
-        for (uint32_t index = 0; index < dh_size; ++index)
+        uint32_t dh_index = 0;
+        for (const auto& dh_data : resources.descriptor_heap_datas)
         {
-            std::string filename =
-                json_options_.data_sub_dir + "_heap_id_" + std::to_string(resources.target.descriptor_heap_ids[index]);
-            WriteAfterResources(jdata["descriptor_heap"][index]["constant_buffer"],
+            std::string filename = json_options_.data_sub_dir + "_heap_id_" + std::to_string(dh_data.id);
+            WriteAfterResources(jdata["descriptor_heap"][dh_index]["constant_buffer"],
                                 filename,
-                                resources.descriptor_heap_datas[index].copy_constant_buffer_resources);
-            WriteAfterResources(jdata["descriptor_heap"][index]["shader_resource"],
-                                filename,
-                                resources.descriptor_heap_datas[index].copy_shader_resources);
+                                dh_data.copy_constant_buffer_resources);
+            WriteAfterResources(
+                jdata["descriptor_heap"][dh_index]["shader_resource"], filename, dh_data.copy_shader_resources);
+            ++dh_index;
         }
 
         // render target
