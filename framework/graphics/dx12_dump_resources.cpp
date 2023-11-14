@@ -108,18 +108,61 @@ void Dx12DumpResources::WriteResource(nlohmann::ordered_json&           jdata,
     WriteBinaryFile(filepath, reousce_data.size, data_begin);
 }
 
-void Dx12DumpResources::WriteDrawcallResources(const TrackDumpResourcesDrawcall& resources)
+void Dx12DumpResources::WriteResources(const TrackDumpResources& resources)
 {
     // before
     WriteMetaCommandToFile("before", [&](auto& jdata) {
         // vertex
         WriteBeforeResources(jdata["vertex"], json_options_.data_sub_dir, resources.copy_vertex_resources);
+
+        // index
+        WriteBeforeResource(jdata["index"], json_options_.data_sub_dir, resources.copy_index_resource);
+
+        // descriptor
+        uint32_t dh_size = resources.descriptor_heap_datas.size();
+        for (uint32_t index = 0; index < dh_size; ++index)
+        {
+            std::string filename =
+                json_options_.data_sub_dir + "_heap_id_" + std::to_string(resources.target.descriptor_heap_ids[index]);
+            WriteBeforeResources(jdata["descriptor_heap"][index]["constant_buffer"],
+                                 filename,
+                                 resources.descriptor_heap_datas[index].copy_constant_buffer_resources);
+            WriteBeforeResources(jdata["descriptor_heap"][index]["shader_resource"],
+                                 filename,
+                                 resources.descriptor_heap_datas[index].copy_shader_resources);
+        }
+
+        // render target
+        WriteBeforeResources(
+            jdata["render_target"], json_options_.data_sub_dir, resources.copy_render_target_resources);
+        WriteBeforeResource(jdata["depth_stencil"], json_options_.data_sub_dir, resources.copy_depth_stencil_resource);
     });
 
     // after
     WriteMetaCommandToFile("after", [&](auto& jdata) {
         // vertex
         WriteAfterResources(jdata["vertex"], json_options_.data_sub_dir, resources.copy_vertex_resources);
+
+        // index
+        WriteAfterResource(jdata["index"], json_options_.data_sub_dir, resources.copy_index_resource);
+
+        // descriptor
+        uint32_t dh_size = resources.descriptor_heap_datas.size();
+        for (uint32_t index = 0; index < dh_size; ++index)
+        {
+            std::string filename =
+                json_options_.data_sub_dir + "_heap_id_" + std::to_string(resources.target.descriptor_heap_ids[index]);
+            WriteAfterResources(jdata["descriptor_heap"][index]["constant_buffer"],
+                                filename,
+                                resources.descriptor_heap_datas[index].copy_constant_buffer_resources);
+            WriteAfterResources(jdata["descriptor_heap"][index]["shader_resource"],
+                                filename,
+                                resources.descriptor_heap_datas[index].copy_shader_resources);
+        }
+
+        // render target
+        WriteAfterResources(jdata["render_target"], json_options_.data_sub_dir, resources.copy_render_target_resources);
+        WriteAfterResource(jdata["depth_stencil"], json_options_.data_sub_dir, resources.copy_depth_stencil_resource);
     });
 }
 

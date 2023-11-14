@@ -189,6 +189,21 @@ class Dx12ReplayConsumerBodyGenerator(
                 is_resource_creation_methods = True
         else:
             is_override = name in self.REPLAY_OVERRIDES['functions']
+        
+        code += (
+            "    CustomReplayPreCall<format::ApiCallId::ApiCall_{}>::Dispatch(\n"
+            "        this,\n"
+            "        call_info,".format(name)
+        )
+
+        if is_object:
+            code += "\n        replay_object,"
+
+        for value in values:
+            code += ('\n' + "        " + value.name + ",")
+
+        code = code[:-1]
+        code += ");\n"
 
         for value in values:
             is_class = self.is_class(value)
@@ -393,21 +408,6 @@ class Dx12ReplayConsumerBodyGenerator(
 
                     else:
                         arg_list.append(value.name)
-        
-        code += (
-            "    CustomReplayPreCall<format::ApiCallId::ApiCall_{}>::Dispatch(\n"
-            "        this,\n"
-            "        call_info,".format(name)
-        )
-
-        if is_object:
-            code += "\n        replay_object,"
-
-        for value in values:
-            code += ('\n' + "        " + value.name + ",")
-
-        code = code[:-1]
-        code += ");\n"
 
         indent_length = len(code)
         code += '    '

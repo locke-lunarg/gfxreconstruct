@@ -27,6 +27,7 @@
 #include "decode/handle_pointer_decoder.h"
 #include "decode/dx_replay_options.h"
 #include "decode/dx12_object_info.h"
+#include "decode/dx12_browse_consumer.h"
 #include "graphics/dx12_util.h"
 #include "util/defines.h"
 #include "util/json_util.h"
@@ -47,14 +48,6 @@ struct Dx12DumpResourcesConfig
     int                       argument{ 0 };
 };
 
-enum class DumpResourcesRenderPassStatus
-{
-    kNone,
-    kBeforeDrawcall,
-    kAfterDrawcall,
-    kCompleted
-};
-
 struct CopyResourceData
 {
     format::HandleId           source_resource_id{ format::kNullHandleId };
@@ -63,28 +56,37 @@ struct CopyResourceData
     dx12::ID3D12ResourceComPtr after_resource{ nullptr };  // copy resource after drawcall
 };
 
-struct TrackDumpResourcesDrawcall
+struct DescriptorHeapData
 {
-    int                           drawcall_index{ 0 };
-    int                           commandlist_reset_code_index{ 0 };
-    format::HandleId              commandlist_id{ format::kNullHandleId };
-    int                           begin_renderpass_code_index{ 0 };
-    int                           drawcall_code_index{ 0 };
-    DumpResourcesRenderPassStatus render_pass_status{ DumpResourcesRenderPassStatus::kNone };
-    ID3D12Fence*                  fence{ nullptr };
+    std::vector<CopyResourceData> copy_constant_buffer_resources;
+    std::vector<CopyResourceData> copy_shader_resources;
+};
+
+struct TrackDumpResources
+{
+    decode::TrackDumpCommandList target{};
+    bool                         completed{ false };
+    ID3D12Fence*                 fence{ nullptr };
 
     // vertex
-    std::vector<D3D12_GPU_VIRTUAL_ADDRESS> replay_vertex_buffer_view_gvas;
-    std::vector<CopyResourceData>          copy_vertex_resources;
+    std::vector<CopyResourceData> copy_vertex_resources;
 
-    ~TrackDumpResourcesDrawcall() { ClearTrack(); }
+    // index
+    CopyResourceData copy_index_resource;
 
-    void ClearTrack()
+    // descriptor
+    std::vector<DescriptorHeapData> descriptor_heap_datas;
+
+    // render target
+    std::vector<CopyResourceData> copy_render_target_resources;
+    CopyResourceData              copy_depth_stencil_resource;
+
+    ~TrackDumpResources() {}
+
+    bool IsMatch(format::HandleId commandlist_id, uint64_t code_index)
     {
-        begin_renderpass_code_index = 0;
-        drawcall_code_index         = 0;
-        commandlist_id              = 0;
-        replay_vertex_buffer_view_gvas.clear();
+        return (target.commandlist_id == commandlist_id) && (target.drawcall_start_code_index <= code_index) &&
+               (target.drawcall_code_index >= code_index);
     }
 };
 
@@ -97,7 +99,7 @@ class Dx12DumpResources
 
     ~Dx12DumpResources();
 
-    void WriteDrawcallResources(const TrackDumpResourcesDrawcall& resources);
+    void WriteResources(const TrackDumpResources& resources);
 
   private:
     Dx12DumpResources();
