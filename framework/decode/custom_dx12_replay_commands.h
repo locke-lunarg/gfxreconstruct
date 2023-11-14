@@ -96,42 +96,32 @@ struct CustomReplayPostCall<format::ApiCallId::ApiCall_ID3D12Device_CreateDepthS
 };
 
 template <>
-struct CustomReplayPreCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_OMSetRenderTargets>
+struct CustomReplayPostCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_OMSetRenderTargets>
 {
     template <typename... Args>
     static void Dispatch(Dx12ReplayConsumerBase* replay, Args... args)
     {
-        replay->PreCall_ID3D12GraphicsCommandList_OMSetRenderTargets(args...);
+        replay->PostCall_ID3D12GraphicsCommandList_OMSetRenderTargets(args...);
     }
 };
 
 template <>
-struct CustomReplayPreCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_IASetVertexBuffers>
+struct CustomReplayPreCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList4_BeginRenderPass>
 {
     template <typename... Args>
     static void Dispatch(Dx12ReplayConsumerBase* replay, Args... args)
     {
-        replay->PreCall_ID3D12GraphicsCommandList_IASetVertexBuffers(args...);
+        replay->PreCall_ID3D12GraphicsCommandList4_BeginRenderPass(args...);
     }
 };
 
 template <>
-struct CustomReplayPreCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_IASetIndexBuffer>
+struct CustomReplayPostCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList4_BeginRenderPass>
 {
     template <typename... Args>
     static void Dispatch(Dx12ReplayConsumerBase* replay, Args... args)
     {
-        replay->PreCall_ID3D12GraphicsCommandList_IASetIndexBuffer(args...);
-    }
-};
-
-template <>
-struct CustomReplayPreCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_SetDescriptorHeaps>
-{
-    template <typename... Args>
-    static void Dispatch(Dx12ReplayConsumerBase* replay, Args... args)
-    {
-        replay->PreCall_ID3D12GraphicsCommandList_SetDescriptorHeaps(args...);
+        replay->PostCall_ID3D12GraphicsCommandList4_BeginRenderPass(args...);
     }
 };
 

@@ -268,12 +268,12 @@ struct D3D12DescriptorHeapInfo : DxObjectExtraInfo
     size_t                                replay_cpu_addr_begin{ kNullCpuAddress };
     uint64_t                              replay_gpu_addr_begin{ kNullGpuAddress };
 
-    std::vector<D3D12_GPU_VIRTUAL_ADDRESS> captured_constant_buffer_view_desc_gvas;
-    std::vector<format::HandleId>          shader_resource_ids;
-    std::vector<size_t>                    replay_render_target_cpu_handles;
-    std::vector<format::HandleId>          render_target_resource_ids;
-    std::vector<size_t>                    replay_depth_stencil_cpu_handles;
-    std::vector<format::HandleId>          depth_stencil_resource_ids;
+    std::vector<D3D12_GPU_VIRTUAL_ADDRESS>   captured_constant_buffer_view_desc_gvas;
+    std::vector<format::HandleId>            shader_resource_ids;
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> replay_render_target_handles;
+    std::vector<format::HandleId>            render_target_resource_ids;
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> replay_depth_stencil_handles;
+    std::vector<format::HandleId>            depth_stencil_resource_ids;
 };
 
 struct D3D12FenceInfo : DxObjectExtraInfo

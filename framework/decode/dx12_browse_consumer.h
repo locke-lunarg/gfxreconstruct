@@ -37,10 +37,11 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 
 struct TrackDumpCommandList
 {
-    format::HandleId commandlist_id{ format::kNullHandleId };
-    uint64_t         drawcall_start_code_index{ 0 };
-    uint64_t         begin_renderpass_code_index{ 0 };
-    uint64_t         drawcall_code_index{ 0 };
+    uint64_t command_start_code_index{ 0 };
+    uint64_t begin_renderpass_code_index{ 0 };
+    uint64_t set_render_targets_code_index{ 0 };
+    uint64_t drawcall_code_index{ 0 };
+    uint64_t execute_code_index{ 0 };
 
     // vertex
     std::vector<D3D12_GPU_VIRTUAL_ADDRESS> captured_vertex_buffer_view_gvas;
@@ -52,25 +53,18 @@ struct TrackDumpCommandList
     std::vector<format::HandleId> descriptor_heap_ids;
 
     // render target
-    std::vector<size_t>           captured_render_target_cpu_handles;
-    std::vector<format::HandleId> render_target_heap_ids;
-    std::vector<uint32_t>         render_target_indices;
-    size_t                        captured_depth_stencil_cpu_handle{ decode::kNullCpuAddress };
-    format::HandleId              depth_stencil_heap_id{ format::kNullHandleId };
-    uint32_t                      depth_stencil_index{ 0 };
+    // Track render target info in replay, not here.
+    // Because the useful info is replay cpuDescriptor. It's only available in replay.
 
     void Clear()
     {
-        drawcall_start_code_index   = 0;
+        command_start_code_index    = 0;
         begin_renderpass_code_index = 0;
         drawcall_code_index         = 0;
+        execute_code_index          = 0;
         captured_vertex_buffer_view_gvas.clear();
         captured_index_buffer_view_gva = decode::kNullGpuAddress;
         descriptor_heap_ids.clear();
-        render_target_heap_ids.clear();
-        captured_render_target_cpu_handles.clear();
-        depth_stencil_heap_id             = format::kNullHandleId;
-        captured_depth_stencil_cpu_handle = decode::kNullCpuAddress;
     }
 };
 
@@ -100,19 +94,18 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                          format::HandleId   pAllocator,
                                                          format::HandleId   pInitialState)
     {
-        if (!IsTrackDumpComplete())
+        if (!IsFindDumpTarget())
         {
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
                 it->second.Clear();
-                it->second.drawcall_start_code_index = call_info.index;
+                it->second.command_start_code_index = call_info.index;
             }
             else
             {
-                TrackDumpCommandList info      = {};
-                info.commandlist_id            = object_id;
-                info.drawcall_start_code_index = call_info.index;
+                TrackDumpCommandList info     = {};
+                info.command_start_code_index = call_info.index;
                 track_commandlist_infos_.insert({ object_id, std::move(info) });
             }
         }
@@ -126,36 +119,12 @@ class Dx12BrowseConsumer : public Dx12Consumer
         StructPointerDecoder<Decoded_D3D12_RENDER_PASS_DEPTH_STENCIL_DESC>* pDepthStencil,
         D3D12_RENDER_PASS_FLAGS                                             Flags)
     {
-        if (!IsTrackDumpComplete())
+        if (!IsFindDumpTarget())
         {
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
-                it->second.drawcall_start_code_index   = call_info.index;
                 it->second.begin_renderpass_code_index = call_info.index;
-                if (NumRenderTargets > 0)
-                {
-                    auto rt_descriptors = pRenderTargets->GetMetaStructPointer();
-                    it->second.render_target_heap_ids.resize(NumRenderTargets);
-                    it->second.captured_render_target_cpu_handles.resize(NumRenderTargets);
-                    for (uint32_t i = 0; i < NumRenderTargets; ++i)
-                    {
-                        it->second.captured_render_target_cpu_handles[i] =
-                            rt_descriptors[i].cpuDescriptor->decoded_value->ptr;
-                        it->second.render_target_heap_ids[i] = rt_descriptors[i].cpuDescriptor->heap_id;
-                        it->second.render_target_indices[i]  = rt_descriptors[i].cpuDescriptor->index;
-                    }
-                }
-                if (pDepthStencil)
-                {
-                    auto ds_descriptor = pDepthStencil->GetMetaStructPointer();
-                    if (ds_descriptor)
-                    {
-                        it->second.captured_depth_stencil_cpu_handle = ds_descriptor->cpuDescriptor->decoded_value->ptr;
-                        it->second.depth_stencil_heap_id             = ds_descriptor->cpuDescriptor->heap_id;
-                        it->second.depth_stencil_index               = ds_descriptor->cpuDescriptor->index;
-                    }
-                }
             }
         }
     }
@@ -168,34 +137,12 @@ class Dx12BrowseConsumer : public Dx12Consumer
         BOOL                                                       RTsSingleHandleToDescriptorRange,
         StructPointerDecoder<Decoded_D3D12_CPU_DESCRIPTOR_HANDLE>* pDepthStencilDescriptor)
     {
-        if (!IsTrackDumpComplete())
+        if (!IsFindDumpTarget())
         {
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
-                if (NumRenderTargetDescriptors > 0)
-                {
-                    auto rt_descriptors = pRenderTargetDescriptors->GetMetaStructPointer();
-                    it->second.captured_render_target_cpu_handles.resize(NumRenderTargetDescriptors);
-                    it->second.render_target_heap_ids.resize(NumRenderTargetDescriptors);
-                    it->second.render_target_indices.resize(NumRenderTargetDescriptors);
-                    for (uint32_t i = 0; i < NumRenderTargetDescriptors; ++i)
-                    {
-                        it->second.captured_render_target_cpu_handles[i] = rt_descriptors[i].decoded_value->ptr;
-                        it->second.render_target_heap_ids[i]             = rt_descriptors[i].heap_id;
-                        it->second.render_target_indices[i]              = rt_descriptors[i].index;
-                    }
-                }
-                if (pDepthStencilDescriptor)
-                {
-                    auto ds_descriptor = pDepthStencilDescriptor->GetMetaStructPointer();
-                    if (ds_descriptor)
-                    {
-                        it->second.captured_depth_stencil_cpu_handle = ds_descriptor->decoded_value->ptr;
-                        it->second.depth_stencil_heap_id             = ds_descriptor->heap_id;
-                        it->second.depth_stencil_index               = ds_descriptor->index;
-                    }
-                }
+                it->second.set_render_targets_code_index = call_info.index;
             }
         }
     }
@@ -207,7 +154,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                          UINT               NumViews,
                                                          StructPointerDecoder<Decoded_D3D12_VERTEX_BUFFER_VIEW>* pViews)
     {
-        if (!IsTrackDumpComplete())
+        if (!IsFindDumpTarget())
         {
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
@@ -227,7 +174,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                        format::HandleId                                       object_id,
                                                        StructPointerDecoder<Decoded_D3D12_INDEX_BUFFER_VIEW>* pView)
     {
-        if (!IsTrackDumpComplete())
+        if (!IsFindDumpTarget())
         {
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
@@ -244,7 +191,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                          UINT               NumDescriptorHeaps,
                                                          HandlePointerDecoder<ID3D12DescriptorHeap*>* ppDescriptorHeaps)
     {
-        if (!IsTrackDumpComplete())
+        if (!IsFindDumpTarget())
         {
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
@@ -266,7 +213,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                                  UINT               StartVertexLocation,
                                                                  UINT               StartInstanceLocation)
     {
-        if (!IsTrackDumpComplete())
+        if (!IsFindDumpTarget())
         {
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
@@ -278,24 +225,41 @@ class Dx12BrowseConsumer : public Dx12Consumer
                         it->second.drawcall_code_index = call_info.index;
                         target_command_list_           = object_id;
                     }
-                    else
-                    {
-                        it->second.Clear();
-                        it->second.drawcall_start_code_index = call_info.index;
-                    }
                 }
             }
         }
         ++track_drawcall_index_;
     }
 
-    virtual bool IsComplete(uint64_t block_index) override
+    virtual void
+    Process_ID3D12CommandQueue_ExecuteCommandLists(const ApiCallInfo&                        call_info,
+                                                   format::HandleId                          object_id,
+                                                   UINT                                      NumCommandLists,
+                                                   HandlePointerDecoder<ID3D12CommandList*>* ppCommandLists)
     {
-        return (block_index > kMaxDX12BlockLimit) || IsTrackDumpComplete();
+        if (IsFindDumpTarget())
+        {
+            auto command_lists = ppCommandLists->GetPointer();
+            for (uint32_t i = 0; i < NumCommandLists; ++i)
+            {
+                if (command_lists[i] == target_command_list_)
+                {
+                    auto it = track_commandlist_infos_.find(target_command_list_);
+                    if (it != track_commandlist_infos_.end())
+                    {
+                        it->second.execute_code_index = call_info.index;
+                        is_complete                   = true;
+                        break;
+                    }
+                }
+            }
+        }
     }
 
+    virtual bool IsComplete(uint64_t block_index) override { return (block_index > kMaxDX12BlockLimit) || is_complete; }
+
   private:
-    bool IsTrackDumpComplete()
+    bool IsFindDumpTarget()
     {
         return (dump_resources_type_ == DumpResourcesType::kDrawCall &&
                 track_drawcall_index_ > dump_resources_argument_);
@@ -306,7 +270,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
     uint64_t          dump_resources_argument_{ 0 };
     uint64_t          track_drawcall_index_{ 0 };
     format::HandleId  target_command_list_{ 0 };
-
+    bool              is_complete{ false };
     // Key is commandlist_id. We need to know the commandlist of the info because in a commandlist block
     // between reset and close, it might have the other commandlist's commands.
     std::map<format::HandleId, TrackDumpCommandList> track_commandlist_infos_;

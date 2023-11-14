@@ -65,8 +65,6 @@ struct DescriptorHeapData
 struct TrackDumpResources
 {
     decode::TrackDumpCommandList target{};
-    bool                         completed{ false };
-    ID3D12Fence*                 fence{ nullptr };
 
     // vertex
     std::vector<CopyResourceData> copy_vertex_resources;
@@ -78,16 +76,20 @@ struct TrackDumpResources
     std::vector<DescriptorHeapData> descriptor_heap_datas;
 
     // render target
-    std::vector<CopyResourceData> copy_render_target_resources;
-    CopyResourceData              copy_depth_stencil_resource;
+    std::vector<format::HandleId>            render_target_heap_ids;
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> replay_render_target_handles;
+    std::vector<CopyResourceData>            copy_render_target_resources;
+    format::HandleId                         depth_stencil_heap_id{ format::kNullHandleId };
+    D3D12_CPU_DESCRIPTOR_HANDLE              replay_depth_stencil_handle{ decode::kNullCpuAddress };
+    CopyResourceData                         copy_depth_stencil_resource;
+
+    // record BeginRenderPass parameters
+    std::vector<D3D12_RENDER_PASS_ENDING_ACCESS> record_render_target_ending_accesses;
+    D3D12_RENDER_PASS_ENDING_ACCESS              record_depth_ending_access{};
+    D3D12_RENDER_PASS_ENDING_ACCESS              record_stencil_ending_access{};
+    D3D12_RENDER_PASS_FLAGS                      record_render_pass_flags{ D3D12_RENDER_PASS_FLAG_NONE };
 
     ~TrackDumpResources() {}
-
-    bool IsMatch(format::HandleId commandlist_id, uint64_t code_index)
-    {
-        return (target.commandlist_id == commandlist_id) && (target.drawcall_start_code_index <= code_index) &&
-               (target.drawcall_code_index >= code_index);
-    }
 };
 
 // TODO: This class copys a lot of code to write json from VulkanExportJsonConsumerBase.
