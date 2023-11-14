@@ -106,6 +106,26 @@ struct CustomReplayPreCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_
 };
 
 template <>
+struct CustomReplayPreCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList4_BeginRenderPass>
+{
+    template <typename... Args>
+    static void Dispatch(Dx12ReplayConsumerBase* replay, Args... args)
+    {
+        replay->PreCall_ID3D12GraphicsCommandList4_BeginRenderPass(args...);
+    }
+};
+
+template <>
+struct CustomReplayPostCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList4_BeginRenderPass>
+{
+    template <typename... Args>
+    static void Dispatch(Dx12ReplayConsumerBase* replay, Args... args)
+    {
+        replay->PostCall_ID3D12GraphicsCommandList4_BeginRenderPass(args...);
+    }
+};
+
+template <>
 struct CustomReplayPreCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_IASetVertexBuffers>
 {
     template <typename... Args>

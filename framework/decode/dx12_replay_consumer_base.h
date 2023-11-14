@@ -166,6 +166,22 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
         BOOL                                                       RTsSingleHandleToDescriptorRange,
         StructPointerDecoder<Decoded_D3D12_CPU_DESCRIPTOR_HANDLE>* pDepthStencilDescriptor);
 
+    void PreCall_ID3D12GraphicsCommandList4_BeginRenderPass(
+        const ApiCallInfo&                                                  call_info,
+        DxObjectInfo*                                                       object_info,
+        UINT                                                                NumRenderTargets,
+        StructPointerDecoder<Decoded_D3D12_RENDER_PASS_RENDER_TARGET_DESC>* pRenderTargets,
+        StructPointerDecoder<Decoded_D3D12_RENDER_PASS_DEPTH_STENCIL_DESC>* pDepthStencil,
+        D3D12_RENDER_PASS_FLAGS                                             Flags);
+
+    void PostCall_ID3D12GraphicsCommandList4_BeginRenderPass(
+        const ApiCallInfo&                                                  call_info,
+        DxObjectInfo*                                                       object_info,
+        UINT                                                                NumRenderTargets,
+        StructPointerDecoder<Decoded_D3D12_RENDER_PASS_RENDER_TARGET_DESC>* pRenderTargets,
+        StructPointerDecoder<Decoded_D3D12_RENDER_PASS_DEPTH_STENCIL_DESC>* pDepthStencil,
+        D3D12_RENDER_PASS_FLAGS                                             Flags);
+
     void PreCall_ID3D12GraphicsCommandList_IASetVertexBuffers(
         const ApiCallInfo&                                      call_info,
         DxObjectInfo*                                           object_info,
@@ -208,6 +224,8 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
     {
         return object_mapping::MapObject<T>(id, object_info_table_);
     }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE MapCPUDecriptorHandle(SIZE_T captured_ptr, format::HandleId heap_id, uint32_t index);
 
     template <typename T>
     void AddObject(const format::HandleId* p_id, T** pp_object, DxObjectInfo&& initial_info, format::ApiCallId call_id)

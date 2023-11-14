@@ -136,8 +136,9 @@ class Dx12BrowseConsumer : public Dx12Consumer
                 if (NumRenderTargets > 0)
                 {
                     auto rt_descriptors = pRenderTargets->GetMetaStructPointer();
-                    it->second.render_target_heap_ids.resize(NumRenderTargets);
                     it->second.captured_render_target_cpu_handles.resize(NumRenderTargets);
+                    it->second.render_target_heap_ids.resize(NumRenderTargets);
+                    it->second.render_target_indices.resize(NumRenderTargets);
                     for (uint32_t i = 0; i < NumRenderTargets; ++i)
                     {
                         it->second.captured_render_target_cpu_handles[i] =
@@ -280,7 +281,6 @@ class Dx12BrowseConsumer : public Dx12Consumer
                     }
                     else
                     {
-                        it->second.Clear();
                         it->second.drawcall_start_code_index = call_info.index;
                     }
                 }

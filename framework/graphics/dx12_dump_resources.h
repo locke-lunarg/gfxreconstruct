@@ -81,6 +81,11 @@ struct TrackDumpResources
     std::vector<CopyResourceData> copy_render_target_resources;
     CopyResourceData              copy_depth_stencil_resource;
 
+    // BeginRenderPass parameters
+    std::vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> record_begin_render_pass_render_targets;
+    D3D12_RENDER_PASS_DEPTH_STENCIL_DESC              record_begin_render_pass_depth_stencil{};
+    D3D12_RENDER_PASS_FLAGS                           record_begin_render_pass_flags{ D3D12_RENDER_PASS_FLAG_NONE };
+
     ~TrackDumpResources() {}
 
     bool IsMatch(format::HandleId commandlist_id, uint64_t code_index)
