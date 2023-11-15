@@ -58,8 +58,9 @@ struct CopyResourceData
 
 struct DescriptorHeapData
 {
-    std::vector<CopyResourceData> copy_constant_buffer_resources;
-    std::vector<CopyResourceData> copy_shader_resources;
+    std::vector<CopyResourceData>    copy_constant_buffer_resources;
+    std::vector<CopyResourceData>    copy_shader_resources;
+    std::vector<D3D12_RESOURCE_DESC> shader_resource_descs;
 };
 
 struct TrackDumpResources
@@ -79,9 +80,11 @@ struct TrackDumpResources
     std::vector<format::HandleId>            render_target_heap_ids;
     std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> replay_render_target_handles;
     std::vector<CopyResourceData>            copy_render_target_resources;
+    std::vector<D3D12_RESOURCE_DESC>         render_target_descs;
     format::HandleId                         depth_stencil_heap_id{ format::kNullHandleId };
     D3D12_CPU_DESCRIPTOR_HANDLE              replay_depth_stencil_handle{ decode::kNullCpuAddress };
     CopyResourceData                         copy_depth_stencil_resource;
+    D3D12_RESOURCE_DESC                      depth_stenci_desc;
 
     // record BeginRenderPass parameters
     std::vector<D3D12_RENDER_PASS_ENDING_ACCESS> record_render_target_ending_accesses;
@@ -142,9 +145,12 @@ class Dx12DumpResources
 
     void TestWriteFloatResources(nlohmann::ordered_json& jdata, const std::vector<CopyResourceData>& resousce_datas);
     void TestWriteFloatResource(nlohmann::ordered_json& jdata, const CopyResourceData& resousce_data);
-    void TestWriteImageResources(const std::string&                   prefix_file_name,
-                                 const std::vector<CopyResourceData>& resousce_datas);
-    void TestWriteImageResource(const std::string& prefix_file_name, const CopyResourceData& resousce_data);
+    void TestWriteImageResources(const std::string&                      prefix_file_name,
+                                 const std::vector<CopyResourceData>&    resousce_datas,
+                                 const std::vector<D3D12_RESOURCE_DESC>& descs);
+    void TestWriteImageResource(const std::string&         prefix_file_name,
+                                const CopyResourceData&    resousce_data,
+                                const D3D12_RESOURCE_DESC& desc);
 
     util::JsonOptions      json_options_;
     std::string            json_filename_;

@@ -4052,26 +4052,42 @@ void Dx12ReplayConsumerBase::AddCopyResourceCommandForBeforeDrawcallByGPUVA(
     copy_resource_data.source_resource_id = object_mapping::FindResourceIDbyGpuVA(captured_source_gpu_va, gpu_va_map_);
 
     AddCopyResourceCommandForBeforeDrawcall(
-        copy_command_list, copy_resource_data.source_resource_id, copy_resource_data);
+        copy_command_list, copy_resource_data.source_resource_id, copy_resource_data, nullptr);
 }
 
 void Dx12ReplayConsumerBase::AddCopyResourceCommandsForBeforeDrawcall(
     ID3D12GraphicsCommandList*               copy_command_list,
     const std::vector<format::HandleId>&     source_resource_ids,
-    std::vector<graphics::CopyResourceData>& copy_resource_datas)
+    std::vector<graphics::CopyResourceData>& copy_resource_datas,
+    std::vector<D3D12_RESOURCE_DESC>*        texture_descs)
 {
     auto size = source_resource_ids.size();
     copy_resource_datas.resize(size);
 
+    if (texture_descs)
+    {
+        texture_descs->resize(size);
+    }
+
     for (uint32_t i = 0; i < size; ++i)
     {
-        AddCopyResourceCommandForBeforeDrawcall(copy_command_list, source_resource_ids[i], copy_resource_datas[i]);
+        if (texture_descs)
+        {
+            AddCopyResourceCommandForBeforeDrawcall(
+                copy_command_list, source_resource_ids[i], copy_resource_datas[i], &(*texture_descs)[i]);
+        }
+        else
+        {
+            AddCopyResourceCommandForBeforeDrawcall(
+                copy_command_list, source_resource_ids[i], copy_resource_datas[i], nullptr);
+        }
     }
 }
 
 void Dx12ReplayConsumerBase::AddCopyResourceCommandForBeforeDrawcall(ID3D12GraphicsCommandList*  copy_command_list,
                                                                      format::HandleId            source_resource_id,
-                                                                     graphics::CopyResourceData& copy_resource_data)
+                                                                     graphics::CopyResourceData& copy_resource_data,
+                                                                     D3D12_RESOURCE_DESC*        texture_desc)
 {
     if (source_resource_id == 0)
     {
@@ -4091,12 +4107,13 @@ void Dx12ReplayConsumerBase::AddCopyResourceCommandForBeforeDrawcall(ID3D12Graph
     device->GetCopyableFootprints(&source_desc, 0, 1, 0, &layout, &num_row, &row_size_in_bytes, &total_bytes);
     copy_resource_data.size = total_bytes;
 
-    AddCopyResourceCommand(copy_command_list, copy_resource_data, copy_resource_data.before_resource);
+    AddCopyResourceCommand(copy_command_list, copy_resource_data, copy_resource_data.before_resource, texture_desc);
 }
 
 void Dx12ReplayConsumerBase::AddCopyResourceCommand(ID3D12GraphicsCommandList*            copy_command_list,
                                                     graphics::CopyResourceData&           copy_resource_data,
-                                                    graphics::dx12::ID3D12ResourceComPtr& copy_resource)
+                                                    graphics::dx12::ID3D12ResourceComPtr& copy_resource,
+                                                    D3D12_RESOURCE_DESC*                  texture_desc)
 {
     auto source_resource_object_info = GetObjectInfo(copy_resource_data.source_resource_id);
     auto source_resource             = reinterpret_cast<ID3D12Resource*>(source_resource_object_info->object);
@@ -4130,6 +4147,10 @@ void Dx12ReplayConsumerBase::AddCopyResourceCommand(ID3D12GraphicsCommandList*  
     }
     else
     {
+        if (texture_desc)
+        {
+            *texture_desc = source_desc;
+        }
         D3D12_TEXTURE_COPY_LOCATION dst_location        = {};
         dst_location.pResource                          = copy_resource;
         dst_location.Type                               = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
@@ -4165,10 +4186,12 @@ void Dx12ReplayConsumerBase::AddCopyRenderTargetCommandsForBeforeDrawcall(
     ID3D12GraphicsCommandList*                      copy_command_list,
     const std::vector<format::HandleId>&            heap_ids,
     const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& replay_render_target_handles,
-    std::vector<graphics::CopyResourceData>&        copy_resource_datas)
+    std::vector<graphics::CopyResourceData>&        copy_resource_datas,
+    std::vector<D3D12_RESOURCE_DESC>*               texture_descs)
 {
     auto rt_size = replay_render_target_handles.size();
     copy_resource_datas.resize(rt_size);
+    texture_descs->resize(rt_size);
 
     for (uint32_t i = 0; i < rt_size; ++i)
     {
@@ -4180,8 +4203,10 @@ void Dx12ReplayConsumerBase::AddCopyRenderTargetCommandsForBeforeDrawcall(
         {
             if (heap_extra_info->replay_render_target_handles[j].ptr == replay_render_target_handles[i].ptr)
             {
-                AddCopyResourceCommandForBeforeDrawcall(
-                    copy_command_list, heap_extra_info->render_target_resource_ids[j], copy_resource_datas[i]);
+                AddCopyResourceCommandForBeforeDrawcall(copy_command_list,
+                                                        heap_extra_info->render_target_resource_ids[j],
+                                                        copy_resource_datas[i],
+                                                        &(*texture_descs)[i]);
                 break;
             }
         }
@@ -4192,7 +4217,8 @@ void Dx12ReplayConsumerBase::AddCopyDepthStencilCommandForBeforeDrawcall(
     ID3D12GraphicsCommandList*  copy_command_list,
     format::HandleId            heap_id,
     D3D12_CPU_DESCRIPTOR_HANDLE replay_depth_stencil_handle,
-    graphics::CopyResourceData& copy_resource_data)
+    graphics::CopyResourceData& copy_resource_data,
+    D3D12_RESOURCE_DESC*        texture_desc)
 {
     if (replay_depth_stencil_handle.ptr == decode::kNullCpuAddress)
     {
@@ -4207,7 +4233,7 @@ void Dx12ReplayConsumerBase::AddCopyDepthStencilCommandForBeforeDrawcall(
         if (heap_extra_info->replay_depth_stencil_handles[i].ptr == replay_depth_stencil_handle.ptr)
         {
             AddCopyResourceCommandForBeforeDrawcall(
-                copy_command_list, heap_extra_info->depth_stencil_resource_ids[i], copy_resource_data);
+                copy_command_list, heap_extra_info->depth_stencil_resource_ids[i], copy_resource_data, texture_desc);
             break;
         }
     }
@@ -4240,18 +4266,21 @@ void Dx12ReplayConsumerBase::AddCopyResourceCommandsForBeforeDrawcall(ID3D12Grap
         // shader resource view
         AddCopyResourceCommandsForBeforeDrawcall(copy_command_list,
                                                  heap_extra_info->shader_resource_ids,
-                                                 track_dump_resources_.descriptor_heap_datas[i].copy_shader_resources);
+                                                 track_dump_resources_.descriptor_heap_datas[i].copy_shader_resources,
+                                                 &track_dump_resources_.descriptor_heap_datas[i].shader_resource_descs);
     }
 
     // render target
     AddCopyRenderTargetCommandsForBeforeDrawcall(copy_command_list,
                                                  track_dump_resources_.render_target_heap_ids,
                                                  track_dump_resources_.replay_render_target_handles,
-                                                 track_dump_resources_.copy_render_target_resources);
+                                                 track_dump_resources_.copy_render_target_resources,
+                                                 &track_dump_resources_.render_target_descs);
     AddCopyDepthStencilCommandForBeforeDrawcall(copy_command_list,
                                                 track_dump_resources_.depth_stencil_heap_id,
                                                 track_dump_resources_.replay_depth_stencil_handle,
-                                                track_dump_resources_.copy_depth_stencil_resource);
+                                                track_dump_resources_.copy_depth_stencil_resource,
+                                                &track_dump_resources_.depth_stenci_desc);
 }
 
 void Dx12ReplayConsumerBase::PostCall_ID3D12GraphicsCommandList_DrawInstanced(const ApiCallInfo& call_info,
@@ -4322,7 +4351,7 @@ void Dx12ReplayConsumerBase::AddCopyResourceCommandForAfterDrawcall(ID3D12Graphi
     {
         return;
     }
-    AddCopyResourceCommand(copy_command_list, copy_resource_data, copy_resource_data.after_resource);
+    AddCopyResourceCommand(copy_command_list, copy_resource_data, copy_resource_data.after_resource, nullptr);
 }
 
 void Dx12ReplayConsumerBase::AddCopyResourceCommandsForAfterDrawcall(ID3D12GraphicsCommandList* copy_command_list)

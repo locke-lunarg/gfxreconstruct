@@ -943,26 +943,31 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
 
     void AddCopyResourceCommandsForBeforeDrawcall(ID3D12GraphicsCommandList*               copy_command_list,
                                                   const std::vector<format::HandleId>&     source_resource_ids,
-                                                  std::vector<graphics::CopyResourceData>& copy_resource_datas);
+                                                  std::vector<graphics::CopyResourceData>& copy_resource_datas,
+                                                  std::vector<D3D12_RESOURCE_DESC>*        texture_descs);
 
     void AddCopyResourceCommandForBeforeDrawcall(ID3D12GraphicsCommandList*  copy_command_list,
                                                  format::HandleId            source_resource_id,
-                                                 graphics::CopyResourceData& copy_resource_data);
+                                                 graphics::CopyResourceData& copy_resource_data,
+                                                 D3D12_RESOURCE_DESC*        texture_desc);
 
     void AddCopyResourceCommand(ID3D12GraphicsCommandList*            copy_command_list,
                                 graphics::CopyResourceData&           copy_resource_data,
-                                graphics::dx12::ID3D12ResourceComPtr& copy_resource);
+                                graphics::dx12::ID3D12ResourceComPtr& copy_resource,
+                                D3D12_RESOURCE_DESC*                  texture_desc);
 
     void AddCopyRenderTargetCommandsForBeforeDrawcall(
         ID3D12GraphicsCommandList*                      copy_command_list,
         const std::vector<format::HandleId>&            heap_ids,
         const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& replay_render_target_handles,
-        std::vector<graphics::CopyResourceData>&        copy_resource_datas);
+        std::vector<graphics::CopyResourceData>&        copy_resource_datas,
+        std::vector<D3D12_RESOURCE_DESC>*               texture_descs);
 
     void AddCopyDepthStencilCommandForBeforeDrawcall(ID3D12GraphicsCommandList*  copy_command_list,
                                                      format::HandleId            heap_id,
                                                      D3D12_CPU_DESCRIPTOR_HANDLE replay_depth_stencil_handle,
-                                                     graphics::CopyResourceData& copy_resource_data);
+                                                     graphics::CopyResourceData& copy_resource_data,
+                                                     D3D12_RESOURCE_DESC*        texture_desc);
 
     void AddCopyResourceCommandsForBeforeDrawcall(ID3D12GraphicsCommandList* copy_command_list);
 

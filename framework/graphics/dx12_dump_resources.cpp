@@ -136,15 +136,18 @@ void Dx12DumpResources::WriteResources(const TrackDumpResources& resources)
                                         heap_data.copy_constant_buffer_resources);
                 TestWriteImageResources(json_options_.data_sub_dir + "_descriptor_heap_" + std::to_string(index) +
                                             "shader_resource",
-                                        heap_data.copy_shader_resources);
+                                        heap_data.copy_shader_resources,
+                                        heap_data.shader_resource_descs);
                 ++index;
             }
 
             // render target
             TestWriteImageResources(json_options_.data_sub_dir + "_render_target",
-                                    resources.copy_render_target_resources);
+                                    resources.copy_render_target_resources,
+                                    resources.render_target_descs);
             TestWriteImageResource(json_options_.data_sub_dir + "_depth_stencil",
-                                   resources.copy_depth_stencil_resource);
+                                   resources.copy_depth_stencil_resource,
+                                   resources.depth_stenci_desc);
         });
     }
 }
@@ -196,25 +199,29 @@ void Dx12DumpResources::TestWriteFloatResource(nlohmann::ordered_json& jdata, co
     }
 }
 
-void Dx12DumpResources::TestWriteImageResources(const std::string&                   prefix_file_name,
-                                                const std::vector<CopyResourceData>& resousce_datas)
+void Dx12DumpResources::TestWriteImageResources(const std::string&                      prefix_file_name,
+                                                const std::vector<CopyResourceData>&    resousce_datas,
+                                                const std::vector<D3D12_RESOURCE_DESC>& descs)
 {
     uint32_t index = 0;
     for (const auto& resouce : resousce_datas)
     {
-        TestWriteImageResource(prefix_file_name + "_" + std::to_string(index), resouce);
+        TestWriteImageResource(prefix_file_name + "_" + std::to_string(index), resouce, descs[index]);
         ++index;
     }
 }
 
-void Dx12DumpResources::TestWriteImageResource(const std::string&      prefix_file_name,
-                                               const CopyResourceData& resousce_data)
+void Dx12DumpResources::TestWriteImageResource(const std::string&         prefix_file_name,
+                                               const CopyResourceData&    resousce_data,
+                                               const D3D12_RESOURCE_DESC& desc)
 {
     if (resousce_data.before_resource)
     {
+        std::string file_name = prefix_file_name + "_before.bmp";
     }
     if (resousce_data.after_resource)
     {
+        std::string file_name = prefix_file_name + "_after.bmp";
     }
 }
 
