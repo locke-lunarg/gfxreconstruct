@@ -24,6 +24,7 @@
 #include "decode/dx12_replay_consumer_base.h"
 
 #include "decode/dx12_enum_util.h"
+#include "decode/custom_dx12_struct_object_mappers.h"
 #include "generated/generated_dx12_call_id_to_string.h"
 #include "graphics/dx12_util.h"
 #include "graphics/dx12_image_renderer.h"
@@ -98,6 +99,15 @@ Dx12ReplayConsumerBase::Dx12ReplayConsumerBase(std::shared_ptr<application::Appl
     if (!options.screenshot_ranges.empty())
     {
         InitializeScreenshotHandler();
+    }
+
+    if (options.dump_resources_type != DumpResourcesType::kNone)
+    {
+        gfxrecon::graphics::Dx12DumpResourcesConfig config;
+        config.captured_file_name = options.filename;
+        config.type               = options.dump_resources_type;
+        config.argument           = options.dump_resources_argument;
+        dump_resources_           = gfxrecon::graphics::Dx12DumpResources::Create(config);
     }
 
     DetectAdapters();
@@ -1204,6 +1214,17 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommittedResource(
 
     auto clear_value_pointer = pOptimizedClearValue->GetPointer();
 
+    D3D12_RESOURCE_STATES modified_initial_resource_state = InitialResourceState;
+    if ((options_.dump_resources_type != DumpResourcesType::kNone) &&
+        (modified_initial_resource_state & D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE))
+    {
+        // shader resources can't change state after SetGraphicsRootDescriptorTable.
+        // But even if it changes state and copy resources before SetGraphicsRootDescriptorTable,
+        // it can't solve it, because it also has to copy resources after drawcall.
+        // In this case, adding a COPY_SOURCE state here, so it doesn't need to change state for copy resources.
+        modified_initial_resource_state |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+    }
+
     // Create an equivalent but temporary dummy resource
     // This allows us to further validate GFXR, since playback will now use a resource located at a different address
     HRESULT         dummy_result   = E_FAIL;
@@ -1213,7 +1234,7 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommittedResource(
         dummy_result = replay_object->CreateCommittedResource(heap_properties_pointer,
                                                               HeapFlags,
                                                               desc_pointer,
-                                                              InitialResourceState,
+                                                              modified_initial_resource_state,
                                                               clear_value_pointer,
                                                               IID_PPV_ARGS(&dummy_resource));
 
@@ -1227,7 +1248,7 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommittedResource(
     auto replay_result = replay_object->CreateCommittedResource(heap_properties_pointer,
                                                                 HeapFlags,
                                                                 desc_pointer,
-                                                                InitialResourceState,
+                                                                modified_initial_resource_state,
                                                                 clear_value_pointer,
                                                                 *riid.decoded_value,
                                                                 resource->GetHandlePointer());
@@ -1239,6 +1260,12 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommittedResource(
         {
             dummy_resource->Release();
         }
+    }
+    if (SUCCEEDED(replay_result))
+    {
+        auto extra_info           = std::make_unique<D3D12ResourceInfo>();
+        extra_info->current_state = modified_initial_resource_state;
+        SetExtraInfo(resource, std::move(extra_info));
     }
 
     return replay_result;
@@ -2118,7 +2145,10 @@ HRESULT Dx12ReplayConsumerBase::OverrideGetBuffer(DxObjectInfo*                r
             GFXRECON_ASSERT(buffer < swapchain_info->image_ids.size());
             if (swapchain_info->image_ids[buffer] == format::kNullHandleId)
             {
-                auto object_info = static_cast<DxObjectInfo*>(surface->GetConsumerData(0));
+                auto object_info          = static_cast<DxObjectInfo*>(surface->GetConsumerData(0));
+                auto extra_info           = std::make_unique<D3D12ResourceInfo>();
+                extra_info->current_state = D3D12_RESOURCE_STATE_PRESENT;
+                SetExtraInfo(surface, std::move(extra_info));
 
                 // Increment the replay reference to prevent the swapchain image info entry from being removed from the
                 // object info table while the swapchain is active.
@@ -3769,6 +3799,604 @@ std::wstring Dx12ReplayConsumerBase::ConstructObjectName(format::HandleId captur
     constructed_name.append(L" (" + object_creator + L")");
 
     return constructed_name;
+}
+
+void Dx12ReplayConsumerBase::PreCall_ID3D12GraphicsCommandList_ResourceBarrier(
+    const ApiCallInfo&                                    call_info,
+    DxObjectInfo*                                         object_info,
+    UINT                                                  NumBarriers,
+    StructPointerDecoder<Decoded_D3D12_RESOURCE_BARRIER>* pBarriers)
+{
+    auto barriers = pBarriers->GetMetaStructPointer();
+    for (uint32_t i = 0; i < NumBarriers; ++i)
+    {
+        auto resource_id          = barriers[i].Transition->pResource;
+        auto resource_object_info = GetObjectInfo(resource_id);
+        auto resource_extra_info  = GetExtraInfo<D3D12ResourceInfo>(resource_object_info);
+
+        if (options_.dump_resources_type != DumpResourcesType::kNone)
+        {
+            // TODO: this should be in the override functionsince it modifies the parameters. But here is ok.
+            barriers[i].Transition->decoded_value->StateBefore = resource_extra_info->current_state;
+            if (barriers[i].Transition->decoded_value->StateAfter & D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE)
+            {
+                // shader resources can't change state after SetGraphicsRootDescriptorTable.
+                // Adding a COPY_SOURCE state here, so it doesn't need to change state for copy resources.
+                barriers[i].Transition->decoded_value->StateAfter |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+            }
+        }
+        resource_extra_info->current_state = barriers[i].Transition->decoded_value->StateAfter;
+    }
+}
+
+void Dx12ReplayConsumerBase::PreCall_ID3D12Device_CreateConstantBufferView(
+    const ApiCallInfo&                                             call_info,
+    DxObjectInfo*                                                  object_info,
+    StructPointerDecoder<Decoded_D3D12_CONSTANT_BUFFER_VIEW_DESC>* pDesc,
+    Decoded_D3D12_CPU_DESCRIPTOR_HANDLE                            DestDescriptor)
+{
+    auto heap_object_info = GetObjectInfo(DestDescriptor.heap_id);
+    auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
+    auto desc             = pDesc->GetMetaStructPointer();
+    heap_extra_info->captured_constant_buffer_view_desc_gvas.emplace_back(desc->decoded_value->BufferLocation);
+}
+
+void Dx12ReplayConsumerBase::PreCall_ID3D12Device_CreateShaderResourceView(
+    const ApiCallInfo&                                             call_info,
+    DxObjectInfo*                                                  object_info,
+    format::HandleId                                               pResource,
+    StructPointerDecoder<Decoded_D3D12_SHADER_RESOURCE_VIEW_DESC>* pDesc,
+    Decoded_D3D12_CPU_DESCRIPTOR_HANDLE                            DestDescriptor)
+{
+    auto heap_object_info = GetObjectInfo(DestDescriptor.heap_id);
+    auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
+    heap_extra_info->shader_resource_ids.emplace_back(pResource);
+}
+
+void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateRenderTargetView(
+    const ApiCallInfo&                                           call_info,
+    DxObjectInfo*                                                object_info,
+    format::HandleId                                             pResource,
+    StructPointerDecoder<Decoded_D3D12_RENDER_TARGET_VIEW_DESC>* pDesc,
+    Decoded_D3D12_CPU_DESCRIPTOR_HANDLE                          DestDescriptor)
+{
+    auto heap_object_info = GetObjectInfo(DestDescriptor.heap_id);
+    auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
+    heap_extra_info->replay_render_target_handles.emplace_back(*DestDescriptor.decoded_value);
+    heap_extra_info->render_target_resource_ids.emplace_back(pResource);
+}
+
+void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateDepthStencilView(
+    const ApiCallInfo&                                           call_info,
+    DxObjectInfo*                                                object_info,
+    format::HandleId                                             pResource,
+    StructPointerDecoder<Decoded_D3D12_DEPTH_STENCIL_VIEW_DESC>* pDesc,
+    Decoded_D3D12_CPU_DESCRIPTOR_HANDLE                          DestDescriptor)
+{
+    auto heap_object_info = GetObjectInfo(DestDescriptor.heap_id);
+    auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
+    heap_extra_info->replay_depth_stencil_handles.emplace_back(*DestDescriptor.decoded_value);
+    heap_extra_info->depth_stencil_resource_ids.emplace_back(pResource);
+}
+
+void Dx12ReplayConsumerBase::PostCall_ID3D12GraphicsCommandList_OMSetRenderTargets(
+    const ApiCallInfo&                                         call_info,
+    DxObjectInfo*                                              object_info,
+    UINT                                                       NumRenderTargetDescriptors,
+    StructPointerDecoder<Decoded_D3D12_CPU_DESCRIPTOR_HANDLE>* pRenderTargetDescriptors,
+    BOOL                                                       RTsSingleHandleToDescriptorRange,
+    StructPointerDecoder<Decoded_D3D12_CPU_DESCRIPTOR_HANDLE>* pDepthStencilDescriptor)
+{
+    if (options_.dump_resources_type != DumpResourcesType::kNone &&
+        track_dump_resources_.target.set_render_targets_code_index == call_info.index)
+    {
+        auto rt_handles = pRenderTargetDescriptors->GetMetaStructPointer();
+        track_dump_resources_.render_target_heap_ids.resize(NumRenderTargetDescriptors);
+        track_dump_resources_.replay_render_target_handles.resize(NumRenderTargetDescriptors);
+        for (uint32_t i = 0; i < NumRenderTargetDescriptors; ++i)
+        {
+            track_dump_resources_.render_target_heap_ids[i]       = rt_handles[i].heap_id;
+            track_dump_resources_.replay_render_target_handles[i] = *rt_handles[i].decoded_value;
+        }
+        auto ds_handle = pDepthStencilDescriptor->GetMetaStructPointer();
+        if (ds_handle)
+        {
+            track_dump_resources_.depth_stencil_heap_id       = ds_handle->heap_id;
+            track_dump_resources_.replay_depth_stencil_handle = *ds_handle->decoded_value;
+        }
+    }
+}
+
+void Dx12ReplayConsumerBase::PreCall_ID3D12GraphicsCommandList4_BeginRenderPass(
+    const ApiCallInfo&                                                  call_info,
+    DxObjectInfo*                                                       object_info,
+    UINT                                                                NumRenderTargets,
+    StructPointerDecoder<Decoded_D3D12_RENDER_PASS_RENDER_TARGET_DESC>* pRenderTargets,
+    StructPointerDecoder<Decoded_D3D12_RENDER_PASS_DEPTH_STENCIL_DESC>* pDepthStencil,
+    D3D12_RENDER_PASS_FLAGS                                             Flags)
+{
+    if (options_.dump_resources_type != DumpResourcesType::kNone &&
+        call_info.index == track_dump_resources_.target.begin_renderpass_code_index)
+    {
+        // TODO: this should be in the override function since it modifies the parameters. But the override function
+        // doesn't have call_info, so stay here.
+
+        // Since it will insert seperated renderpass, here's EndingAccess has to
+        // be PRESERVE. And then the sperated renderpass's BeginningAccess has to be PRESERVE.
+        auto rt_descs = pRenderTargets->GetMetaStructPointer();
+        for (uint32_t i = 0; i < NumRenderTargets; ++i)
+        {
+            rt_descs[i].EndingAccess->decoded_value->Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+        }
+
+        auto ds_desc = pDepthStencil->GetMetaStructPointer();
+        if (ds_desc)
+        {
+            ds_desc->DepthEndingAccess->decoded_value->Type   = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+            ds_desc->StencilEndingAccess->decoded_value->Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+        }
+    }
+}
+
+void Dx12ReplayConsumerBase::PostCall_ID3D12GraphicsCommandList4_BeginRenderPass(
+    const ApiCallInfo&                                                  call_info,
+    DxObjectInfo*                                                       object_info,
+    UINT                                                                NumRenderTargets,
+    StructPointerDecoder<Decoded_D3D12_RENDER_PASS_RENDER_TARGET_DESC>* pRenderTargets,
+    StructPointerDecoder<Decoded_D3D12_RENDER_PASS_DEPTH_STENCIL_DESC>* pDepthStencil,
+    D3D12_RENDER_PASS_FLAGS                                             Flags)
+{
+    if (options_.dump_resources_type != DumpResourcesType::kNone &&
+        call_info.index == track_dump_resources_.target.begin_renderpass_code_index)
+    {
+        // Record ending accesses and flags for seperated BeginRenderPass
+        auto rt_descs = pRenderTargets->GetMetaStructPointer();
+        track_dump_resources_.render_target_heap_ids.resize(NumRenderTargets);
+        track_dump_resources_.replay_render_target_handles.resize(NumRenderTargets);
+        track_dump_resources_.record_render_target_ending_accesses.resize(NumRenderTargets);
+        for (uint32_t i = 0; i < NumRenderTargets; ++i)
+        {
+            track_dump_resources_.render_target_heap_ids[i]               = rt_descs[i].cpuDescriptor->heap_id;
+            track_dump_resources_.replay_render_target_handles[i]         = *rt_descs[i].cpuDescriptor->decoded_value;
+            track_dump_resources_.record_render_target_ending_accesses[i] = *rt_descs[i].EndingAccess->decoded_value;
+        }
+        auto ds_desc = pDepthStencil->GetMetaStructPointer();
+        if (ds_desc)
+        {
+            track_dump_resources_.depth_stencil_heap_id        = ds_desc->cpuDescriptor->heap_id;
+            track_dump_resources_.replay_depth_stencil_handle  = *ds_desc->cpuDescriptor->decoded_value;
+            track_dump_resources_.record_depth_ending_access   = *ds_desc->DepthEndingAccess->decoded_value;
+            track_dump_resources_.record_stencil_ending_access = *ds_desc->StencilEndingAccess->decoded_value;
+        }
+        track_dump_resources_.record_render_pass_flags = Flags;
+    }
+}
+
+void Dx12ReplayConsumerBase::PreCall_ID3D12GraphicsCommandList_DrawInstanced(const ApiCallInfo& call_info,
+                                                                             DxObjectInfo*      object_info,
+                                                                             UINT               VertexCountPerInstance,
+                                                                             UINT               InstanceCount,
+                                                                             UINT               StartVertexLocation,
+                                                                             UINT               StartInstanceLocation)
+{
+    if (options_.dump_resources_type != DumpResourcesType::kNone &&
+        track_dump_resources_.target.drawcall_code_index == call_info.index)
+    {
+        auto commandlist = reinterpret_cast<ID3D12GraphicsCommandList*>(object_info->object);
+        if (track_dump_resources_.target.begin_renderpass_code_index == 0)
+        {
+            // The program doesn't use renderpass.
+            AddCopyResourceCommandsForBeforeDrawcall(commandlist);
+        }
+        else
+        {
+            // Add seperated renderpass
+            graphics::dx12::ID3D12GraphicsCommandList4ComPtr commandlist4;
+            commandlist->QueryInterface(IID_PPV_ARGS(&commandlist4));
+            commandlist4->EndRenderPass();
+
+            AddCopyResourceCommandsForBeforeDrawcall(commandlist);
+
+            std::vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> rt_descs;
+            auto rt_descs_size = track_dump_resources_.replay_render_target_handles.size();
+            rt_descs.resize(rt_descs_size);
+            for (uint32_t i = 0; i < rt_descs_size; ++i)
+            {
+                rt_descs[i].cpuDescriptor        = track_dump_resources_.replay_render_target_handles[i];
+                rt_descs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                rt_descs[i].EndingAccess         = track_dump_resources_.record_render_target_ending_accesses[i];
+            }
+
+            D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* p_ds_desc = nullptr;
+            D3D12_RENDER_PASS_DEPTH_STENCIL_DESC  ds_desc{};
+            if (track_dump_resources_.depth_stencil_heap_id != 0)
+            {
+                p_ds_desc                           = &ds_desc;
+                ds_desc.cpuDescriptor               = track_dump_resources_.replay_depth_stencil_handle;
+                ds_desc.DepthBeginningAccess.Type   = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                ds_desc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                ds_desc.DepthEndingAccess.Type      = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                ds_desc.StencilEndingAccess.Type    = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+            }
+            commandlist4->BeginRenderPass(
+                rt_descs_size, rt_descs.data(), p_ds_desc, track_dump_resources_.record_render_pass_flags);
+        }
+    }
+}
+
+void Dx12ReplayConsumerBase::PostCall_ID3D12GraphicsCommandList_DrawInstanced(const ApiCallInfo& call_info,
+                                                                              DxObjectInfo*      object_info,
+                                                                              UINT               VertexCountPerInstance,
+                                                                              UINT               InstanceCount,
+                                                                              UINT               StartVertexLocation,
+                                                                              UINT               StartInstanceLocation)
+{
+    if (options_.dump_resources_type != DumpResourcesType::kNone &&
+        track_dump_resources_.target.drawcall_code_index == call_info.index)
+    {
+        auto commandlist = reinterpret_cast<ID3D12GraphicsCommandList*>(object_info->object);
+        if (track_dump_resources_.target.begin_renderpass_code_index == 0)
+        {
+            // The program doesn't use renderpass.
+            AddCopyResourceCommandsForAfterDrawcall(commandlist);
+        }
+        else
+        {
+            // Add seperated renderpass
+            graphics::dx12::ID3D12GraphicsCommandList4ComPtr commandlist4;
+            commandlist->QueryInterface(IID_PPV_ARGS(&commandlist4));
+            commandlist4->EndRenderPass();
+
+            AddCopyResourceCommandsForAfterDrawcall(commandlist);
+
+            std::vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> rt_descs;
+            auto rt_descs_size = track_dump_resources_.replay_render_target_handles.size();
+            rt_descs.resize(rt_descs_size);
+            for (uint32_t i = 0; i < rt_descs_size; ++i)
+            {
+                rt_descs[i].cpuDescriptor        = track_dump_resources_.replay_render_target_handles[i];
+                rt_descs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                rt_descs[i].EndingAccess         = track_dump_resources_.record_render_target_ending_accesses[i];
+            }
+
+            D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* p_ds_desc = nullptr;
+            D3D12_RENDER_PASS_DEPTH_STENCIL_DESC  ds_desc{};
+            if (track_dump_resources_.depth_stencil_heap_id != 0)
+            {
+                p_ds_desc                           = &ds_desc;
+                ds_desc.cpuDescriptor               = track_dump_resources_.replay_depth_stencil_handle;
+                ds_desc.DepthBeginningAccess.Type   = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                ds_desc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                ds_desc.DepthEndingAccess           = track_dump_resources_.record_depth_ending_access;
+                ds_desc.StencilEndingAccess         = track_dump_resources_.record_stencil_ending_access;
+            }
+            commandlist4->BeginRenderPass(
+                rt_descs_size, rt_descs.data(), p_ds_desc, track_dump_resources_.record_render_pass_flags);
+        }
+    }
+}
+
+void Dx12ReplayConsumerBase::PostCall_ID3D12CommandQueue_ExecuteCommandLists(
+    const ApiCallInfo&                        call_info,
+    DxObjectInfo*                             object_info,
+    UINT                                      NumCommandLists,
+    HandlePointerDecoder<ID3D12CommandList*>* ppCommandLists)
+{
+    if (options_.dump_resources_type != DumpResourcesType::kNone &&
+        track_dump_resources_.target.execute_code_index == call_info.index)
+    {
+        auto                              queue  = reinterpret_cast<ID3D12CommandQueue*>(object_info->object);
+        auto                              device = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(queue);
+        graphics::dx12::ID3D12FenceComPtr fence;
+        auto                              hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+        GFXRECON_ASSERT(SUCCEEDED(hr));
+
+        hr = graphics::dx12::WaitForQueue(queue, fence, UINT64_MAX);
+        GFXRECON_ASSERT(SUCCEEDED(hr));
+
+        dump_resources_->WriteResources(track_dump_resources_);
+    }
+}
+
+void Dx12ReplayConsumerBase::AddCopyResourceCommandsForBeforeDrawcall(ID3D12GraphicsCommandList* copy_command_list)
+{
+    // vertex
+    AddCopyResourceCommandsForBeforeDrawcallByGPUVAs(copy_command_list,
+                                                     track_dump_resources_.target.captured_vertex_buffer_view_gvas,
+                                                     track_dump_resources_.copy_vertex_resources);
+    // index
+    AddCopyResourceCommandForBeforeDrawcallByGPUVA(copy_command_list,
+                                                   track_dump_resources_.target.captured_index_buffer_view_gva,
+                                                   track_dump_resources_.copy_index_resource);
+    // descriptor
+    auto size = track_dump_resources_.target.descriptor_heap_ids.size();
+    track_dump_resources_.descriptor_heap_datas.resize(size);
+    for (uint32_t i = 0; i < size; ++i)
+    {
+        auto heap_object_info = GetObjectInfo(track_dump_resources_.target.descriptor_heap_ids[i]);
+        auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
+
+        // constant buffer
+        AddCopyResourceCommandsForBeforeDrawcallByGPUVAs(
+            copy_command_list,
+            heap_extra_info->captured_constant_buffer_view_desc_gvas,
+            track_dump_resources_.descriptor_heap_datas[i].copy_constant_buffer_resources);
+
+        // shader resource view
+        AddCopyResourceCommandsForBeforeDrawcall(copy_command_list,
+                                                 heap_extra_info->shader_resource_ids,
+                                                 track_dump_resources_.descriptor_heap_datas[i].copy_shader_resources,
+                                                 &track_dump_resources_.descriptor_heap_datas[i].shader_resource_descs);
+    }
+
+    // render target
+    AddCopyRenderTargetCommandsForBeforeDrawcall(copy_command_list,
+                                                 track_dump_resources_.render_target_heap_ids,
+                                                 track_dump_resources_.replay_render_target_handles,
+                                                 track_dump_resources_.copy_render_target_resources,
+                                                 &track_dump_resources_.render_target_descs);
+    AddCopyDepthStencilCommandForBeforeDrawcall(copy_command_list,
+                                                track_dump_resources_.depth_stencil_heap_id,
+                                                track_dump_resources_.replay_depth_stencil_handle,
+                                                track_dump_resources_.copy_depth_stencil_resource,
+                                                &track_dump_resources_.depth_stenci_desc);
+}
+
+void Dx12ReplayConsumerBase::AddCopyResourceCommandsForBeforeDrawcallByGPUVAs(
+    ID3D12GraphicsCommandList*                    copy_command_list,
+    const std::vector<D3D12_GPU_VIRTUAL_ADDRESS>& captured_source_gpu_vas,
+    std::vector<graphics::CopyResourceData>&      copy_resource_datas)
+{
+    auto size = captured_source_gpu_vas.size();
+    copy_resource_datas.resize(size);
+
+    for (uint32_t i = 0; i < size; ++i)
+    {
+        AddCopyResourceCommandForBeforeDrawcallByGPUVA(
+            copy_command_list, captured_source_gpu_vas[i], copy_resource_datas[i]);
+    }
+}
+
+void Dx12ReplayConsumerBase::AddCopyResourceCommandForBeforeDrawcallByGPUVA(
+    ID3D12GraphicsCommandList*  copy_command_list,
+    D3D12_GPU_VIRTUAL_ADDRESS   captured_source_gpu_va,
+    graphics::CopyResourceData& copy_resource_data)
+{
+    if (captured_source_gpu_va == 0)
+    {
+        return;
+    }
+    copy_resource_data.source_resource_id = object_mapping::FindResourceIDbyGpuVA(captured_source_gpu_va, gpu_va_map_);
+
+    AddCopyResourceCommandForBeforeDrawcall(
+        copy_command_list, copy_resource_data.source_resource_id, copy_resource_data, nullptr);
+}
+
+void Dx12ReplayConsumerBase::AddCopyResourceCommandsForBeforeDrawcall(
+    ID3D12GraphicsCommandList*               copy_command_list,
+    const std::vector<format::HandleId>&     source_resource_ids,
+    std::vector<graphics::CopyResourceData>& copy_resource_datas,
+    std::vector<D3D12_RESOURCE_DESC>*        texture_descs)
+{
+    auto size = source_resource_ids.size();
+    copy_resource_datas.resize(size);
+
+    if (texture_descs)
+    {
+        texture_descs->resize(size);
+    }
+
+    for (uint32_t i = 0; i < size; ++i)
+    {
+        if (texture_descs)
+        {
+            AddCopyResourceCommandForBeforeDrawcall(
+                copy_command_list, source_resource_ids[i], copy_resource_datas[i], &(*texture_descs)[i]);
+        }
+        else
+        {
+            AddCopyResourceCommandForBeforeDrawcall(
+                copy_command_list, source_resource_ids[i], copy_resource_datas[i], nullptr);
+        }
+    }
+}
+
+void Dx12ReplayConsumerBase::AddCopyResourceCommandForBeforeDrawcall(ID3D12GraphicsCommandList*  copy_command_list,
+                                                                     format::HandleId            source_resource_id,
+                                                                     graphics::CopyResourceData& copy_resource_data,
+                                                                     D3D12_RESOURCE_DESC*        texture_desc)
+{
+    if (source_resource_id == 0)
+    {
+        return;
+    }
+    copy_resource_data.source_resource_id = source_resource_id;
+
+    auto source_resource_object_info = GetObjectInfo(copy_resource_data.source_resource_id);
+    auto source_resource             = reinterpret_cast<ID3D12Resource*>(source_resource_object_info->object);
+    auto device                      = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(source_resource);
+    auto source_desc                 = source_resource->GetDesc();
+
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout            = {};
+    UINT                               num_row           = 0;
+    UINT64                             row_size_in_bytes = 0;
+    UINT64                             total_bytes       = 0;
+    device->GetCopyableFootprints(&source_desc, 0, 1, 0, &layout, &num_row, &row_size_in_bytes, &total_bytes);
+    copy_resource_data.size = total_bytes;
+
+    AddCopyResourceCommand(copy_command_list, copy_resource_data, copy_resource_data.before_resource, texture_desc);
+}
+
+void Dx12ReplayConsumerBase::AddCopyRenderTargetCommandsForBeforeDrawcall(
+    ID3D12GraphicsCommandList*                      copy_command_list,
+    const std::vector<format::HandleId>&            heap_ids,
+    const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& replay_render_target_handles,
+    std::vector<graphics::CopyResourceData>&        copy_resource_datas,
+    std::vector<D3D12_RESOURCE_DESC>*               texture_descs)
+{
+    auto rt_size = replay_render_target_handles.size();
+    copy_resource_datas.resize(rt_size);
+    texture_descs->resize(rt_size);
+
+    for (uint32_t i = 0; i < rt_size; ++i)
+    {
+        auto heap_object_info = GetObjectInfo(heap_ids[i]);
+        auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
+
+        auto record_size = heap_extra_info->replay_render_target_handles.size();
+        for (uint32_t j = 0; j < record_size; ++j)
+        {
+            if (heap_extra_info->replay_render_target_handles[j].ptr == replay_render_target_handles[i].ptr)
+            {
+                AddCopyResourceCommandForBeforeDrawcall(copy_command_list,
+                                                        heap_extra_info->render_target_resource_ids[j],
+                                                        copy_resource_datas[i],
+                                                        &(*texture_descs)[i]);
+                break;
+            }
+        }
+    }
+}
+
+void Dx12ReplayConsumerBase::AddCopyDepthStencilCommandForBeforeDrawcall(
+    ID3D12GraphicsCommandList*  copy_command_list,
+    format::HandleId            heap_id,
+    D3D12_CPU_DESCRIPTOR_HANDLE replay_depth_stencil_handle,
+    graphics::CopyResourceData& copy_resource_data,
+    D3D12_RESOURCE_DESC*        texture_desc)
+{
+    if (replay_depth_stencil_handle.ptr == decode::kNullCpuAddress)
+    {
+        return;
+    }
+    auto heap_object_info = GetObjectInfo(heap_id);
+    auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
+
+    auto size = heap_extra_info->replay_depth_stencil_handles.size();
+    for (uint32_t i = 0; i < size; ++i)
+    {
+        if (heap_extra_info->replay_depth_stencil_handles[i].ptr == replay_depth_stencil_handle.ptr)
+        {
+            AddCopyResourceCommandForBeforeDrawcall(
+                copy_command_list, heap_extra_info->depth_stencil_resource_ids[i], copy_resource_data, texture_desc);
+            break;
+        }
+    }
+}
+
+void Dx12ReplayConsumerBase::AddCopyResourceCommand(ID3D12GraphicsCommandList*            copy_command_list,
+                                                    graphics::CopyResourceData&           copy_resource_data,
+                                                    graphics::dx12::ID3D12ResourceComPtr& copy_resource,
+                                                    D3D12_RESOURCE_DESC*                  texture_desc)
+{
+    auto source_resource_object_info = GetObjectInfo(copy_resource_data.source_resource_id);
+    auto source_resource             = reinterpret_cast<ID3D12Resource*>(source_resource_object_info->object);
+    auto device                      = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(source_resource);
+    auto source_desc                 = source_resource->GetDesc();
+
+    copy_resource = graphics::dx12::CreateBufferResource(device,
+                                                         copy_resource_data.size,
+                                                         D3D12_HEAP_TYPE_READBACK,
+                                                         D3D12_RESOURCE_STATE_COPY_DEST,
+                                                         D3D12_RESOURCE_FLAG_NONE);
+
+    auto source_resource_extra_info = GetExtraInfo<D3D12ResourceInfo>(source_resource_object_info);
+
+    if (!(source_resource_extra_info->current_state & D3D12_RESOURCE_STATE_COPY_SOURCE))
+    {
+        // shader resources can't change state after SetGraphicsRootDescriptorTable.
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource   = source_resource;
+        barrier.Transition.StateBefore = source_resource_extra_info->current_state;
+        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_COPY_SOURCE;
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        copy_command_list->ResourceBarrier(1, &barrier);
+    }
+
+    if (source_desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+        copy_command_list->CopyResource(copy_resource, source_resource);
+    }
+    else
+    {
+        if (texture_desc)
+        {
+            *texture_desc = source_desc;
+        }
+        D3D12_TEXTURE_COPY_LOCATION dst_location        = {};
+        dst_location.pResource                          = copy_resource;
+        dst_location.Type                               = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        dst_location.PlacedFootprint.Footprint.Width    = source_desc.Width;
+        dst_location.PlacedFootprint.Footprint.Height   = source_desc.Height;
+        dst_location.PlacedFootprint.Footprint.Depth    = source_desc.DepthOrArraySize;
+        dst_location.PlacedFootprint.Footprint.Format   = source_desc.Format;
+        dst_location.PlacedFootprint.Footprint.RowPitch = graphics::dx12::GetTexturePitch(source_desc.Width);
+        dst_location.PlacedFootprint.Offset             = 0;
+
+        D3D12_TEXTURE_COPY_LOCATION src_location = {};
+        src_location.pResource                   = source_resource;
+        src_location.Type                        = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        src_location.SubresourceIndex            = 0;
+        copy_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, nullptr);
+    }
+
+    if (!(source_resource_extra_info->current_state & D3D12_RESOURCE_STATE_COPY_SOURCE))
+    {
+        // shader resources can't change state after SetGraphicsRootDescriptorTable.
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource   = source_resource;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+        barrier.Transition.StateAfter  = source_resource_extra_info->current_state;
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        copy_command_list->ResourceBarrier(1, &barrier);
+    }
+}
+
+void Dx12ReplayConsumerBase::AddCopyResourceCommandsForAfterDrawcall(ID3D12GraphicsCommandList* copy_command_list)
+{
+    // vertex
+    AddCopyResourceCommandsForAfterDrawcall(copy_command_list, track_dump_resources_.copy_vertex_resources);
+
+    // index
+    AddCopyResourceCommandForAfterDrawcall(copy_command_list, track_dump_resources_.copy_index_resource);
+
+    // descriptor
+    for (auto& heap_data : track_dump_resources_.descriptor_heap_datas)
+    {
+        // constant buffer
+        AddCopyResourceCommandsForAfterDrawcall(copy_command_list, heap_data.copy_constant_buffer_resources);
+
+        // shader resource view
+        AddCopyResourceCommandsForAfterDrawcall(copy_command_list, heap_data.copy_shader_resources);
+    }
+
+    // vertex
+    AddCopyResourceCommandsForAfterDrawcall(copy_command_list, track_dump_resources_.copy_render_target_resources);
+    // index
+    AddCopyResourceCommandForAfterDrawcall(copy_command_list, track_dump_resources_.copy_depth_stencil_resource);
+}
+
+void Dx12ReplayConsumerBase::AddCopyResourceCommandsForAfterDrawcall(
+    ID3D12GraphicsCommandList* copy_command_list, std::vector<graphics::CopyResourceData>& copy_resource_datas)
+{
+    for (auto& copy_resource : copy_resource_datas)
+    {
+        AddCopyResourceCommandForAfterDrawcall(copy_command_list, copy_resource);
+    }
+}
+
+void Dx12ReplayConsumerBase::AddCopyResourceCommandForAfterDrawcall(ID3D12GraphicsCommandList*  copy_command_list,
+                                                                    graphics::CopyResourceData& copy_resource_data)
+{
+    if (copy_resource_data.source_resource_id == 0)
+    {
+        return;
+    }
+    AddCopyResourceCommand(copy_command_list, copy_resource_data, copy_resource_data.after_resource, nullptr);
 }
 
 GFXRECON_END_NAMESPACE(decode)

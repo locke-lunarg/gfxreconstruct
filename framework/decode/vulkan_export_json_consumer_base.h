@@ -36,6 +36,8 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
 
+// TODO: Dx12DumpResources copys a lot of code to write json from here.
+//       We might need a class for writing json.
 class VulkanExportJsonConsumerBase : public VulkanConsumer, public AnnotationHandler
 {
   public:
