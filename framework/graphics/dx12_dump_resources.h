@@ -56,12 +56,35 @@ struct CopyResourceData
     dx12::ID3D12ResourceComPtr after_resource{ nullptr };  // copy resource after drawcall
 };
 
+struct DescriptorHeapData
+{
+    std::vector<CopyResourceData>    copy_constant_buffer_resources;
+    std::vector<CopyResourceData>    copy_shader_resources;
+    std::vector<D3D12_RESOURCE_DESC> shader_resource_descs;
+};
+
 struct TrackDumpResources
 {
     decode::TrackDumpCommandList target{};
 
     // vertex
     std::vector<CopyResourceData> copy_vertex_resources;
+
+    // index
+    CopyResourceData copy_index_resource;
+
+    // descriptor
+    std::vector<DescriptorHeapData> descriptor_heap_datas;
+
+    // render target
+    std::vector<format::HandleId>            render_target_heap_ids;
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> replay_render_target_handles;
+    std::vector<CopyResourceData>            copy_render_target_resources;
+    std::vector<D3D12_RESOURCE_DESC>         render_target_descs;
+    format::HandleId                         depth_stencil_heap_id{ format::kNullHandleId };
+    D3D12_CPU_DESCRIPTOR_HANDLE              replay_depth_stencil_handle{ decode::kNullCpuAddress };
+    CopyResourceData                         copy_depth_stencil_resource;
+    D3D12_RESOURCE_DESC                      depth_stenci_desc;
 
     ~TrackDumpResources() {}
 };
