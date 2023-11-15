@@ -108,27 +108,13 @@ class Dx12DumpResources
 
     HRESULT Init(const Dx12DumpResourcesConfig& config);
 
-    void WriteBeforeResources(nlohmann::ordered_json&              jdata,
-                              const std::string&                   prefix_file_name,
-                              const std::vector<CopyResourceData>& reousce_datas);
+    void WriteResources(nlohmann::ordered_json&              jdata,
+                        const std::string&                   prefix_file_name,
+                        const std::vector<CopyResourceData>& resousce_datas);
 
-    void WriteBeforeResource(nlohmann::ordered_json& jdata,
-                             const std::string&      prefix_file_name,
-                             const CopyResourceData& reousce_data);
-
-    void WriteAfterResources(nlohmann::ordered_json&              jdata,
-                             const std::string&                   prefix_file_name,
-                             const std::vector<CopyResourceData>& reousce_datas);
-
-    void WriteAfterResource(nlohmann::ordered_json& jdata,
-                            const std::string&      prefix_file_name,
-                            const CopyResourceData& reousce_data);
-
-    void WriteResource(nlohmann::ordered_json&           jdata,
-                       const std::string&                prefix_file_name,
-                       const std::string&                suffix_file_name,
-                       const CopyResourceData&           reousce_data,
-                       const dx12::ID3D12ResourceComPtr& reousce);
+    void WriteResource(nlohmann::ordered_json& jdata,
+                       const std::string&      prefix_file_name,
+                       const CopyResourceData& resousce_data);
 
     void StartFile();
     void EndFile();
@@ -153,6 +139,12 @@ class Dx12DumpResources
     }
 
     bool WriteBinaryFile(const std::string& filename, uint64_t buffer_size, const uint8_t* data);
+
+    void TestWriteFloatResources(nlohmann::ordered_json& jdata, const std::vector<CopyResourceData>& resousce_datas);
+    void TestWriteFloatResource(nlohmann::ordered_json& jdata, const CopyResourceData& resousce_data);
+    void TestWriteImageResources(const std::string&                   prefix_file_name,
+                                 const std::vector<CopyResourceData>& resousce_datas);
+    void TestWriteImageResource(const std::string& prefix_file_name, const CopyResourceData& resousce_data);
 
     util::JsonOptions      json_options_;
     std::string            json_filename_;

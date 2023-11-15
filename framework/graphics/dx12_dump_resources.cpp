@@ -30,6 +30,11 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(graphics)
 
+// readable is only for test because data type could be various. Test uses fixed type.
+// float for vertex, index, constant buffer.
+// image for shader resource, render target.
+const bool TEST_READABLE = true;
+
 Dx12DumpResources::Dx12DumpResources() : json_file_handle_(nullptr) {}
 
 Dx12DumpResources::~Dx12DumpResources()
@@ -37,133 +42,180 @@ Dx12DumpResources::~Dx12DumpResources()
     EndFile();
 }
 
-void Dx12DumpResources::WriteBeforeResources(nlohmann::ordered_json&              jdata,
-                                             const std::string&                   prefix_file_name,
-                                             const std::vector<CopyResourceData>& reousce_datas)
+void Dx12DumpResources::WriteResources(nlohmann::ordered_json&              jdata,
+                                       const std::string&                   prefix_file_name,
+                                       const std::vector<CopyResourceData>& resousce_datas)
 {
     uint32_t i = 0;
-    for (const auto& resouce : reousce_datas)
+    for (const auto& resouce : resousce_datas)
     {
-        WriteBeforeResource(jdata[i], prefix_file_name, resouce);
+        WriteResource(jdata[i], prefix_file_name, resouce);
         ++i;
     }
 }
 
-void Dx12DumpResources::WriteBeforeResource(nlohmann::ordered_json& jdata,
-                                            const std::string&      prefix_file_name,
-                                            const CopyResourceData& reousce_data)
+void Dx12DumpResources::WriteResource(nlohmann::ordered_json& jdata,
+                                      const std::string&      prefix_file_name,
+                                      const CopyResourceData& resousce_data)
 {
-    if (reousce_data.before_resource == nullptr)
+    // before
+    if (resousce_data.before_resource)
     {
-        return;
-    }
-    WriteResource(jdata, prefix_file_name, "_before.bin", reousce_data, reousce_data.before_resource);
-}
+        decode::FieldToJson(jdata["size"], resousce_data.size, json_options_);
 
-void Dx12DumpResources::WriteAfterResources(nlohmann::ordered_json&              jdata,
-                                            const std::string&                   prefix_file_name,
-                                            const std::vector<CopyResourceData>& reousce_datas)
-{
-    uint32_t i = 0;
-    for (const auto& resouce : reousce_datas)
+        std::string file_name =
+            prefix_file_name + "_resource_id_" + std::to_string(resousce_data.source_resource_id) + "_before.bin";
+        decode::FieldToJson(jdata["before_file_name"], file_name.c_str(), json_options_);
+
+        uint8_t*    data_begin;
+        D3D12_RANGE read_Range = { 0, 0 };
+        resousce_data.before_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
+        resousce_data.before_resource->Unmap(0, nullptr);
+
+        std::string filepath = gfxrecon::util::filepath::Join(json_options_.root_dir, file_name);
+        WriteBinaryFile(filepath, resousce_data.size, data_begin);
+    }
+    // after
+    if (resousce_data.after_resource)
     {
-        WriteAfterResource(jdata[i], prefix_file_name, resouce);
-        ++i;
+        std::string file_name =
+            prefix_file_name + "_resource_id_" + std::to_string(resousce_data.source_resource_id) + "_after.bin";
+        decode::FieldToJson(jdata["after_file_name"], file_name.c_str(), json_options_);
+
+        uint8_t*    data_begin;
+        D3D12_RANGE read_Range = { 0, 0 };
+        resousce_data.after_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
+        resousce_data.after_resource->Unmap(0, nullptr);
+
+        std::string filepath = gfxrecon::util::filepath::Join(json_options_.root_dir, file_name);
+        WriteBinaryFile(filepath, resousce_data.size, data_begin);
     }
-}
-
-void Dx12DumpResources::WriteAfterResource(nlohmann::ordered_json& jdata,
-                                           const std::string&      prefix_file_name,
-                                           const CopyResourceData& reousce_data)
-{
-    if (reousce_data.after_resource == nullptr)
-    {
-        return;
-    }
-    WriteResource(jdata, prefix_file_name, "_after.bin", reousce_data, reousce_data.after_resource);
-}
-
-void Dx12DumpResources::WriteResource(nlohmann::ordered_json&           jdata,
-                                      const std::string&                prefix_file_name,
-                                      const std::string&                suffix_file_name,
-                                      const CopyResourceData&           reousce_data,
-                                      const dx12::ID3D12ResourceComPtr& reousce)
-{
-    if (reousce == nullptr)
-    {
-        return;
-    }
-    std::string file_name =
-        prefix_file_name + "_resource_id_" + std::to_string(reousce_data.source_resource_id) + suffix_file_name;
-
-    decode::FieldToJson(jdata["file_name"], file_name.c_str(), json_options_);
-    decode::FieldToJson(jdata["size"], reousce_data.size, json_options_);
-
-    uint8_t*    data_begin;
-    D3D12_RANGE read_Range = { 0, 0 };
-    reousce->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
-    reousce->Unmap(0, nullptr);
-
-    std::string filepath = gfxrecon::util::filepath::Join(json_options_.root_dir, file_name);
-    WriteBinaryFile(filepath, reousce_data.size, data_begin);
 }
 
 void Dx12DumpResources::WriteResources(const TrackDumpResources& resources)
 {
-    // before
-    WriteMetaCommandToFile("before", [&](auto& jdata) {
+    WriteMetaCommandToFile("resources", [&](auto& jdata) {
         // vertex
-        WriteBeforeResources(jdata["vertex"], json_options_.data_sub_dir, resources.copy_vertex_resources);
+        WriteResources(jdata["vertex"], json_options_.data_sub_dir, resources.copy_vertex_resources);
 
         // index
-        WriteBeforeResource(jdata["index"], json_options_.data_sub_dir, resources.copy_index_resource);
+        WriteResource(jdata["index"], json_options_.data_sub_dir, resources.copy_index_resource);
 
         // descriptor
-        uint32_t dh_size = resources.descriptor_heap_datas.size();
-        for (uint32_t index = 0; index < dh_size; ++index)
+        uint32_t index = 0;
+        for (const auto& heap_data : resources.descriptor_heap_datas)
         {
             std::string filename =
                 json_options_.data_sub_dir + "_heap_id_" + std::to_string(resources.target.descriptor_heap_ids[index]);
-            WriteBeforeResources(jdata["descriptor_heap"][index]["constant_buffer"],
-                                 filename,
-                                 resources.descriptor_heap_datas[index].copy_constant_buffer_resources);
-            WriteBeforeResources(jdata["descriptor_heap"][index]["shader_resource"],
-                                 filename,
-                                 resources.descriptor_heap_datas[index].copy_shader_resources);
+            WriteResources(
+                jdata["descriptor_heap"][index]["constant_buffer"], filename, heap_data.copy_constant_buffer_resources);
+            WriteResources(
+                jdata["descriptor_heap"][index]["shader_resource"], filename, heap_data.copy_shader_resources);
+            ++index;
         }
 
         // render target
-        WriteBeforeResources(
-            jdata["render_target"], json_options_.data_sub_dir, resources.copy_render_target_resources);
-        WriteBeforeResource(jdata["depth_stencil"], json_options_.data_sub_dir, resources.copy_depth_stencil_resource);
+        WriteResources(jdata["render_target"], json_options_.data_sub_dir, resources.copy_render_target_resources);
+        WriteResource(jdata["depth_stencil"], json_options_.data_sub_dir, resources.copy_depth_stencil_resource);
     });
 
-    // after
-    WriteMetaCommandToFile("after", [&](auto& jdata) {
-        // vertex
-        WriteAfterResources(jdata["vertex"], json_options_.data_sub_dir, resources.copy_vertex_resources);
+    if (TEST_READABLE)
+    {
+        WriteMetaCommandToFile("test_readable", [&](auto& jdata) {
+            // vertex
+            TestWriteFloatResources(jdata["vertex"], resources.copy_vertex_resources);
 
-        // index
-        WriteAfterResource(jdata["index"], json_options_.data_sub_dir, resources.copy_index_resource);
+            // index
+            TestWriteFloatResource(jdata["index"], resources.copy_index_resource);
 
-        // descriptor
-        uint32_t dh_size = resources.descriptor_heap_datas.size();
-        for (uint32_t index = 0; index < dh_size; ++index)
+            // descriptor
+            uint32_t index = 0;
+            for (const auto& heap_data : resources.descriptor_heap_datas)
+            {
+                TestWriteFloatResources(jdata["descriptor_heap"][index]["constant_buffer"],
+                                        heap_data.copy_constant_buffer_resources);
+                TestWriteImageResources(json_options_.data_sub_dir + "_descriptor_heap_" + std::to_string(index) +
+                                            "shader_resource",
+                                        heap_data.copy_shader_resources);
+                ++index;
+            }
+
+            // render target
+            TestWriteImageResources(json_options_.data_sub_dir + "_render_target",
+                                    resources.copy_render_target_resources);
+            TestWriteImageResource(json_options_.data_sub_dir + "_depth_stencil",
+                                   resources.copy_depth_stencil_resource);
+        });
+    }
+}
+
+void Dx12DumpResources::TestWriteFloatResources(nlohmann::ordered_json&              jdata,
+                                                const std::vector<CopyResourceData>& resousce_datas)
+{
+    uint32_t index = 0;
+    for (const auto& resouce : resousce_datas)
+    {
+        TestWriteFloatResource(jdata[index], resouce);
+        ++index;
+    }
+}
+
+void Dx12DumpResources::TestWriteFloatResource(nlohmann::ordered_json& jdata, const CopyResourceData& resousce_data)
+{
+    std::vector<float> data;
+    data.resize(resousce_data.size / (sizeof(float)));
+
+    uint8_t*    data_begin;
+    D3D12_RANGE read_Range = { 0, 0 };
+
+    if (resousce_data.before_resource)
+    {
+        resousce_data.before_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
+        std::memcpy(data.data(), data_begin, resousce_data.size);
+        resousce_data.before_resource->Unmap(0, nullptr);
+
+        uint32_t i = 0;
+        for (const auto f : data)
         {
-            std::string filename =
-                json_options_.data_sub_dir + "_heap_id_" + std::to_string(resources.target.descriptor_heap_ids[index]);
-            WriteAfterResources(jdata["descriptor_heap"][index]["constant_buffer"],
-                                filename,
-                                resources.descriptor_heap_datas[index].copy_constant_buffer_resources);
-            WriteAfterResources(jdata["descriptor_heap"][index]["shader_resource"],
-                                filename,
-                                resources.descriptor_heap_datas[index].copy_shader_resources);
+            decode::FieldToJson(jdata["before"][i], f, json_options_);
+            i++;
         }
+    }
+    if (resousce_data.after_resource)
+    {
+        resousce_data.after_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
+        std::memcpy(data.data(), data_begin, resousce_data.size);
+        resousce_data.after_resource->Unmap(0, nullptr);
 
-        // render target
-        WriteAfterResources(jdata["render_target"], json_options_.data_sub_dir, resources.copy_render_target_resources);
-        WriteAfterResource(jdata["depth_stencil"], json_options_.data_sub_dir, resources.copy_depth_stencil_resource);
-    });
+        uint32_t i = 0;
+        for (const auto f : data)
+        {
+            decode::FieldToJson(jdata["after"][i], f, json_options_);
+            i++;
+        }
+    }
+}
+
+void Dx12DumpResources::TestWriteImageResources(const std::string&                   prefix_file_name,
+                                                const std::vector<CopyResourceData>& resousce_datas)
+{
+    uint32_t index = 0;
+    for (const auto& resouce : resousce_datas)
+    {
+        TestWriteImageResource(prefix_file_name + "_" + std::to_string(index), resouce);
+        ++index;
+    }
+}
+
+void Dx12DumpResources::TestWriteImageResource(const std::string&      prefix_file_name,
+                                               const CopyResourceData& resousce_data)
+{
+    if (resousce_data.before_resource)
+    {
+    }
+    if (resousce_data.after_resource)
+    {
+    }
 }
 
 std::unique_ptr<Dx12DumpResources> Dx12DumpResources::Create(const Dx12DumpResourcesConfig& config)
