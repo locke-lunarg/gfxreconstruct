@@ -86,6 +86,12 @@ struct TrackDumpResources
     CopyResourceData                         copy_depth_stencil_resource;
     D3D12_RESOURCE_DESC                      depth_stenci_desc;
 
+    // record BeginRenderPass parameters
+    std::vector<D3D12_RENDER_PASS_ENDING_ACCESS> record_render_target_ending_accesses;
+    D3D12_RENDER_PASS_ENDING_ACCESS              record_depth_ending_access{};
+    D3D12_RENDER_PASS_ENDING_ACCESS              record_stencil_ending_access{};
+    D3D12_RENDER_PASS_FLAGS                      record_render_pass_flags{ D3D12_RENDER_PASS_FLAG_NONE };
+
     ~TrackDumpResources() {}
 };
 
