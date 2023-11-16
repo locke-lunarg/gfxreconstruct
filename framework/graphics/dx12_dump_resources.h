@@ -143,6 +143,15 @@ class Dx12DumpResources
 
     bool WriteBinaryFile(const std::string& filename, uint64_t buffer_size, const uint8_t* data);
 
+    void TestWriteFloatResources(nlohmann::ordered_json& jdata, const std::vector<CopyResourceData>& resousce_datas);
+    void TestWriteFloatResource(nlohmann::ordered_json& jdata, const CopyResourceData& resousce_data);
+    void TestWriteImageResources(const std::string&                      prefix_file_name,
+                                 const std::vector<CopyResourceData>&    resousce_datas,
+                                 const std::vector<D3D12_RESOURCE_DESC>& descs);
+    void TestWriteImageResource(const std::string&         prefix_file_name,
+                                const CopyResourceData&    resousce_data,
+                                const D3D12_RESOURCE_DESC& desc);
+
     util::JsonOptions      json_options_;
     std::string            json_filename_;
     FILE*                  json_file_handle_;
