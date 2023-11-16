@@ -31,6 +31,12 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(graphics)
 
+// TEST_READABLE is only for test because data type could be various.
+// But here uses fixed type.
+// float for vertex, index, constant buffer.
+// image for shader resource, render target.
+const bool TEST_READABLE = false;
+
 Dx12DumpResources::Dx12DumpResources() : json_file_handle_(nullptr) {}
 
 Dx12DumpResources::~Dx12DumpResources()
@@ -116,6 +122,141 @@ void Dx12DumpResources::WriteResources(const TrackDumpResources& resources)
         WriteResources(jdata["render_target"], json_options_.data_sub_dir, resources.copy_render_target_resources);
         WriteResource(jdata["depth_stencil"], json_options_.data_sub_dir, resources.copy_depth_stencil_resource);
     });
+
+    if (TEST_READABLE)
+    {
+        std::string prefix_file_name =
+            gfxrecon::util::filepath::Join(json_options_.root_dir, json_options_.data_sub_dir);
+
+        WriteMetaCommandToFile("test_readable", [&](auto& jdata) {
+            // vertex
+            TestWriteFloatResources(jdata["vertex"], resources.copy_vertex_resources);
+
+            // index
+            TestWriteFloatResource(jdata["index"], resources.copy_index_resource);
+
+            // descriptor
+            uint32_t index = 0;
+            for (const auto& heap_data : resources.descriptor_heap_datas)
+            {
+                TestWriteFloatResources(jdata["descriptor_heap"][index]["constant_buffer"],
+                                        heap_data.copy_constant_buffer_resources);
+                TestWriteImageResources(prefix_file_name + "_descriptor_heap_" + std::to_string(index) +
+                                            "_shader_resource",
+                                        heap_data.copy_shader_resources);
+                ++index;
+            }
+
+            // render target
+            TestWriteImageResources(prefix_file_name + "_render_target", resources.copy_render_target_resources);
+            TestWriteImageResource(prefix_file_name + "_depth_stencil", resources.copy_depth_stencil_resource);
+        });
+    }
+}
+
+void Dx12DumpResources::TestWriteFloatResources(nlohmann::ordered_json&              jdata,
+                                                const std::vector<CopyResourceData>& resource_datas)
+{
+    uint32_t index = 0;
+    for (const auto& resource : resource_datas)
+    {
+        TestWriteFloatResource(jdata[index], resource);
+        ++index;
+    }
+}
+
+void Dx12DumpResources::TestWriteFloatResource(nlohmann::ordered_json& jdata, const CopyResourceData& resource_data)
+{
+    if (resource_data.before_resource)
+    {
+        float*      data_begin;
+        D3D12_RANGE read_Range = { 0, 0 };
+        resource_data.before_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
+
+        uint32_t size = resource_data.size / (sizeof(float));
+        for (uint32_t i = 0; i < size; ++i)
+        {
+            decode::FieldToJson(jdata["before"][i], data_begin[i], json_options_);
+        }
+
+        resource_data.before_resource->Unmap(0, nullptr);
+    }
+    if (resource_data.after_resource)
+    {
+        float*      data_begin;
+        D3D12_RANGE read_Range = { 0, 0 };
+
+        resource_data.after_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
+
+        uint32_t size = resource_data.size / (sizeof(float));
+        for (uint32_t i = 0; i < size; ++i)
+        {
+            decode::FieldToJson(jdata["after"][i], data_begin[i], json_options_);
+        }
+
+        resource_data.after_resource->Unmap(0, nullptr);
+    }
+}
+
+void Dx12DumpResources::TestWriteImageResources(const std::string&                   prefix_file_name,
+                                                const std::vector<CopyResourceData>& resource_datas)
+{
+    uint32_t index = 0;
+    for (const auto& resouce : resource_datas)
+    {
+        TestWriteImageResource(prefix_file_name + "_" + std::to_string(index), resouce);
+        ++index;
+    }
+}
+
+void Dx12DumpResources::TestWriteImageResource(const std::string&      prefix_file_name,
+                                               const CopyResourceData& resource_data)
+{
+    if (resource_data.before_resource)
+    {
+        const auto& desc      = resource_data.desc;
+        std::string file_name = prefix_file_name + "_before.bmp";
+        auto        pitch     = dx12::GetTexturePitch(resource_data.desc.Width);
+
+        uint8_t*    data_begin;
+        D3D12_RANGE read_Range = { 0, 0 };
+        resource_data.before_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
+
+        if (!util::imagewriter::WriteBmpImage(file_name,
+                                              static_cast<unsigned int>(desc.Width),
+                                              static_cast<unsigned int>(desc.Height),
+                                              resource_data.size,
+                                              data_begin,
+                                              static_cast<unsigned int>(pitch)))
+        {
+            GFXRECON_LOG_ERROR("Screenshot could not be created: failed to write BMP file %s", file_name.c_str());
+        }
+
+        resource_data.before_resource->Unmap(0, nullptr);
+    }
+    if (resource_data.after_resource)
+    {
+        const auto& desc      = resource_data.desc;
+        std::string file_name = prefix_file_name + "_after.bmp";
+
+        auto pitch = dx12::GetTexturePitch(desc.Width);
+
+        uint8_t*    data_begin;
+        D3D12_RANGE read_Range = { 0, 0 };
+        resource_data.after_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
+
+        if (!util::imagewriter::WriteBmpImage(file_name,
+                                              static_cast<unsigned int>(desc.Width),
+                                              static_cast<unsigned int>(desc.Height),
+                                              resource_data.size,
+                                              data_begin,
+                                              static_cast<unsigned int>(pitch)))
+        {
+            GFXRECON_LOG_ERROR("Screenshot could not be created: failed to write BMP file %s", file_name.c_str());
+        }
+
+        resource_data.after_resource->Unmap(0, nullptr);
+    }
 }
 
 std::unique_ptr<Dx12DumpResources> Dx12DumpResources::Create(const Dx12DumpResourcesConfig& config)
