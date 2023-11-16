@@ -47,6 +47,8 @@ constexpr uint32_t kDefaultWaitTimeout     = INFINITE;
 
 constexpr uint64_t kInternalEventId = static_cast<uint64_t>(~0);
 
+constexpr bool TEST_SHADER_RES = true;
+
 template <typename T, typename U>
 void SetExtraInfo(HandlePointerDecoder<T>* decoder, std::unique_ptr<U>&& extra_info)
 {
@@ -4143,10 +4145,14 @@ void Dx12ReplayConsumerBase::AddCopyResourceCommandsForBeforeDrawcall(ID3D12Grap
             heap_extra_info->captured_constant_buffer_view_desc_gvas,
             track_dump_resources_.descriptor_heap_datas[i].copy_constant_buffer_resources);
 
-        // shader resource
-        AddCopyResourceCommandsForBeforeDrawcall(copy_command_list,
-                                                 heap_extra_info->shader_resource_ids,
-                                                 track_dump_resources_.descriptor_heap_datas[i].copy_shader_resources);
+        if (TEST_SHADER_RES)
+        {
+            // shader resource
+            AddCopyResourceCommandsForBeforeDrawcall(
+                copy_command_list,
+                heap_extra_info->shader_resource_ids,
+                track_dump_resources_.descriptor_heap_datas[i].copy_shader_resources);
+        }
     }
 
     // render target
@@ -4354,8 +4360,11 @@ void Dx12ReplayConsumerBase::AddCopyResourceCommandsForAfterDrawcall(ID3D12Graph
         // constant buffer
         AddCopyResourceCommandsForAfterDrawcall(copy_command_list, heap_data.copy_constant_buffer_resources);
 
-        // shader resource
-        AddCopyResourceCommandsForAfterDrawcall(copy_command_list, heap_data.copy_shader_resources);
+        if (TEST_SHADER_RES)
+        {
+            // shader resource
+            AddCopyResourceCommandsForAfterDrawcall(copy_command_list, heap_data.copy_shader_resources);
+        }
     }
 
     // render target
