@@ -43,9 +43,8 @@ const gfxrecon::util::JsonFormat kDefaultDumpResourcesFileFormat = gfxrecon::uti
 
 struct Dx12DumpResourcesConfig
 {
-    std::string               captured_file_name;
-    decode::DumpResourcesType type{ decode::DumpResourcesType::kNone };
-    int                       argument{ 0 };
+    std::string                           captured_file_name{};
+    gfxrecon::decode::DumpResourcesTarget dump_resources_target{};
 };
 
 struct CopyResourceData
@@ -65,7 +64,7 @@ struct DescriptorHeapData
 
 struct TrackDumpResources
 {
-    decode::TrackDumpCommandList target{};
+    decode::TrackDumpDrawcall target{};
 
     // vertex
     std::vector<CopyResourceData> copy_vertex_resources;

@@ -35,7 +35,7 @@ GFXRECON_BEGIN_NAMESPACE(graphics)
 // But here uses fixed type.
 // float for vertex, index, constant buffer.
 // image for shader resource, render target.
-const bool TEST_READABLE = false;
+const bool TEST_READABLE = true;
 
 Dx12DumpResources::Dx12DumpResources() : json_file_handle_(nullptr) {}
 
@@ -285,8 +285,10 @@ HRESULT Dx12DumpResources::Init(const Dx12DumpResourcesConfig& config)
     {
         json_filename_ = json_filename_.substr(0, ext_pos);
     }
-    json_filename_ += "_resources_" + decode::GetDumpResourcesType(config.type) + "_" +
-                      std::to_string(config.argument) + "." + util::get_json_format(json_options_.format);
+    json_filename_ += "_resources_submit_" + std::to_string(config.dump_resources_target.submit_index) + "_command_" +
+                      std::to_string(config.dump_resources_target.command_index) + "_drawcall_" +
+                      std::to_string(config.dump_resources_target.drawcall_index) + "." +
+                      util::get_json_format(json_options_.format);
 
     json_options_.data_sub_dir = util::filepath::GetFilenameStem(json_filename_);
     json_options_.root_dir     = util::filepath::GetBasedir(json_filename_);
