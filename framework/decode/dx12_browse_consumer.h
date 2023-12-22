@@ -47,12 +47,21 @@ struct TrackDumpDrawcall
     format::HandleId exe_indirect_argument_id{ format::kNullHandleId };
     format::HandleId exe_indirect_count_id{ format::kNullHandleId };
 
-    uint64_t drawcall_code_index{ 0 };
+    // Bundle
+    format::HandleId               bundle_commandlist_id{ format::kNullHandleId };
+    uint64_t                       bundle_begin_code_index{ 0 };
+    uint64_t                       bundle_end_code_index{ 0 };
+    std::vector<TrackDumpDrawcall> bundle_drawcalls;
+    uint64_t                       bundle_target_drawcall_index{ 0 };
+
+    uint64_t drawcall_code_index{ 0 }; // It could also be ExecuteIndirect or ExecuteBundle code index.
     uint64_t execute_code_index{ 0 };
 };
 
 struct TrackDumpCommandList
 {
+    uint64_t begin_code_index{ 0 };
+    uint64_t end_code_index{ 0 };
     uint64_t current_begin_renderpass_code_index{ 0 };
     uint64_t current_set_render_targets_code_index{ 0 };
 
@@ -104,10 +113,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
         auto it = track_commandlist_infos_.find(target_command_list_);
         if (it != track_commandlist_infos_.end())
         {
-            auto drawcall_size = it->second.track_dump_drawcalls.size();
-            GFXRECON_ASSERT(drawcall_size > dump_resources_target_.drawcall_index);
-
-            return &(it->second.track_dump_drawcalls[dump_resources_target_.drawcall_index]);
+            return &(it->second.track_dump_drawcalls[target_drawcall_index_]);
         }
         return nullptr;
     }
@@ -122,7 +128,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                         Decoded_GUID                 riid,
                                                         HandlePointerDecoder<void*>* ppCommandList)
     {
-        InitializeTracking(*ppCommandList->GetPointer());
+        InitializeTracking(call_info, *ppCommandList->GetPointer());
     }
 
     virtual void Process_ID3D12GraphicsCommandList_Reset(const ApiCallInfo& call_info,
@@ -131,7 +137,19 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                          format::HandleId   pAllocator,
                                                          format::HandleId   pInitialState)
     {
-        InitializeTracking(object_id);
+        InitializeTracking(call_info, object_id);
+    }
+
+    virtual void Process_ID3D12GraphicsCommandList_Close(const ApiCallInfo& call_info, format::HandleId object_id)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                it->second.end_code_index = call_info.index;
+            }
+        }
     }
 
     virtual void Process_ID3D12GraphicsCommandList4_BeginRenderPass(
@@ -273,6 +291,13 @@ class Dx12BrowseConsumer : public Dx12Consumer
         TrackTargetDrawcall(call_info, object_id, pArgumentBuffer, pCountBuffer);
     }
 
+    virtual void Process_ID3D12GraphicsCommandList_ExecuteBundle(const ApiCallInfo& call_info,
+                                                                 format::HandleId   object_id,
+                                                                 format::HandleId   pCommandList)
+    {
+        TrackTargetDrawcall(call_info, object_id, format::kNullHandleId, format::kNullHandleId, pCommandList);
+    }
+
     virtual void
     Process_ID3D12CommandQueue_ExecuteCommandLists(const ApiCallInfo&                        call_info,
                                                    format::HandleId                          object_id,
@@ -296,16 +321,42 @@ class Dx12BrowseConsumer : public Dx12Consumer
                 auto it = track_commandlist_infos_.find(target_command_list_);
                 GFXRECON_ASSERT(it != track_commandlist_infos_.end());
 
-                auto drawcall_size = it->second.track_dump_drawcalls.size();
-                if (drawcall_size <= dump_resources_target_.drawcall_index)
+                uint32_t all_drawcall_count = 0; // Include normal drawcall and bundle drawcall.
+                uint32_t drawcall_index     = 0;
+                for (auto& drawcall : it->second.track_dump_drawcalls)
+                {
+                    auto bundle_size = drawcall.bundle_drawcalls.size();
+                    if (bundle_size > 0)
+                    {
+                        all_drawcall_count += bundle_size;
+                        if (all_drawcall_count > dump_resources_target_.drawcall_index)
+                        {
+                            drawcall.bundle_target_drawcall_index =
+                                dump_resources_target_.drawcall_index + bundle_size - all_drawcall_count;
+                            drawcall.execute_code_index = call_info.index;
+                            target_drawcall_index_      = drawcall_index;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        ++all_drawcall_count;
+                        if (all_drawcall_count > dump_resources_target_.drawcall_index)
+                        {
+                            drawcall.execute_code_index = call_info.index;
+                            target_drawcall_index_      = drawcall_index;
+                            break;
+                        }
+                    }
+                    ++drawcall_index;
+                }
+                if (all_drawcall_count <= dump_resources_target_.drawcall_index)
                 {
                     GFXRECON_LOG_FATAL("The target drawcall index(%d) of dump resources is out of range(%d).",
                                        dump_resources_target_.drawcall_index,
-                                       drawcall_size);
-                    GFXRECON_ASSERT(drawcall_size > dump_resources_target_.drawcall_index);
+                                       all_drawcall_count);
+                    GFXRECON_ASSERT(all_drawcall_count > dump_resources_target_.drawcall_index);
                 }
-                it->second.track_dump_drawcalls[dump_resources_target_.drawcall_index].execute_code_index =
-                    call_info.index;
             }
             ++track_submit_index_;
         }
@@ -317,12 +368,13 @@ class Dx12BrowseConsumer : public Dx12Consumer
     DumpResourcesTarget dump_resources_target_{};
     uint32_t            track_submit_index_{ 0 };
     format::HandleId    target_command_list_{ 0 };
+    uint32_t            target_drawcall_index_{ 0 };
 
     // Key is commandlist_id. We need to know the commandlist of the info because in a commandlist block
     // between reset and close, it might have the other commandlist's commands.
     std::map<format::HandleId, TrackDumpCommandList> track_commandlist_infos_;
 
-    void InitializeTracking(format::HandleId object_id)
+    void InitializeTracking(const ApiCallInfo& call_info, format::HandleId object_id)
     {
         if (target_command_list_ == format::kNullHandleId)
         {
@@ -330,10 +382,12 @@ class Dx12BrowseConsumer : public Dx12Consumer
             if (it != track_commandlist_infos_.end())
             {
                 it->second.Clear();
+                it->second.begin_code_index = call_info.index;
             }
             else
             {
                 TrackDumpCommandList info = {};
+                info.begin_code_index     = call_info.index;
                 track_commandlist_infos_.insert({ object_id, std::move(info) });
             }
         }
@@ -342,7 +396,8 @@ class Dx12BrowseConsumer : public Dx12Consumer
     void TrackTargetDrawcall(const ApiCallInfo& call_info,
                              format::HandleId   object_id,
                              format::HandleId   exe_indirect_argument_id = format::kNullHandleId,
-                             format::HandleId   exe_indirect_count_id    = format::kNullHandleId)
+                             format::HandleId   exe_indirect_count_id    = format::kNullHandleId,
+                             format::HandleId   bundle_commandlist_id    = format::kNullHandleId)
     {
         if (target_command_list_ == format::kNullHandleId)
         {
@@ -358,6 +413,24 @@ class Dx12BrowseConsumer : public Dx12Consumer
                 track_drawcall.descriptor_heap_ids              = it->second.current_descriptor_heap_ids;
                 track_drawcall.exe_indirect_argument_id         = exe_indirect_argument_id;
                 track_drawcall.exe_indirect_count_id            = exe_indirect_count_id;
+
+                if (bundle_commandlist_id != format::kNullHandleId)
+                {
+                    track_drawcall.bundle_commandlist_id = bundle_commandlist_id;
+
+                    auto bundle_it = track_commandlist_infos_.find(bundle_commandlist_id);
+                    if (bundle_it != track_commandlist_infos_.end())
+                    {
+                        track_drawcall.bundle_begin_code_index = it->second.begin_code_index;
+                        track_drawcall.bundle_end_code_index   = it->second.end_code_index;
+
+                        for (const auto& drawcall : bundle_it->second.track_dump_drawcalls)
+                        {
+                            track_drawcall.bundle_drawcalls.emplace_back(drawcall);
+                        }
+                    }
+                }
+
                 it->second.track_dump_drawcalls.emplace_back(std::move(track_drawcall));
             }
         }

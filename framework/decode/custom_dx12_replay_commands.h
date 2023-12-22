@@ -205,6 +205,26 @@ struct CustomReplayPostCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList
 };
 
 template <>
+struct CustomReplayPreCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_ExecuteBundle>
+{
+    template <typename... Args>
+    static void Dispatch(Dx12ReplayConsumerBase* replay, Args... args)
+    {
+        replay->PreCall_ID3D12GraphicsCommandList_ExecuteBundle(args...);
+    }
+};
+
+template <>
+struct CustomReplayPostCall<format::ApiCallId::ApiCall_ID3D12GraphicsCommandList_ExecuteBundle>
+{
+    template <typename... Args>
+    static void Dispatch(Dx12ReplayConsumerBase* replay, Args... args)
+    {
+        replay->PostCall_ID3D12GraphicsCommandList_ExecuteBundle(args...);
+    }
+};
+
+template <>
 struct CustomReplayPostCall<format::ApiCallId::ApiCall_ID3D12CommandQueue_ExecuteCommandLists>
 {
     template <typename... Args>

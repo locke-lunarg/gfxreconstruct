@@ -4053,6 +4053,20 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12GraphicsCommandList_ExecuteIndirect(
     AddCopyResourceCommandsForAfterDrawcall(call_info, object_info);
 }
 
+void Dx12ReplayConsumerBase::PreCall_ID3D12GraphicsCommandList_ExecuteBundle(const ApiCallInfo& call_info,
+                                                                             DxObjectInfo*      object_info,
+                                                                             format::HandleId   pCommandList)
+{
+    AddCopyResourceCommandsForBeforeDrawcall(call_info, object_info);
+}
+
+void Dx12ReplayConsumerBase::PostCall_ID3D12GraphicsCommandList_ExecuteBundle(const ApiCallInfo& call_info,
+                                                                              DxObjectInfo*      object_info,
+                                                                              format::HandleId   pCommandList)
+{
+    AddCopyResourceCommandsForAfterDrawcall(call_info, object_info);
+}
+
 void Dx12ReplayConsumerBase::PostCall_ID3D12CommandQueue_ExecuteCommandLists(
     const ApiCallInfo&                        call_info,
     DxObjectInfo*                             object_info,
