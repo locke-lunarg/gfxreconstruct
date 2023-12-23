@@ -3838,7 +3838,7 @@ void Dx12ReplayConsumerBase::PreCall_ID3D12Device_CreateConstantBufferView(
     auto heap_object_info = GetObjectInfo(DestDescriptor.heap_id);
     auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
     auto desc             = pDesc->GetMetaStructPointer();
-    heap_extra_info->captured_constant_buffer_view_desc_gvas.emplace_back(desc->decoded_value->BufferLocation);
+    heap_extra_info->captured_constant_buffer_views.emplace_back(desc->decoded_value);
 }
 
 void Dx12ReplayConsumerBase::PreCall_ID3D12Device_CreateShaderResourceView(
@@ -3851,6 +3851,7 @@ void Dx12ReplayConsumerBase::PreCall_ID3D12Device_CreateShaderResourceView(
     auto heap_object_info = GetObjectInfo(DestDescriptor.heap_id);
     auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
     heap_extra_info->shader_resource_ids.emplace_back(pResource);
+    heap_extra_info->shader_resource_views.emplace_back(pDesc->GetMetaStructPointer()->decoded_value);
 }
 
 void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateRenderTargetView(
@@ -3864,6 +3865,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateRenderTargetView(
     auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
     heap_extra_info->replay_render_target_handles.emplace_back(*DestDescriptor.decoded_value);
     heap_extra_info->render_target_resource_ids.emplace_back(pResource);
+    heap_extra_info->render_target_views.emplace_back(pDesc->GetMetaStructPointer()->decoded_value);
 }
 
 void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateDepthStencilView(
@@ -3877,6 +3879,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateDepthStencilView(
     auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
     heap_extra_info->replay_depth_stencil_handles.emplace_back(*DestDescriptor.decoded_value);
     heap_extra_info->depth_stencil_resource_ids.emplace_back(pResource);
+    heap_extra_info->depth_stencil_views.emplace_back(pDesc->GetMetaStructPointer()->decoded_value);
 }
 
 void Dx12ReplayConsumerBase::PostCall_ID3D12GraphicsCommandList_OMSetRenderTargets(
