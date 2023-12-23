@@ -64,7 +64,7 @@ void Dx12DumpResources::WriteResource(nlohmann::ordered_json& jdata,
     if (resource_data.before_resource)
     {
         decode::FieldToJson(jdata["resource_id"], resource_data.source_resource_id, json_options_);
-        decode::FieldToJson(jdata["size"], resource_data.size, json_options_);
+        decode::FieldToJson(jdata["size"], resource_data.source_size, json_options_);
 
         std::string file_name =
             prefix_file_name + "_resource_id_" + std::to_string(resource_data.source_resource_id) + "_before.bin";
@@ -75,7 +75,7 @@ void Dx12DumpResources::WriteResource(nlohmann::ordered_json& jdata,
         resource_data.before_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
 
         std::string filepath = gfxrecon::util::filepath::Join(json_options_.root_dir, file_name);
-        WriteBinaryFile(filepath, resource_data.size, data_begin);
+        WriteBinaryFile(filepath, resource_data.source_size, data_begin);
 
         resource_data.before_resource->Unmap(0, nullptr);
     }
@@ -91,7 +91,7 @@ void Dx12DumpResources::WriteResource(nlohmann::ordered_json& jdata,
         resource_data.after_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
 
         std::string filepath = gfxrecon::util::filepath::Join(json_options_.root_dir, file_name);
-        WriteBinaryFile(filepath, resource_data.size, data_begin);
+        WriteBinaryFile(filepath, resource_data.source_size, data_begin);
 
         resource_data.after_resource->Unmap(0, nullptr);
     }
@@ -197,7 +197,7 @@ void Dx12DumpResources::TestWriteFloatResource(const std::string&      prefix_fi
         D3D12_RANGE read_Range = { 0, 0 };
         resource_data.before_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
 
-        uint32_t    size = resource_data.size / (sizeof(float));
+        uint32_t    size = resource_data.source_size / (sizeof(float));
         std::string data = "";
         for (uint32_t i = 0; i < size; ++i)
         {
@@ -216,10 +216,9 @@ void Dx12DumpResources::TestWriteFloatResource(const std::string&      prefix_fi
     {
         float*      data_begin;
         D3D12_RANGE read_Range = { 0, 0 };
-
         resource_data.after_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
 
-        uint32_t    size = resource_data.size / (sizeof(float));
+        uint32_t    size = resource_data.source_size / (sizeof(float));
         std::string data = "";
         for (uint32_t i = 0; i < size; ++i)
         {
@@ -253,18 +252,17 @@ void Dx12DumpResources::TestWriteImageResource(const std::string&      prefix_fi
 
     if (resource_data.before_resource)
     {
-        const auto& desc             = resource_data.desc;
         std::string before_file_name = prefix_file_name + "_before.bmp";
-        auto        pitch            = dx12::GetTexturePitch(resource_data.desc.Width);
+        auto        pitch            = resource_data.source_footprint.Footprint.RowPitch;
 
         uint8_t*    data_begin;
         D3D12_RANGE read_Range = { 0, 0 };
         resource_data.before_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
 
         if (!util::imagewriter::WriteBmpImage(before_file_name,
-                                              static_cast<unsigned int>(desc.Width),
-                                              static_cast<unsigned int>(desc.Height),
-                                              resource_data.size,
+                                              resource_data.source_footprint.Footprint.Width,
+                                              resource_data.source_footprint.Footprint.Height,
+                                              resource_data.source_size,
                                               data_begin,
                                               static_cast<unsigned int>(pitch)))
         {
@@ -275,18 +273,17 @@ void Dx12DumpResources::TestWriteImageResource(const std::string&      prefix_fi
     }
     if (resource_data.after_resource)
     {
-        const auto& desc            = resource_data.desc;
         std::string after_file_name = file_name + "_after.bmp";
-        auto        pitch           = dx12::GetTexturePitch(resource_data.desc.Width);
+        auto        pitch           = resource_data.source_footprint.Footprint.RowPitch;
 
         uint8_t*    data_begin;
         D3D12_RANGE read_Range = { 0, 0 };
         resource_data.after_resource->Map(0, &read_Range, reinterpret_cast<void**>(&data_begin));
 
         if (!util::imagewriter::WriteBmpImage(file_name,
-                                              static_cast<unsigned int>(desc.Width),
-                                              static_cast<unsigned int>(desc.Height),
-                                              resource_data.size,
+                                              resource_data.source_footprint.Footprint.Width,
+                                              resource_data.source_footprint.Footprint.Height,
+                                              resource_data.source_size,
                                               data_begin,
                                               static_cast<unsigned int>(pitch)))
         {
