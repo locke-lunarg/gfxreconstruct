@@ -248,6 +248,14 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
                                                             format::HandleId   pCountBuffer,
                                                             UINT64             CountBufferOffset);
 
+    void PreCall_ID3D12GraphicsCommandList_ExecuteBundle(const ApiCallInfo& call_info,
+                                                         DxObjectInfo*      object_info,
+                                                         format::HandleId   pCommandList);
+
+    void PostCall_ID3D12GraphicsCommandList_ExecuteBundle(const ApiCallInfo& call_info,
+                                                          DxObjectInfo*      object_info,
+                                                          format::HandleId   pCommandList);
+
     void PostCall_ID3D12CommandQueue_ExecuteCommandLists(const ApiCallInfo&                        call_info,
                                                          DxObjectInfo*                             object_info,
                                                          UINT                                      NumCommandLists,
