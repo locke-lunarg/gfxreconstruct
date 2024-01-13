@@ -415,7 +415,23 @@ class Dx12ReplayConsumerBodyGenerator(
             code += 'auto replay_result = '
 
         if is_object and not is_override:
-            code += 'reinterpret_cast<{}*>(replay_object->object)->'.format(class_name)
+            if 'ID3D12GraphicsCommandList' in class_name:
+                code += (
+                        "auto commandlists = GetBundleCommandListsforDumpResources(call_info, object_info);\n"
+                        "if(commandlists)\n"
+                        "{{\n"
+                        "   for(auto commandlist : commandlists)\n"
+                        "   {{\n"
+                        "       commandlist->{1}();\n"
+                        "   }}\n"
+                        "}}\n"
+                        "else\n"
+                        "{{\n"
+                        "   reinterpret_cast<{0}*>(replay_object->object)->{1}();\n"
+                        "}}\n".format(class_name, method_name)
+                    )
+            else:
+                code += 'reinterpret_cast<{}*>(replay_object->object)->'.format(class_name)
 
         first = True
         if is_override:

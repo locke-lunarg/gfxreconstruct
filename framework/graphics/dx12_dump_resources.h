@@ -97,6 +97,9 @@ struct TrackDumpResources
     CopyResourceData copy_exe_indirect_argument;
     CopyResourceData copy_exe_indirect_count;
 
+    // Bundles
+    std::vector<ID3D12GraphicsCommandList> bundles;
+
     ~TrackDumpResources() {}
 };
 

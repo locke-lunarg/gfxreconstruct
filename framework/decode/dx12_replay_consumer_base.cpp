@@ -3655,6 +3655,12 @@ void Dx12ReplayConsumerBase::OverrideIASetVertexBuffers(
     }
 }
 
+std::vector<ID3D12GraphicsCommandList>*
+Dx12ReplayConsumerBase::GetBundleCommandListsforDumpResources(const ApiCallInfo& call_info, DxObjectInfo* object_info)
+{
+    return nullptr;
+}
+
 void Dx12ReplayConsumerBase::WaitForCommandListExecution(D3D12CommandQueueInfo* queue_info, uint64_t value)
 {
     GFXRECON_ASSERT(queue_info->sync_fence != nullptr);

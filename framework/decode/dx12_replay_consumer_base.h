@@ -826,6 +826,9 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
                                     UINT                                                    num_views,
                                     StructPointerDecoder<Decoded_D3D12_VERTEX_BUFFER_VIEW>* views_decoder);
 
+    std::vector<ID3D12GraphicsCommandList>* GetBundleCommandListsforDumpResources(const ApiCallInfo& call_info,
+                                                                                  DxObjectInfo*      object_info);
+
     HRESULT OverrideSetName(DxObjectInfo* replay_object_info, HRESULT original_result, WStringDecoder* Name);
 
     const Dx12ObjectInfoTable& GetObjectInfoTable() const { return object_info_table_; }
