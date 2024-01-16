@@ -3818,8 +3818,7 @@ void Dx12ReplayConsumerBase::PreCall_ID3D12GraphicsCommandList_ResourceBarrier(
             // It shouldn't change the state here. It should save the AfterState until ExecuteCommandList to change it.
             auto resource_id = barriers[i].Transition->pResource;
             extra_info->track_resource_barriers.insert(resource_id);
-            auto resource_object_info = GetObjectInfo(resource_id);
-            auto resource_extra_info  = GetExtraInfo<D3D12ResourceInfo>(resource_object_info);
+            auto resource_extra_info = GetExtraInfo<D3D12ResourceInfo>(GetObjectInfo(resource_id));
 
             if (options_.enable_dump_resources)
             {
@@ -4136,15 +4135,15 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12CommandQueue_ExecuteCommandLists(
             auto resource_object_info = GetObjectInfo(resource_id);
             if (resource_object_info == nullptr)
             {
-                GFXRECON_LOG_FATAL("Error resource_object_info == nullptr %" PRIu64 "", resource_id);
+                GFXRECON_LOG_WARNING("Error resource_object_info == nullptr %" PRIu64 "", resource_id);
             }
             else if (resource_object_info->extra_info == nullptr)
             {
-                GFXRECON_LOG_FATAL("Error resource_object_info->extra_info == nullptr");
+                GFXRECON_LOG_WARNING("Error resource_object_info->extra_info == nullptr");
             }
             else if (resource_object_info->extra_info->extra_info_type != D3D12ResourceInfo::kType)
             {
-                GFXRECON_LOG_FATAL(
+                GFXRECON_LOG_WARNING(
                     "Error resource_object_info->extra_info->extra_info_type != D3D12ResourceInfo::kType");
             }
             auto resource_extra_info = GetExtraInfo<D3D12ResourceInfo>(resource_object_info);

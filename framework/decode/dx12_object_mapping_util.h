@@ -149,6 +149,10 @@ static void RemoveObject(format::HandleId id, Dx12ObjectInfoTable* object_info_t
 
     if (id != format::kNullHandleId)
     {
+        if (id == 291129)
+        {
+            GFXRECON_LOG_WARNING("Error RemoveObject 291129");
+        }
         object_info_table->erase(id);
     }
 }
