@@ -4133,6 +4133,28 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12CommandQueue_ExecuteCommandLists(
 
         for (auto resource_id : command_list_extra_info->track_resource_barriers)
         {
+            auto resource_object_info = GetObjectInfo(resource_id);
+            if (resource_object_info == nullptr)
+            {
+                GFXRECON_LOG_FATAL("Error resource_object_info == nullptr");
+            }
+            else if (resource_object_info->extra_info == nullptr)
+            {
+                GFXRECON_LOG_FATAL("Error resource_object_info->extra_info == nullptr");
+            }
+            else if (resource_object_info->extra_info->extra_info_type == D3D12ResourceInfo::kType)
+            {
+                GFXRECON_LOG_FATAL(
+                    "Error resource_object_info->extra_info->extra_info_type == D3D12ResourceInfo::kType");
+            }
+            auto resource_extra_info = GetExtraInfo<D3D12ResourceInfo>(resource_object_info);
+
+            auto it = resource_extra_info->track_resource_barrier_state_after.find(commandlist_id);
+            if (it != resource_extra_info->track_resource_barrier_state_after.end())
+            {
+                resource_extra_info->current_state = it->second;
+                resource_extra_info->track_resource_barrier_state_after.erase(it);
+            }
         }
         command_list_extra_info->track_resource_barriers.clear();
     }
