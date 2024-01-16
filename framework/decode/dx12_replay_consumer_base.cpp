@@ -4142,10 +4142,10 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12CommandQueue_ExecuteCommandLists(
             {
                 GFXRECON_LOG_FATAL("Error resource_object_info->extra_info == nullptr");
             }
-            else if (resource_object_info->extra_info->extra_info_type == D3D12ResourceInfo::kType)
+            else if (resource_object_info->extra_info->extra_info_type != D3D12ResourceInfo::kType)
             {
                 GFXRECON_LOG_FATAL(
-                    "Error resource_object_info->extra_info->extra_info_type == D3D12ResourceInfo::kType");
+                    "Error resource_object_info->extra_info->extra_info_type != D3D12ResourceInfo::kType");
             }
             auto resource_extra_info = GetExtraInfo<D3D12ResourceInfo>(resource_object_info);
 
