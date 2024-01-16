@@ -4136,7 +4136,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12CommandQueue_ExecuteCommandLists(
             auto resource_object_info = GetObjectInfo(resource_id);
             if (resource_object_info == nullptr)
             {
-                GFXRECON_LOG_FATAL("Error resource_object_info == nullptr");
+                GFXRECON_LOG_FATAL("Error resource_object_info == nullptr %" PRIu64 "", resource_id);
             }
             else if (resource_object_info->extra_info == nullptr)
             {
