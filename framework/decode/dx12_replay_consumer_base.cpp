@@ -450,7 +450,7 @@ void Dx12ReplayConsumerBase::ProcessInitSubresourceCommand(const format::InitSub
                                                  temp_subresource_layouts,
                                                  required_data_size);
 
-        resource_init_info.staging_resource  = resource_data_util_->CreateStagingBuffer(
+        resource_init_info.staging_resource = resource_data_util_->CreateStagingBuffer(
             graphics::Dx12ResourceDataUtil::CopyType::kCopyTypeWrite, required_data_size);
         SetResourceInitInfoState(resource_init_info, command_header, data);
 
@@ -4133,14 +4133,6 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12CommandQueue_ExecuteCommandLists(
 
         for (auto resource_id : command_list_extra_info->track_resource_barriers)
         {
-            auto resource_extra_info = GetExtraInfo<D3D12ResourceInfo>(GetObjectInfo(resource_id));
-
-            auto it = resource_extra_info->track_resource_barrier_state_after.find(commandlist_id);
-            if (it != resource_extra_info->track_resource_barrier_state_after.end())
-            {
-                resource_extra_info->current_state = it->second;
-                resource_extra_info->track_resource_barrier_state_after.erase(it);
-            }
         }
         command_list_extra_info->track_resource_barriers.clear();
     }
