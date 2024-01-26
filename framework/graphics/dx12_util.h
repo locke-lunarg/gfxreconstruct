@@ -184,6 +184,8 @@ uint64_t GetOneRowSizeByDXGIFormat(ID3D12Resource*      resource,
                                    UINT                 dst_subresource,
                                    uint64_t             width);
 
+size_t GetSubresourceCount(ID3D12Resource* resource);
+
 // Get the size of writing data for a subresource for API ID3D12Resource::WriteToSubresource.
 // The parameters DstSubresource, pDstBox, SrcRowPitch and SrcDepthPitch are same with their
 // meaning in this API.

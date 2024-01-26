@@ -136,7 +136,8 @@ void Dx12ResourceDataUtil::GetResourceCopyInfo(ID3D12Resource*                  
 {
     GFXRECON_ASSERT(resource != nullptr);
 
-    subresource_count = 0;
+    subresource_count = dx12::GetSubresourceCount(resource);
+    subresource_offsets.clear();
     subresource_sizes.clear();
     layouts.clear();
     total_size = 0;
@@ -145,7 +146,6 @@ void Dx12ResourceDataUtil::GetResourceCopyInfo(ID3D12Resource*                  
 
     if (resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
-        subresource_count = 1;
         layouts.resize(subresource_count);
         subresource_sizes.push_back(resource_desc.Width);
         subresource_offsets.push_back(0);
@@ -157,46 +157,24 @@ void Dx12ResourceDataUtil::GetResourceCopyInfo(ID3D12Resource*                  
     }
     else
     {
-        GFXRECON_ASSERT((resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D) ||
-                        (resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D) ||
-                        (resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D));
-
-        uint32_t plane_count = 1;
-
-        // Get the plane count for the texture format.  With D3D12, each plane has its own subresource.
-        D3D12_FEATURE_DATA_FORMAT_INFO format_info = { resource_desc.Format, 0 };
-        if (SUCCEEDED(device_->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &format_info, sizeof(format_info))))
-        {
-            plane_count = format_info.PlaneCount;
-        }
-
-        auto num_subresources = resource_desc.MipLevels * plane_count;
-
-        if ((resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D) ||
-            (resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D))
-        {
-            num_subresources *= resource_desc.DepthOrArraySize;
-        }
-
-        layouts.resize(num_subresources);
+        layouts.resize(subresource_count);
         temp_subresource_row_counts_.clear();
-        temp_subresource_row_counts_.resize(num_subresources);
+        temp_subresource_row_counts_.resize(subresource_count);
         temp_subresource_row_size_bytes_.clear();
-        temp_subresource_row_size_bytes_.resize(num_subresources);
+        temp_subresource_row_size_bytes_.resize(subresource_count);
 
         device_->GetCopyableFootprints(&resource_desc,
                                        0,
-                                       num_subresources,
+                                       subresource_count,
                                        0,
                                        layouts.data(),
                                        temp_subresource_row_counts_.data(),
                                        temp_subresource_row_size_bytes_.data(),
                                        &total_size);
 
-        subresource_count = num_subresources;
-        subresource_sizes.resize(num_subresources);
-        subresource_offsets.resize(num_subresources);
-        for (size_t i = 0; i < num_subresources; ++i)
+        subresource_sizes.resize(subresource_count);
+        subresource_offsets.resize(subresource_count);
+        for (size_t i = 0; i < subresource_count; ++i)
         {
             size_t slice_count = 1;
             if (resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)

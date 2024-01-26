@@ -660,6 +660,45 @@ uint64_t GetSubresourceWriteDataSize(
     return data_size;
 }
 
+size_t GetSubresourceCount(ID3D12Resource* resource)
+{
+    GFXRECON_ASSERT(resource);
+
+    size_t                             sub_count = 0;
+    graphics::dx12::ID3D12DeviceComPtr device    = nullptr;
+    GFXRECON_ASSERT(SUCCEEDED(resource->GetDevice(IID_PPV_ARGS(&device))));
+
+    auto res_desc = resource->GetDesc();
+    if (res_desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+        sub_count = 1;
+    }
+    else
+    {
+        GFXRECON_ASSERT((res_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D) ||
+                        (res_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D) ||
+                        (res_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D));
+
+        uint32_t plane_count = 1;
+
+        // Get the plane count for the texture format.  With D3D12, each plane has its own subresource.
+        D3D12_FEATURE_DATA_FORMAT_INFO format_info = { res_desc.Format, 0 };
+        if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &format_info, sizeof(format_info))))
+        {
+            plane_count = format_info.PlaneCount;
+        }
+
+        sub_count = res_desc.MipLevels * plane_count;
+
+        if ((res_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D) ||
+            (res_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D))
+        {
+            sub_count *= res_desc.DepthOrArraySize;
+        }
+    }
+    return sub_count;
+}
+
 template <typename DescT>
 void TrackAdapterDesc(IDXGIAdapter*                     adapter,
                       UINT32                            adapter_idx,
@@ -1103,9 +1142,10 @@ bool IsDepthStencilFormat(const DXGI_FORMAT format)
         case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
         case DXGI_FORMAT_D24_UNORM_S8_UINT:
         case DXGI_FORMAT_D16_UNORM:
-        return true;
+            return true;
 
-        // Assumed colour formats listed explicitly so a new format added to the enum would trigger a compiler warning to update this:
+        // Assumed colour formats listed explicitly so a new format added to the enum would trigger a compiler warning
+        // to update this:
         case DXGI_FORMAT_R32G32B32A32_TYPELESS:
         case DXGI_FORMAT_R32G32B32A32_FLOAT:
         case DXGI_FORMAT_R32G32B32A32_UINT:
@@ -1222,7 +1262,7 @@ bool IsDepthStencilFormat(const DXGI_FORMAT format)
         case DXGI_FORMAT_V408:
         case DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE:
         case DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE:
-        return false;
+            return false;
     }
     // Log the error if a new format shows up but on balance of probabilities assume it isn't depth:
     GFXRECON_LOG_ERROR("Unknown DXGI_FORMAT value: %u.", static_cast<unsigned>(format));
