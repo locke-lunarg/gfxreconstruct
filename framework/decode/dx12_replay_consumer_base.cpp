@@ -4156,10 +4156,11 @@ std::vector<uint32_t> GetDescriptorSubresourceIndices(uint32_t first_mip_slice,
     {
         for (UINT mip_index = first_mip_slice; mip_index < (first_mip_slice + mip_size); ++mip_index)
         {
-            result.push_back(mip_index + (array_index * total_mip_count) +
-                             (plane_slice * total_mip_count * total_array_count));
+            result.emplace_back(mip_index + (array_index * total_mip_count) +
+                                (plane_slice * total_mip_count * total_array_count));
         }
     }
+    std::sort(result.begin(), result.end());
     return result;
 }
 
@@ -5600,17 +5601,30 @@ void Dx12ReplayConsumerBase::CopyResource(const std::vector<format::HandleId>& f
     std::unique_ptr<graphics::Dx12ResourceDataUtil> resource_data_util =
         std::make_unique<graphics::Dx12ResourceDataUtil>(device, copy_resource_data.total_size, queue);
 
-    std::vector<uint64_t> offsets;
-    std::vector<uint64_t> sizes;
-    HRESULT               result = resource_data_util->ReadFromResource(
-        source_resource, true, res_infos, res_infos, copy_data, offsets, sizes, nullptr);
-
-    if (copy_resource_data.desc.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER)
+    if (copy_resource_data.desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
         // Buffer has its offset and size, no offsets and sizes for subresources.
+        HRESULT result = resource_data_util->ReadFromBufferResource(source_resource,
+                                                                    true,
+                                                                    copy_resource_data.offsets[0],
+                                                                    copy_resource_data.sizes[0],
+                                                                    res_infos[0],
+                                                                    res_infos[0],
+                                                                    copy_data,
+                                                                    nullptr);
+    }
+    else
+    {
         // Texture has offsets and sizes for subresources, but no its offset and size.
-        copy_resource_data.offsets = offsets;
-        copy_resource_data.sizes   = sizes;
+        HRESULT result = resource_data_util->ReadFromTargetSubresources(source_resource,
+                                                                        true,
+                                                                        res_infos,
+                                                                        res_infos,
+                                                                        copy_data,
+                                                                        copy_resource_data.subresource_indices,
+                                                                        copy_resource_data.offsets,
+                                                                        copy_resource_data.sizes,
+                                                                        nullptr);
     }
 }
 

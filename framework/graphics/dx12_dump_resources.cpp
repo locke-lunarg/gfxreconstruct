@@ -65,6 +65,7 @@ void Dx12DumpResources::WriteResource(nlohmann::ordered_json& jdata,
     if (!resource_data.before_data.empty())
     {
         util::FieldToJson(jdata["resource_id"], resource_data.source_resource_id, json_options_);
+        uint64_t data_index = 0;
         for (const auto sub_index : resource_data.subresource_indices)
         {
             auto& jdata_sub = jdata["subresource"][sub_index];
@@ -76,10 +77,7 @@ void Dx12DumpResources::WriteResource(nlohmann::ordered_json& jdata,
             util::FieldToJson(jdata_sub["before_file_name"], before_file_name.c_str(), json_options_);
 
             std::string before_filepath = gfxrecon::util::filepath::Join(json_options_.root_dir, before_file_name);
-            WriteBinaryFile(before_filepath,
-                            resource_data.before_data,
-                            resource_data.offsets[sub_index],
-                            resource_data.sizes[sub_index]);
+            WriteBinaryFile(before_filepath, resource_data.before_data, data_index, resource_data.sizes[sub_index]);
 
             if (!resource_data.after_data.empty())
             {
@@ -87,11 +85,9 @@ void Dx12DumpResources::WriteResource(nlohmann::ordered_json& jdata,
                 util::FieldToJson(jdata_sub["after_file_name"], after_file_name.c_str(), json_options_);
 
                 std::string after_filepath = gfxrecon::util::filepath::Join(json_options_.root_dir, after_file_name);
-                WriteBinaryFile(after_filepath,
-                                resource_data.after_data,
-                                resource_data.offsets[sub_index],
-                                resource_data.sizes[sub_index]);
+                WriteBinaryFile(after_filepath, resource_data.after_data, data_index, resource_data.sizes[sub_index]);
             }
+            data_index += resource_data.sizes[sub_index];
         }
     }
 }
@@ -212,10 +208,11 @@ void Dx12DumpResources::TestWriteFloatResource(const std::string&      prefix_fi
 
     if (!resource_data.before_data.empty())
     {
-        auto* before_data_begin = reinterpret_cast<const float*>(resource_data.before_data.data());
+        auto*    before_data_begin = reinterpret_cast<const float*>(resource_data.before_data.data());
+        uint64_t data_index        = 0;
         for (const auto sub_index : resource_data.subresource_indices)
         {
-            auto        before_data_begin_sub = before_data_begin + resource_data.offsets[sub_index];
+            auto        before_data_begin_sub = before_data_begin + data_index;
             uint32_t    size                  = resource_data.sizes[sub_index] / (sizeof(float));
             std::string before_data           = "";
             for (uint32_t i = 0; i < size; ++i)
@@ -233,7 +230,7 @@ void Dx12DumpResources::TestWriteFloatResource(const std::string&      prefix_fi
             if (!resource_data.after_data.empty())
             {
                 auto*       after_data_begin     = reinterpret_cast<const float*>(resource_data.after_data.data());
-                auto        after_data_begin_sub = after_data_begin + resource_data.offsets[sub_index];
+                auto        after_data_begin_sub = after_data_begin + data_index;
                 std::string after_data           = "";
                 for (uint32_t i = 0; i < size; ++i)
                 {
@@ -247,6 +244,7 @@ void Dx12DumpResources::TestWriteFloatResource(const std::string&      prefix_fi
                 util::platform::FilePuts(after_data.c_str(), after_file_handle);
                 util::platform::FileClose(after_file_handle);
             }
+            data_index += resource_data.sizes[sub_index];
         }
     }
 }
@@ -258,6 +256,7 @@ void Dx12DumpResources::TestWriteImageResource(const std::string&      prefix_fi
 
     if (!resource_data.before_data.empty())
     {
+        uint64_t data_index = 0;
         for (const auto sub_index : resource_data.subresource_indices)
         {
             std::string before_file_name = file_name + "_subresource_" + std::to_string(sub_index);
@@ -283,7 +282,7 @@ void Dx12DumpResources::TestWriteImageResource(const std::string&      prefix_fi
                                                   resource_data.footprints[sub_index].Footprint.Width,
                                                   resource_data.footprints[sub_index].Footprint.Height,
                                                   resource_data.sizes[sub_index],
-                                                  resource_data.before_data.data() + resource_data.offsets[sub_index],
+                                                  resource_data.before_data.data() + data_index,
                                                   resource_data.footprints[sub_index].Footprint.RowPitch))
             {
                 GFXRECON_LOG_ERROR("Dump image could not be created: failed to write BMP file %s",
@@ -297,14 +296,14 @@ void Dx12DumpResources::TestWriteImageResource(const std::string&      prefix_fi
                                                       resource_data.footprints[sub_index].Footprint.Width,
                                                       resource_data.footprints[sub_index].Footprint.Height,
                                                       resource_data.sizes[sub_index],
-                                                      resource_data.after_data.data() +
-                                                          resource_data.offsets[sub_index],
+                                                      resource_data.after_data.data() + data_index,
                                                       resource_data.footprints[sub_index].Footprint.RowPitch))
                 {
                     GFXRECON_LOG_ERROR("Dump image could not be created: failed to write BMP file %s",
                                        after_file_name.c_str());
                 }
             }
+            data_index += resource_data.sizes[sub_index];
         }
     }
 }
