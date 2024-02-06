@@ -43,6 +43,27 @@ class Dx12ResourceDataUtil
 
     virtual ~Dx12ResourceDataUtil() {}
 
+    // Buffer has only one subresource, so this function only read the first subresource.
+    // If size is UINT64_MAX, it copys the resource from offset to the end.
+    HRESULT ReadFromBufferResource(ID3D12Resource*                target_resource,
+                                   bool                           try_map_and_copy,
+                                   uint64_t                       offset,
+                                   uint64_t                       size,
+                                   const dx12::ResourceStateInfo& before_state,
+                                   const dx12::ResourceStateInfo& after_state,
+                                   std::vector<uint8_t>&          data,
+                                   ID3D12Resource*                staging_resource = nullptr);
+
+    HRESULT ReadFromTargetSubresources(ID3D12Resource*                             target_resource,
+                                       bool                                        try_map_and_copy,
+                                       const std::vector<dx12::ResourceStateInfo>& before_states,
+                                       const std::vector<dx12::ResourceStateInfo>& after_states,
+                                       std::vector<uint8_t>&                       data,
+                                       const std::vector<uint32_t>&                subresource_indices,
+                                       std::vector<uint64_t>&                      subresource_offsets,
+                                       std::vector<uint64_t>&                      subresource_sizes,
+                                       ID3D12Resource*                             staging_resource = nullptr);
+
     HRESULT ReadFromResource(ID3D12Resource*                             target_resource,
                              bool                                        try_map_and_copy,
                              const std::vector<dx12::ResourceStateInfo>& before_states,
@@ -79,15 +100,27 @@ class Dx12ResourceDataUtil
                              std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& layouts,
                              uint64_t&                                        total_size);
 
+    // For buffer and only CopyTypeRead.
     // Copy data to or from a mappable resource. Also transitions the resource to after_states.
+    bool CopyMappableBufferResource(ID3D12Resource*                target_resource,
+                                    uint64_t                       offset,
+                                    uint64_t                       size,
+                                    const dx12::ResourceStateInfo& before_state,
+                                    const dx12::ResourceStateInfo& after_state,
+                                    std::vector<uint8_t>*          read_data);
+
+    // For texture.
+    // Copy data to or from a mappable resource. Also transitions the resource to after_states.
+    // TODO: Not sure if it's correct for copying all subresources for kCopyTypeWrite,
     bool CopyMappableResource(ID3D12Resource*                             target_resource,
-                              const std::vector<dx12::ResourceStateInfo>& before_states,
-                              const std::vector<dx12::ResourceStateInfo>& after_states,
+                              const std::vector<dx12::ResourceStateInfo>& all_before_states,
+                              const std::vector<dx12::ResourceStateInfo>& all_after_states,
                               CopyType                                    copy_type,
                               std::vector<uint8_t>*                       read_data,
                               const std::vector<uint8_t>*                 write_data,
-                              const std::vector<uint64_t>&                subresource_offsets,
-                              const std::vector<uint64_t>&                subresource_sizes);
+                              const std::vector<uint32_t>&                subresource_indices,
+                              const std::vector<uint64_t>&                all_subresource_offsets,
+                              const std::vector<uint64_t>&                all_subresource_sizes);
 
     HRESULT ExecuteAndWaitForCommandList();
 
@@ -96,13 +129,17 @@ class Dx12ResourceDataUtil
 
     HRESULT CloseCommandList();
 
+    // copy_offset is for buffer, subresource_indices is for texture,
     HRESULT
     ExecuteCopyCommandList(ID3D12Resource*                                        target_resource,
                            CopyType                                               copy_type,
+                           uint64_t                                               copy_offset,
                            uint64_t                                               copy_size,
-                           const std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& subresource_layouts,
-                           const std::vector<dx12::ResourceStateInfo>&            before_states,
-                           const std::vector<dx12::ResourceStateInfo>&            after_states,
+                           const std::vector<uint32_t>&                           subresource_indices,
+                           const std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& all_subresource_layouts,
+                           const std::vector<uint64_t>&                           all_subresource_sizes,
+                           const std::vector<dx12::ResourceStateInfo>&            all_before_states,
+                           const std::vector<dx12::ResourceStateInfo>&            all_after_states,
                            ID3D12Resource*                                        staging_buffer = nullptr,
                            bool                                                   batching       = false);
 
@@ -113,7 +150,8 @@ class Dx12ResourceDataUtil
                                  const std::vector<dx12::ResourceStateInfo>& before_states,
                                  const std::vector<dx12::ResourceStateInfo>& after_states);
 
-    HRESULT MapSubresourceAndReadData(ID3D12Resource* resource, UINT subresource, size_t size, uint8_t* data);
+    HRESULT
+    MapSubresourceAndReadData(ID3D12Resource* resource, UINT subresource, size_t offset, size_t size, uint8_t* data);
 
     HRESULT MapSubresourceAndWriteData(ID3D12Resource* resource, UINT subresource, size_t size, const uint8_t* data);
 
