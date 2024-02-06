@@ -245,9 +245,12 @@ void Dx12ResourceDataUtil::GetResourceCopyInfo(ID3D12Resource*                  
     }
 }
 
-Dx12ResourceDataUtil::Dx12ResourceDataUtil(ID3D12Device* device, uint64_t min_buffer_size) :
-    device_(device), staging_buffers_{ nullptr, nullptr }, staging_buffer_sizes_{ 0, 0 },
-    min_buffer_size_(min_buffer_size), fence_value_(0)
+Dx12ResourceDataUtil::Dx12ResourceDataUtil(ID3D12Device*                  device,
+                                           uint64_t                       min_buffer_size,
+                                           dx12::ID3D12CommandQueueComPtr queue) :
+    device_(device),
+    staging_buffers_{ nullptr, nullptr }, staging_buffer_sizes_{ 0, 0 }, min_buffer_size_(min_buffer_size),
+    fence_value_(0)
 {
     HRESULT result = E_FAIL;
 
@@ -256,7 +259,16 @@ Dx12ResourceDataUtil::Dx12ResourceDataUtil(ID3D12Device* device, uint64_t min_bu
     D3D12_COMMAND_QUEUE_DESC queue_desc = {};
     queue_desc.Flags                    = D3D12_COMMAND_QUEUE_FLAG_NONE;
     queue_desc.Type                     = list_type;
-    result                              = device_->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&command_queue_));
+
+    if (queue != nullptr)
+    {
+        command_queue_ = queue;
+        result         = S_OK;
+    }
+    else
+    {
+        result = device_->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&command_queue_));
+    }
     if (SUCCEEDED(result))
     {
         result = device_->CreateCommandAllocator(list_type, IID_PPV_ARGS(&command_allocator_));

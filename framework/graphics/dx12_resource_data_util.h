@@ -73,7 +73,10 @@ class Dx12ResourceDataUtil
     static size_t GetSubresourceCount(ID3D12Resource* resource);
 
   public:
-    Dx12ResourceDataUtil(ID3D12Device* device, uint64_t min_buffer_size);
+    // If the resource is render target, it requires its swapchain's CommandQueue.
+    Dx12ResourceDataUtil(ID3D12Device*                  device,
+                         uint64_t                       min_buffer_size,
+                         dx12::ID3D12CommandQueueComPtr queue = nullptr);
 
     virtual ~Dx12ResourceDataUtil() {}
 
