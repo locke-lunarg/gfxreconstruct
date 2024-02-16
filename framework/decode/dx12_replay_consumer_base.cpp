@@ -3331,7 +3331,9 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommandList(DxObjectInfo*         
 
     if (SUCCEEDED(replay_result) && !command_list_decoder->IsNull())
     {
-        SetExtraInfo(command_list_decoder, std::make_unique<D3D12CommandListInfo>());
+        auto cmd_list_info              = std::make_unique<D3D12CommandListInfo>();
+        cmd_list_info->create_list_type = type;
+        SetExtraInfo(command_list_decoder, std::move(cmd_list_info));
     }
     return replay_result;
 }
@@ -3351,7 +3353,9 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommandList1(DxObjectInfo*        
 
     if (SUCCEEDED(replay_result) && !command_list1_decoder->IsNull())
     {
-        SetExtraInfo(command_list1_decoder, std::make_unique<D3D12CommandListInfo>());
+        auto cmd_list_info              = std::make_unique<D3D12CommandListInfo>();
+        cmd_list_info->create_list_type = type;
+        SetExtraInfo(command_list1_decoder, std::move(cmd_list_info));
     }
     return replay_result;
 }
@@ -4870,14 +4874,19 @@ Dx12ReplayConsumerBase::GetCommandListsForDumpResources(DxObjectInfo* command_li
         auto api_call_id = GetCurrentApiCallId();
         if (track_dump_resources_.target.begin_code_index == code_index)
         {
-            auto cmd_list = static_cast<ID3D12GraphicsCommandList*>(command_list_object_info->object);
-            auto device   = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(cmd_list);
+            auto cmd_list_extra_info = GetExtraInfo<D3D12CommandListInfo>(command_list_object_info);
+            auto cmd_list            = static_cast<ID3D12GraphicsCommandList*>(command_list_object_info->object);
+            auto device              = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(cmd_list);
 
             for (auto& command_set : track_dump_resources_.split_command_sets)
             {
-                device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_set.allocator));
-                device->CreateCommandList(
-                    0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_set.allocator, nullptr, IID_PPV_ARGS(&command_set.list));
+                device->CreateCommandAllocator(cmd_list_extra_info->create_list_type,
+                                               IID_PPV_ARGS(&command_set.allocator));
+                device->CreateCommandList(0,
+                                          cmd_list_extra_info->create_list_type,
+                                          command_set.allocator,
+                                          nullptr,
+                                          IID_PPV_ARGS(&command_set.list));
             }
             device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&track_dump_resources_.fence));
         }

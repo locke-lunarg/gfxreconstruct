@@ -120,7 +120,7 @@ void Dx12DumpResources::WriteResources(const TrackDumpResources& resources)
             uint32_t uav_index = 0;
             for (const auto& uav_data : heap_data.copy_unordered_accesses)
             {
-                WriteResource(jdata_sub["unordered_access"][uav_index]["reousrce"], filename, uav_data.resource);
+                WriteResource(jdata_sub["unordered_access"][uav_index]["resource"], filename, uav_data.resource);
                 WriteResource(
                     jdata_sub["unordered_access"][uav_index]["counter_resource"], filename, uav_data.counter_resource);
                 ++uav_index;
@@ -216,9 +216,9 @@ void Dx12DumpResources::TestWriteFloatResource(const std::string&      prefix_fi
         {
             auto before_data_begin_sub =
                 reinterpret_cast<const float*>(resource_data.before_data.data() + resource_data.offsets[sub_index]);
-            uint32_t    size        = resource_data.sizes[sub_index] / (sizeof(float));
+            uint64_t    size        = resource_data.sizes[sub_index] / (sizeof(float));
             std::string before_data = "";
-            for (uint32_t i = 0; i < size; ++i)
+            for (uint64_t i = 0; i < size; ++i)
             {
                 before_data += std::to_string(before_data_begin_sub[i]);
                 before_data += "\n";
@@ -235,7 +235,7 @@ void Dx12DumpResources::TestWriteFloatResource(const std::string&      prefix_fi
                 auto after_data_begin_sub =
                     reinterpret_cast<const float*>(resource_data.after_data.data() + resource_data.offsets[sub_index]);
                 std::string after_data = "";
-                for (uint32_t i = 0; i < size; ++i)
+                for (uint64_t i = 0; i < size; ++i)
                 {
                     after_data += std::to_string(after_data_begin_sub[i]);
                     after_data += "\n";
