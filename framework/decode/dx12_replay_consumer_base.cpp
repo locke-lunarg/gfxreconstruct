@@ -5581,8 +5581,8 @@ void Dx12ReplayConsumerBase::CopyResourceForBeforeDrawcall(DxObjectInfo*        
     copy_resource_data.after_datas.resize(subresource_count);
 
     copy_resource_data.is_cpu_accessible = false;
-    HRESULT hr                           = graphics::Dx12ResourceDataUtil::IsResourceCpuAccessible(
-        source_resource, graphics::Dx12ResourceDataUtil::kCopyTypeRead, copy_resource_data.is_cpu_accessible);
+    HRESULT hr                           = graphics::Dx12ResourceDataUtil::IsResourceCpuAccessible(source_resource,
+                                                                         graphics::Dx12ResourceDataUtil::kCopyTypeRead);
     if (!SUCCEEDED(hr))
     {
         GFXRECON_LOG_WARNING("Failed to determine if resoruce is CPU accessible. Using a command queue to copy "
@@ -5918,16 +5918,22 @@ Dx12ReplayConsumerBase::CreateCopyResourceAsyncReadQueueSyncEvent(ID3D12Fence*  
 
 void Dx12ReplayConsumerBase::WriteDumpResources(DxObjectInfo* queue_object_info)
 {
+    gfxrecon::graphics::Dx12DumpResourcesConfig config;
+    config.captured_file_name    = options_.filename;
+    config.dump_resources_target = track_dump_resources_.target.dump_resources_target;
+    std::unique_ptr<graphics::Dx12DumpResources> dump_resources;
+    dump_resources = gfxrecon::graphics::Dx12DumpResources::Create(config);
+
     auto queue_extra_info = GetExtraInfo<D3D12CommandQueueInfo>(queue_object_info);
     if (queue_extra_info->pending_events.empty())
     {
-        dump_resources_->WriteResources(track_dump_resources_);
+        dump_resources->WriteResources(track_dump_resources_);
         track_dump_resources_.Clear();
     }
     else
     {
         auto queue_sync_event = QueueSyncEventInfo{ false, false, nullptr, 0, [&]() {
-                                                       dump_resources_->WriteResources(track_dump_resources_);
+                                                       dump_resources->WriteResources(track_dump_resources_);
                                                        track_dump_resources_.Clear();
                                                    } };
 

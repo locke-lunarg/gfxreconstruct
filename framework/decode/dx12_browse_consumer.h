@@ -31,7 +31,7 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 
 // If TEST_AVAILABLE_ARGS is enabled, it finds the available args that follow the original args, if the original args
 // are unavailable.
-const bool TEST_AVAILABLE_ARGS = false;
+const bool TEST_AVAILABLE_ARGS = true;
 
 struct TrackDumpDrawcall
 {
