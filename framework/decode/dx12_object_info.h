@@ -374,7 +374,7 @@ struct ResourceStatesOrder
 {
     D3D12_RESOURCE_TRANSITION_BARRIER transition;
     D3D12_RESOURCE_BARRIER_FLAGS      barrier_flags;
-    uint64_t                          code_index{ 0 };
+    uint64_t                          block_index{ 0 };
 };
 
 struct D3D12CommandListInfo : DxObjectExtraInfo
@@ -382,6 +382,8 @@ struct D3D12CommandListInfo : DxObjectExtraInfo
     static constexpr DxObjectInfoType kType         = DxObjectInfoType::kID3D12CommandListInfo;
     static constexpr char             kObjectType[] = "ID3D12CommandListInfo";
     D3D12CommandListInfo() : DxObjectExtraInfo(kType) {}
+
+    D3D12_COMMAND_LIST_TYPE create_list_type{ D3D12_COMMAND_LIST_TYPE_NONE };
 
     bool requires_sync_after_execute{ false };
 

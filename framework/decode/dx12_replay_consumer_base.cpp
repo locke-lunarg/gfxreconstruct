@@ -103,14 +103,6 @@ Dx12ReplayConsumerBase::Dx12ReplayConsumerBase(std::shared_ptr<application::Appl
         InitializeScreenshotHandler();
     }
 
-    if (options.enable_dump_resources)
-    {
-        gfxrecon::graphics::Dx12DumpResourcesConfig config;
-        config.captured_file_name    = options.filename;
-        config.dump_resources_target = options.dump_resources_target;
-        dump_resources_              = gfxrecon::graphics::Dx12DumpResources::Create(config);
-    }
-
     DetectAdapters();
 
     auto get_object_func = std::bind(&Dx12ReplayConsumerBase::GetObjectInfo, this, std::placeholders::_1);
@@ -2027,7 +2019,7 @@ void Dx12ReplayConsumerBase::OverrideExecuteCommandLists(DxObjectInfo*          
     bool is_complete = false;
     if (options_.enable_dump_resources)
     {
-        if (track_dump_resources_.target.execute_code_index == GetCurrentBlockIndex())
+        if (track_dump_resources_.target.execute_block_index == GetCurrentBlockIndex())
         {
             auto                            captured_command_lists = command_lists->GetHandlePointer();
             auto                            command_list_ids       = command_lists->GetPointer();
@@ -2037,7 +2029,7 @@ void Dx12ReplayConsumerBase::OverrideExecuteCommandLists(DxObjectInfo*          
             for (uint32_t i = 0; i < num_command_lists; ++i)
             {
                 front_command_list_ids.emplace_back(command_list_ids[i]);
-                if (i == options_.dump_resources_target.command_index)
+                if (i == track_dump_resources_.target.dump_resources_target.command_index)
                 {
                     is_complete = true;
                     modified_command_lists.emplace_back(track_dump_resources_.split_command_sets[0].list);
@@ -3443,7 +3435,9 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommandList(DxObjectInfo*         
 
     if (SUCCEEDED(replay_result) && !command_list_decoder->IsNull())
     {
-        SetExtraInfo(command_list_decoder, std::make_unique<D3D12CommandListInfo>());
+        auto cmd_list_info              = std::make_unique<D3D12CommandListInfo>();
+        cmd_list_info->create_list_type = type;
+        SetExtraInfo(command_list_decoder, std::move(cmd_list_info));
     }
     return replay_result;
 }
@@ -3463,7 +3457,9 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommandList1(DxObjectInfo*        
 
     if (SUCCEEDED(replay_result) && !command_list1_decoder->IsNull())
     {
-        SetExtraInfo(command_list1_decoder, std::make_unique<D3D12CommandListInfo>());
+        auto cmd_list_info              = std::make_unique<D3D12CommandListInfo>();
+        cmd_list_info->create_list_type = type;
+        SetExtraInfo(command_list1_decoder, std::move(cmd_list_info));
     }
     return replay_result;
 }
@@ -3740,9 +3736,12 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateRootSignature(DxObjectInfo*       
         if (track_dump_resources_.target.root_signature_handle_id == handld_id)
         {
             // DATA_STATIC causes error for ResourceBarrier. Change it to NONE.
-            auto modified_root_sig =
-                *graphics::dx12::GetUnconvertedRootSignatureDesc(captured_signature, blob_length_in_bytes);
+            graphics::dx12::ID3D12VersionedRootSignatureDeserializerComPtr root_sig_deserializer{ nullptr };
+            HRESULT result = D3D12CreateVersionedRootSignatureDeserializer(
+                captured_signature, blob_length_in_bytes, IID_PPV_ARGS(&root_sig_deserializer));
+            auto versioned_root_sig = root_sig_deserializer->GetUnconvertedRootSignatureDesc();
 
+            D3D12_VERSIONED_ROOT_SIGNATURE_DESC modified_root_sig = *versioned_root_sig;
             if (modified_root_sig.Version == D3D_ROOT_SIGNATURE_VERSION_1_1 ||
                 modified_root_sig.Version == D3D_ROOT_SIGNATURE_VERSION_1_2)
             {
@@ -3794,18 +3793,17 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateRootSignature(DxObjectInfo*       
                             break;
                     }
                 }
-
-                if (modified_root_sig.Version == D3D_ROOT_SIGNATURE_VERSION_1_1)
-                {
-                    modified_root_sig.Desc_1_1.pParameters = params.data();
-                }
-                else if (modified_root_sig.Version == D3D_ROOT_SIGNATURE_VERSION_1_2)
-                {
-                    modified_root_sig.Desc_1_2.pParameters = params.data();
-                }
-
                 if (is_modified)
                 {
+                    if (modified_root_sig.Version == D3D_ROOT_SIGNATURE_VERSION_1_1)
+                    {
+                        modified_root_sig.Desc_1_1.pParameters = params.data();
+                    }
+                    else if (modified_root_sig.Version == D3D_ROOT_SIGNATURE_VERSION_1_2)
+                    {
+                        modified_root_sig.Desc_1_2.pParameters = params.data();
+                    }
+
                     ID3D10Blob* p_modified_blob       = nullptr;
                     ID3D10Blob* p_modified_error_blob = nullptr;
                     replay_result                     = D3D12SerializeVersionedRootSignature(
@@ -4205,7 +4203,7 @@ void Dx12ReplayConsumerBase::PreCall_ID3D12GraphicsCommandList_ResourceBarrier(
             // before or after the target drawcall. For dump resources to set the correct state,
             // it only cares before the target drawcall.
             ResourceStatesOrder state;
-            state.code_index    = call_info.index;
+            state.block_index   = call_info.index;
             state.transition    = *barriers[i].Transition->decoded_value;
             state.barrier_flags = barriers[i].decoded_value->Flags;
 
@@ -4798,7 +4796,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12GraphicsCommandList_OMSetRenderTarge
     BOOL                                                       RTsSingleHandleToDescriptorRange,
     StructPointerDecoder<Decoded_D3D12_CPU_DESCRIPTOR_HANDLE>* pDepthStencilDescriptor)
 {
-    if (call_info.index == track_dump_resources_.target.set_render_targets_code_index)
+    if (call_info.index == track_dump_resources_.target.set_render_targets_block_index)
     {
         auto descriptor_increment = 0;
         if (RTsSingleHandleToDescriptorRange)
@@ -4958,35 +4956,40 @@ Dx12ReplayConsumerBase::GetCommandListsForDumpResources(DxObjectInfo* command_li
     std::vector<graphics::CommandSet> cmd_sets;
     if (options_.enable_dump_resources)
     {
-        auto code_index  = GetCurrentBlockIndex();
+        auto block_index = GetCurrentBlockIndex();
         auto api_call_id = GetCurrentApiCallId();
-        if (track_dump_resources_.target.begin_code_index == code_index)
+        if (track_dump_resources_.target.begin_block_index == block_index)
         {
-            auto cmd_list = static_cast<ID3D12GraphicsCommandList*>(command_list_object_info->object);
-            auto device   = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(cmd_list);
+            auto cmd_list_extra_info = GetExtraInfo<D3D12CommandListInfo>(command_list_object_info);
+            auto cmd_list            = static_cast<ID3D12GraphicsCommandList*>(command_list_object_info->object);
+            auto device              = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(cmd_list);
 
             for (auto& command_set : track_dump_resources_.split_command_sets)
             {
-                device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_set.allocator));
-                device->CreateCommandList(
-                    0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_set.allocator, nullptr, IID_PPV_ARGS(&command_set.list));
+                device->CreateCommandAllocator(cmd_list_extra_info->create_list_type,
+                                               IID_PPV_ARGS(&command_set.allocator));
+                device->CreateCommandList(0,
+                                          cmd_list_extra_info->create_list_type,
+                                          command_set.allocator,
+                                          nullptr,
+                                          IID_PPV_ARGS(&command_set.list));
             }
             device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&track_dump_resources_.fence));
             track_dump_resources_.fence_event = CreateEventA(nullptr, TRUE, FALSE, nullptr);
         }
 
         if ((command_list_object_info->capture_id == track_dump_resources_.target.command_list_id) &&
-            (track_dump_resources_.target.begin_code_index <= code_index) &&
-            (track_dump_resources_.target.close_code_index >= code_index))
+            (track_dump_resources_.target.begin_block_index <= block_index) &&
+            (track_dump_resources_.target.close_block_index >= block_index))
         {
             graphics::TrackDumpResources::SplitCommandType split_type =
                 graphics::TrackDumpResources::SplitCommandType::kBeforeDrawCall;
 
-            if (code_index == track_dump_resources_.target.drawcall_code_index)
+            if (block_index == track_dump_resources_.target.drawcall_block_index)
             {
                 split_type = graphics::TrackDumpResources::SplitCommandType::kDrawCall;
             }
-            else if (code_index >= track_dump_resources_.target.drawcall_code_index)
+            else if (block_index >= track_dump_resources_.target.drawcall_block_index)
             {
                 split_type = graphics::TrackDumpResources::SplitCommandType::kAfterDrawCall;
             }
@@ -5006,7 +5009,7 @@ Dx12ReplayConsumerBase::GetCommandListsForDumpResources(DxObjectInfo* command_li
                 }
                 case format::ApiCall_ID3D12GraphicsCommandList_Close:
                 {
-                    if (track_dump_resources_.target.begin_renderpass_code_index != 0)
+                    if (track_dump_resources_.target.begin_renderpass_block_index != 0)
                     {
                         ID3D12GraphicsCommandList4* command_list4_before;
                         track_dump_resources_
@@ -5079,7 +5082,7 @@ Dx12ReplayConsumerBase::GetCommandListsForDumpResources(DxObjectInfo* command_li
                 }
                 case format::ApiCall_ID3D12GraphicsCommandList4_BeginRenderPass:
                 {
-                    if (code_index == track_dump_resources_.target.begin_renderpass_code_index)
+                    if (block_index == track_dump_resources_.target.begin_renderpass_block_index)
                     {
                         cmd_sets.insert(cmd_sets.end(),
                                         track_dump_resources_.split_command_sets.begin(),
@@ -5752,7 +5755,7 @@ bool Dx12ReplayConsumerBase::CopyResourceAsyncQueue(const std::vector<format::Ha
                     bool is_update = true;
                     if (i == (size - 1))
                     {
-                        if (state.code_index > track_dump_resources_.target.drawcall_code_index)
+                        if (state.block_index > track_dump_resources_.target.drawcall_block_index)
                         {
                             is_update = false;
                         }
@@ -5929,16 +5932,21 @@ Dx12ReplayConsumerBase::CreateCopyResourceAsyncReadQueueSyncEvent(ID3D12Fence*  
 
 void Dx12ReplayConsumerBase::WriteDumpResources(DxObjectInfo* queue_object_info)
 {
+    gfxrecon::graphics::Dx12DumpResourcesConfig config;
+    config.captured_file_name                                   = options_.filename;
+    config.dump_resources_target                                = options_.dump_resources_target;
+    std::unique_ptr<graphics::Dx12DumpResources> dump_resources = gfxrecon::graphics::Dx12DumpResources::Create(config);
+
     auto queue_extra_info = GetExtraInfo<D3D12CommandQueueInfo>(queue_object_info);
     if (queue_extra_info->pending_events.empty())
     {
-        dump_resources_->WriteResources(track_dump_resources_);
+        dump_resources->WriteResources(track_dump_resources_);
         track_dump_resources_.Clear();
     }
     else
     {
         auto queue_sync_event = QueueSyncEventInfo{ false, false, nullptr, 0, [&]() {
-                                                       dump_resources_->WriteResources(track_dump_resources_);
+                                                       dump_resources->WriteResources(track_dump_resources_);
                                                        track_dump_resources_.Clear();
                                                    } };
 

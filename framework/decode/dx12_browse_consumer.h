@@ -29,14 +29,19 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
 
+// If TEST_AVAILABLE_ARGS is enabled, it finds the available args that follow the original args, if the original args
+// are unavailable.
+const bool TEST_AVAILABLE_ARGS = false;
+
 struct TrackDumpDrawcall
 {
-    format::HandleId command_list_id{ format::kNullHandleId };
-    uint64_t         begin_code_index{ 0 };
-    uint64_t         close_code_index{ 0 };
-    uint64_t         begin_renderpass_code_index{ 0 };
-    uint64_t         set_render_targets_code_index{ 0 };
-    format::HandleId root_signature_handle_id{ format::kNullHandleId };
+    DumpResourcesTarget dump_resources_target{};
+    format::HandleId    command_list_id{ format::kNullHandleId };
+    uint64_t            begin_block_index{ 0 };
+    uint64_t            close_block_index{ 0 };
+    uint64_t            begin_renderpass_block_index{ 0 };
+    uint64_t            set_render_targets_block_index{ 0 };
+    format::HandleId    root_signature_handle_id{ format::kNullHandleId };
 
     // vertex
     std::vector<D3D12_VERTEX_BUFFER_VIEW> captured_vertex_buffer_views;
@@ -54,8 +59,8 @@ struct TrackDumpDrawcall
     format::HandleId exe_indirect_count_id{ format::kNullHandleId };
     uint64_t         exe_indirect_count_offset{ 0 };
 
-    uint64_t drawcall_code_index{ 0 };
-    uint64_t execute_code_index{ 0 };
+    uint64_t drawcall_block_index{ 0 };
+    uint64_t execute_block_index{ 0 };
 
     void Clear()
     {
@@ -67,9 +72,9 @@ struct TrackDumpDrawcall
 
 struct TrackDumpCommandList
 {
-    uint64_t         begin_code_index{ 0 };
-    uint64_t         current_begin_renderpass_code_index{ 0 };
-    uint64_t         current_set_render_targets_code_index{ 0 };
+    uint64_t         begin_block_index{ 0 };
+    uint64_t         current_begin_renderpass_block_index{ 0 };
+    uint64_t         current_set_render_targets_block_index{ 0 };
     format::HandleId current_root_signature_handle_id{ format::kNullHandleId };
 
     // vertex
@@ -90,9 +95,9 @@ struct TrackDumpCommandList
 
     void Clear()
     {
-        begin_code_index                      = 0;
-        current_begin_renderpass_code_index   = 0;
-        current_set_render_targets_code_index = 0;
+        begin_block_index                      = 0;
+        current_begin_renderpass_block_index   = 0;
+        current_set_render_targets_block_index = 0;
         current_captured_vertex_buffer_views.clear();
         current_captured_index_buffer_view = {};
         current_descriptor_heap_ids.clear();
@@ -118,6 +123,11 @@ class Dx12BrowseConsumer : public Dx12Consumer
             GFXRECON_LOG_FATAL("The target submit index(%d) of dump resources is out of range(%d).",
                                dump_resources_target_.submit_index,
                                track_submit_index_);
+            if (TEST_AVAILABLE_ARGS)
+            {
+                GFXRECON_LOG_FATAL("Although TEST_AVAILABLE_ARGS is enabled, it cann't find the available args that "
+                                   "follow the original args.");
+            }
             GFXRECON_ASSERT(track_submit_index_ > dump_resources_target_.submit_index);
         }
 
@@ -127,7 +137,17 @@ class Dx12BrowseConsumer : public Dx12Consumer
             auto drawcall_size = it->second.track_dump_drawcalls.size();
             GFXRECON_ASSERT(drawcall_size > dump_resources_target_.drawcall_index);
 
-            return &(it->second.track_dump_drawcalls[dump_resources_target_.drawcall_index]);
+            if (is_modified_args)
+            {
+                GFXRECON_LOG_INFO("TEST_AVAILABLE_ARGS is enabled, it finds the available args(%d,%d,%d) that follow "
+                                  "the original args.",
+                                  dump_resources_target_.submit_index,
+                                  dump_resources_target_.command_index,
+                                  dump_resources_target_.drawcall_index);
+            }
+            auto& target                 = it->second.track_dump_drawcalls[dump_resources_target_.drawcall_index];
+            target.dump_resources_target = dump_resources_target_;
+            return &target;
         }
         return nullptr;
     }
@@ -167,8 +187,8 @@ class Dx12BrowseConsumer : public Dx12Consumer
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
-                it->second.current_begin_renderpass_code_index   = call_info.index;
-                it->second.current_set_render_targets_code_index = 0;
+                it->second.current_begin_renderpass_block_index   = call_info.index;
+                it->second.current_set_render_targets_block_index = 0;
             }
         }
     }
@@ -186,8 +206,8 @@ class Dx12BrowseConsumer : public Dx12Consumer
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
-                it->second.current_set_render_targets_code_index = call_info.index;
-                it->second.current_begin_renderpass_code_index   = 0;
+                it->second.current_set_render_targets_block_index = call_info.index;
+                it->second.current_begin_renderpass_block_index   = 0;
             }
         }
     }
@@ -375,7 +395,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
             {
                 for (auto& drawcall : it->second.track_dump_drawcalls)
                 {
-                    drawcall.close_code_index = call_info.index;
+                    drawcall.close_block_index = call_info.index;
                 }
             }
         }
@@ -393,10 +413,22 @@ class Dx12BrowseConsumer : public Dx12Consumer
             {
                 if (NumCommandLists <= dump_resources_target_.command_index)
                 {
-                    GFXRECON_LOG_FATAL("The target command index(%d) of dump resources is out of range(%d).",
-                                       dump_resources_target_.command_index,
-                                       NumCommandLists);
-                    GFXRECON_ASSERT(NumCommandLists > dump_resources_target_.command_index);
+                    if (TEST_AVAILABLE_ARGS)
+                    {
+                        ++track_submit_index_;
+                        ++dump_resources_target_.submit_index;
+                        dump_resources_target_.command_index  = 0;
+                        dump_resources_target_.drawcall_index = 0;
+                        is_modified_args                      = true;
+                        return;
+                    }
+                    else
+                    {
+                        GFXRECON_LOG_FATAL("The target command index(%d) of dump resources is out of range(%d).",
+                                           dump_resources_target_.command_index,
+                                           NumCommandLists);
+                        GFXRECON_ASSERT(NumCommandLists > dump_resources_target_.command_index);
+                    }
                 }
                 auto command_lists   = ppCommandLists->GetPointer();
                 target_command_list_ = command_lists[dump_resources_target_.command_index];
@@ -407,12 +439,42 @@ class Dx12BrowseConsumer : public Dx12Consumer
                 auto drawcall_size = it->second.track_dump_drawcalls.size();
                 if (drawcall_size <= dump_resources_target_.drawcall_index)
                 {
-                    GFXRECON_LOG_FATAL("The target drawcall index(%d) of dump resources is out of range(%d).",
-                                       dump_resources_target_.drawcall_index,
-                                       drawcall_size);
-                    GFXRECON_ASSERT(drawcall_size > dump_resources_target_.drawcall_index);
+                    if (TEST_AVAILABLE_ARGS)
+                    {
+                        is_modified_args = true;
+                        while (true)
+                        {
+                            ++dump_resources_target_.command_index;
+                            if (NumCommandLists <= dump_resources_target_.command_index)
+                            {
+                                target_command_list_ = format::kNullHandleId;
+                                ++track_submit_index_;
+                                ++dump_resources_target_.submit_index;
+                                dump_resources_target_.command_index  = 0;
+                                dump_resources_target_.drawcall_index = 0;
+                                return;
+                            }
+                            target_command_list_ = command_lists[dump_resources_target_.command_index];
+
+                            it = track_commandlist_infos_.find(target_command_list_);
+                            GFXRECON_ASSERT(it != track_commandlist_infos_.end());
+
+                            drawcall_size = it->second.track_dump_drawcalls.size();
+                            if (drawcall_size <= dump_resources_target_.drawcall_index)
+                            {
+                                continue;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        GFXRECON_LOG_FATAL("The target drawcall index(%d) of dump resources is out of range(%d).",
+                                           dump_resources_target_.drawcall_index,
+                                           drawcall_size);
+                        GFXRECON_ASSERT(drawcall_size > dump_resources_target_.drawcall_index);
+                    }
                 }
-                it->second.track_dump_drawcalls[dump_resources_target_.drawcall_index].execute_code_index =
+                it->second.track_dump_drawcalls[dump_resources_target_.drawcall_index].execute_block_index =
                     call_info.index;
             }
             ++track_submit_index_;
@@ -422,6 +484,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
     virtual bool IsComplete(uint64_t block_index) override { return (target_command_list_ != format::kNullHandleId); }
 
   private:
+    bool                is_modified_args{ false };
     DumpResourcesTarget dump_resources_target_{};
     uint32_t            track_submit_index_{ 0 };
     format::HandleId    target_command_list_{ 0 };
@@ -438,12 +501,12 @@ class Dx12BrowseConsumer : public Dx12Consumer
             if (it != track_commandlist_infos_.end())
             {
                 it->second.Clear();
-                it->second.begin_code_index = call_info.index;
+                it->second.begin_block_index = call_info.index;
             }
             else
             {
                 TrackDumpCommandList info = {};
-                info.begin_code_index     = call_info.index;
+                info.begin_block_index    = call_info.index;
                 track_commandlist_infos_.insert({ object_id, std::move(info) });
             }
         }
@@ -463,10 +526,10 @@ class Dx12BrowseConsumer : public Dx12Consumer
             {
                 TrackDumpDrawcall track_drawcall               = {};
                 track_drawcall.command_list_id                 = object_id;
-                track_drawcall.drawcall_code_index             = call_info.index;
-                track_drawcall.begin_code_index                = it->second.begin_code_index;
-                track_drawcall.begin_renderpass_code_index     = it->second.current_begin_renderpass_code_index;
-                track_drawcall.set_render_targets_code_index   = it->second.current_set_render_targets_code_index;
+                track_drawcall.drawcall_block_index            = call_info.index;
+                track_drawcall.begin_block_index               = it->second.begin_block_index;
+                track_drawcall.begin_renderpass_block_index    = it->second.current_begin_renderpass_block_index;
+                track_drawcall.set_render_targets_block_index  = it->second.current_set_render_targets_block_index;
                 track_drawcall.root_signature_handle_id        = it->second.current_root_signature_handle_id;
                 track_drawcall.captured_vertex_buffer_views    = it->second.current_captured_vertex_buffer_views;
                 track_drawcall.captured_index_buffer_view      = it->second.current_captured_index_buffer_view;
