@@ -2136,14 +2136,15 @@ void Dx12ReplayConsumerBase::OverrideExecuteCommandLists(DxObjectInfo*          
                         replay_object->ExecuteCommandLists(modified_num_command_lists, modified_command_lists.data());
                         modified_command_lists.clear();
 
-                        CopyResourcesForBeforeDrawcall(replay_object_info, front_command_list_ids);
+                        InitializeDumpResources();
+                        CopyDrawcallResources(replay_object_info, front_command_list_ids, "before");
 
                         ID3D12CommandList* ppCommandLists[] = { track_dump_resources_.split_command_sets[1].list };
                         replay_object->ExecuteCommandLists(1, ppCommandLists);
 
-                        CopyResourcesForAfterDrawcall(replay_object_info, front_command_list_ids);
-
-                        WriteDumpResources(replay_object_info);
+                        CopyDrawcallResources(replay_object_info, front_command_list_ids, "after");
+                        dump_resources_->CloseDump();
+                        track_dump_resources_.Clear();
 
                         modified_command_lists.emplace_back(track_dump_resources_.split_command_sets[2].list);
                     }
@@ -5392,37 +5393,65 @@ bool MatchDescriptorCPUGPUHandle(size_t                                      rep
     return false;
 }
 
-void Dx12ReplayConsumerBase::CopyResourcesForBeforeDrawcall(DxObjectInfo*                        queue_object_info,
-                                                            const std::vector<format::HandleId>& front_command_list_ids)
+void Dx12ReplayConsumerBase::InitializeDumpResources()
+{
+    gfxrecon::graphics::Dx12DumpResourcesConfig config;
+    config.captured_file_name    = options_.filename;
+    config.dump_resources_target = options_.dump_resources_target;
+
+    dump_resources_ = gfxrecon::graphics::Dx12DumpResources::Create(config);
+    dump_resources_->StartDump(track_dump_resources_);
+}
+
+void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                        queue_object_info,
+                                                   const std::vector<format::HandleId>& front_command_list_ids,
+                                                   const std::string&                   write_type)
 {
     // vertex
+    // pair first: path name, second: resource index. If index is kNoneIndex, it means not a array.
+    std::vector<std::pair<std::string, int32_t>> json_path;
+    uint32_t                                     resource_index = 0;
+    const std::vector<uint32_t>                  sub_indices_emptry{ 0 };
+
     for (const auto& view : track_dump_resources_.target.captured_vertex_buffer_views)
     {
-        graphics::CopyResourceData copy_resource_data;
-        copy_resource_data.subresource_indices.emplace_back(0);
-        CopyResourceForBeforeDrawcallByGPUVA(
-            queue_object_info, front_command_list_ids, view.BufferLocation, view.SizeInBytes, copy_resource_data);
-
-        track_dump_resources_.copy_vertex_resources.emplace_back(std::move(copy_resource_data));
+        json_path.clear();
+        json_path.emplace_back("vertex", resource_index);
+        CopyDrawcallResourceByGPUVA(queue_object_info,
+                                    front_command_list_ids,
+                                    view.BufferLocation,
+                                    view.SizeInBytes,
+                                    json_path,
+                                    "vertex",
+                                    write_type);
+        ++resource_index;
     }
 
     // index
-    track_dump_resources_.copy_index_resource.subresource_indices.emplace_back(0);
-    CopyResourceForBeforeDrawcallByGPUVA(queue_object_info,
-                                         front_command_list_ids,
-                                         track_dump_resources_.target.captured_index_buffer_view.BufferLocation,
-                                         track_dump_resources_.target.captured_index_buffer_view.SizeInBytes,
-                                         track_dump_resources_.copy_index_resource);
+    json_path.clear();
+    json_path.emplace_back("index", format::kNoneIndex);
+    CopyDrawcallResourceByGPUVA(queue_object_info,
+                                front_command_list_ids,
+                                track_dump_resources_.target.captured_index_buffer_view.BufferLocation,
+                                track_dump_resources_.target.captured_index_buffer_view.SizeInBytes,
+                                json_path,
+                                "index",
+                                write_type);
 
     // descriptor
+    std::vector<std::pair<std::string, int32_t>> json_path_sub;
+    json_path.clear();
+    json_path.emplace_back("descriptor_heap", format::kNoneIndex);
     auto heap_size = track_dump_resources_.target.descriptor_heap_ids.size();
-    track_dump_resources_.descriptor_heap_datas.resize(heap_size);
     for (uint32_t heap_index = 0; heap_index < heap_size; ++heap_index)
     {
+        json_path.emplace_back("heap_id_" + std::to_string(heap_index), format::kNoneIndex);
+
         auto heap_object_info = GetObjectInfo(track_dump_resources_.target.descriptor_heap_ids[heap_index]);
         auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
 
         // constant buffer
+        resource_index = 0;
         for (const auto& info_pair : heap_extra_info->constant_buffer_infos)
         {
             const auto& info = info_pair.second;
@@ -5431,22 +5460,23 @@ void Dx12ReplayConsumerBase::CopyResourcesForBeforeDrawcall(DxObjectInfo*       
                                             heap_extra_info->capture_gpu_addr_begin,
                                             track_dump_resources_.target.captured_descriptor_gpu_handles))
             {
-                graphics::CopyResourceData copy_resource_data;
-                copy_resource_data.subresource_indices.emplace_back(0);
-                CopyResourceForBeforeDrawcallByGPUVA(queue_object_info,
-                                                     front_command_list_ids,
-                                                     info.captured_view.BufferLocation,
-                                                     info.captured_view.SizeInBytes,
-                                                     copy_resource_data);
-
-                track_dump_resources_.descriptor_heap_datas[heap_index].copy_constant_buffer_resources.emplace_back(
-                    std::move(copy_resource_data));
+                json_path_sub = json_path;
+                json_path_sub.emplace_back("constant_buffer", resource_index);
+                CopyDrawcallResourceByGPUVA(queue_object_info,
+                                            front_command_list_ids,
+                                            info.captured_view.BufferLocation,
+                                            info.captured_view.SizeInBytes,
+                                            json_path_sub,
+                                            "constant_buffer",
+                                            write_type);
+                ++resource_index;
             }
         }
 
         if (TEST_SHADER_RES)
         {
             // shader resource
+            resource_index = 0;
             for (const auto& info_pair : heap_extra_info->shader_resource_infos)
             {
                 const auto& info = info_pair.second;
@@ -5474,17 +5504,23 @@ void Dx12ReplayConsumerBase::CopyResourcesForBeforeDrawcall(DxObjectInfo*       
                             break;
                     }
 
-                    graphics::CopyResourceData copy_resource_data;
-                    copy_resource_data.subresource_indices = info.subresource_indices;
-                    CopyResourceForBeforeDrawcall(
-                        queue_object_info, front_command_list_ids, info.resource_id, offset, size, copy_resource_data);
-
-                    track_dump_resources_.descriptor_heap_datas[heap_index].copy_shader_resources.emplace_back(
-                        std::move(copy_resource_data));
+                    json_path_sub = json_path;
+                    json_path_sub.emplace_back("shader_resource", resource_index);
+                    CopyDrawcallResource(queue_object_info,
+                                         front_command_list_ids,
+                                         info.resource_id,
+                                         offset,
+                                         size,
+                                         info.subresource_indices,
+                                         json_path_sub,
+                                         "shader_resource",
+                                         write_type);
+                    ++resource_index;
                 }
             }
 
             // unordered access
+            resource_index = 0;
             for (const auto& info_pair : heap_extra_info->unordered_access_infos)
             {
                 const auto& info = info_pair.second;
@@ -5511,36 +5547,43 @@ void Dx12ReplayConsumerBase::CopyResourcesForBeforeDrawcall(DxObjectInfo*       
                         default:
                             break;
                     }
-                    graphics::UnorderedAccess copy_resource_data;
-                    copy_resource_data.resource.subresource_indices = info.subresource_indices;
-                    CopyResourceForBeforeDrawcall(queue_object_info,
-                                                  front_command_list_ids,
-                                                  info.resource_id,
-                                                  offset,
-                                                  size,
-                                                  copy_resource_data.resource);
+                    json_path_sub = json_path;
+                    json_path_sub.emplace_back("unordered_access", resource_index);
+                    json_path_sub.emplace_back("resource", format::kNoneIndex);
+                    CopyDrawcallResource(queue_object_info,
+                                         front_command_list_ids,
+                                         info.resource_id,
+                                         offset,
+                                         size,
+                                         info.subresource_indices,
+                                         json_path_sub,
+                                         "unordered_access_resource",
+                                         write_type);
 
                     if (info.counter_resource_id != format::kNullHandleId)
                     {
-                        copy_resource_data.counter_resource.subresource_indices.emplace_back(0);
-                        CopyResourceForBeforeDrawcall(queue_object_info,
-                                                      front_command_list_ids,
-                                                      info.counter_resource_id,
-                                                      info.view.Buffer.CounterOffsetInBytes,
-                                                      0,
-                                                      copy_resource_data.resource);
+                        json_path_sub = json_path;
+                        json_path_sub.emplace_back("unordered_access", resource_index);
+                        json_path_sub.emplace_back("counter_resource", format::kNoneIndex);
+                        CopyDrawcallResource(queue_object_info,
+                                             front_command_list_ids,
+                                             info.counter_resource_id,
+                                             info.view.Buffer.CounterOffsetInBytes,
+                                             0,
+                                             sub_indices_emptry,
+                                             json_path_sub,
+                                             "unordered_access_counter_resource",
+                                             write_type);
                     }
-                    track_dump_resources_.descriptor_heap_datas[heap_index].copy_unordered_accesses.emplace_back(
-                        std::move(copy_resource_data));
+                    ++resource_index;
                 }
             }
         }
     }
 
     // render target
-    auto rt_size = track_dump_resources_.replay_render_target_handles.size();
-    track_dump_resources_.copy_render_target_resources.resize(rt_size);
-
+    resource_index = 0;
+    auto rt_size   = track_dump_resources_.replay_render_target_handles.size();
     for (uint32_t i = 0; i < rt_size; ++i)
     {
         auto heap_object_info = GetObjectInfo(track_dump_resources_.render_target_heap_ids[i]);
@@ -5565,14 +5608,18 @@ void Dx12ReplayConsumerBase::CopyResourcesForBeforeDrawcall(DxObjectInfo*       
                     default:
                         break;
                 }
-
-                track_dump_resources_.copy_render_target_resources[i].subresource_indices = info.subresource_indices;
-                CopyResourceForBeforeDrawcall(queue_object_info,
-                                              front_command_list_ids,
-                                              info.resource_id,
-                                              0,
-                                              0,
-                                              track_dump_resources_.copy_render_target_resources[i]);
+                json_path.clear();
+                json_path.emplace_back("render_target", resource_index);
+                CopyDrawcallResource(queue_object_info,
+                                     front_command_list_ids,
+                                     info.resource_id,
+                                     0,
+                                     0,
+                                     info.subresource_indices,
+                                     json_path,
+                                     "render_target",
+                                     write_type);
+                ++resource_index;
                 break;
             }
         }
@@ -5589,67 +5636,105 @@ void Dx12ReplayConsumerBase::CopyResourcesForBeforeDrawcall(DxObjectInfo*       
             const auto& info = info_pair.second;
             if (info.replay_handle.ptr == track_dump_resources_.replay_depth_stencil_handle.ptr)
             {
-                track_dump_resources_.copy_depth_stencil_resource.subresource_indices = info.subresource_indices;
-                CopyResourceForBeforeDrawcall(queue_object_info,
-                                              front_command_list_ids,
-                                              info.resource_id,
-                                              0,
-                                              0,
-                                              track_dump_resources_.copy_depth_stencil_resource);
+                json_path.clear();
+                json_path.emplace_back("depth_stencil", format::kNoneIndex);
+                CopyDrawcallResource(queue_object_info,
+                                     front_command_list_ids,
+                                     info.resource_id,
+                                     0,
+                                     0,
+                                     info.subresource_indices,
+                                     json_path,
+                                     "depth_stencil",
+                                     write_type);
                 break;
             }
         }
     }
 
     // ExecuteIndirect
-    track_dump_resources_.copy_exe_indirect_argument.subresource_indices.emplace_back(0);
-    CopyResourceForBeforeDrawcall(queue_object_info,
-                                  front_command_list_ids,
-                                  track_dump_resources_.target.exe_indirect_argument_id,
-                                  track_dump_resources_.target.exe_indirect_argument_offset,
-                                  0,
-                                  track_dump_resources_.copy_exe_indirect_argument);
+    json_path.clear();
+    json_path.emplace_back("execute_indirect_argument", format::kNoneIndex);
+    CopyDrawcallResource(queue_object_info,
+                         front_command_list_ids,
+                         track_dump_resources_.target.exe_indirect_argument_id,
+                         track_dump_resources_.target.exe_indirect_argument_offset,
+                         0,
+                         sub_indices_emptry,
+                         json_path,
+                         "execute_indirect_argument",
+                         write_type);
 
-    track_dump_resources_.copy_exe_indirect_count.subresource_indices.emplace_back(0);
-    CopyResourceForBeforeDrawcall(queue_object_info,
-                                  front_command_list_ids,
-                                  track_dump_resources_.target.exe_indirect_count_id,
-                                  track_dump_resources_.target.exe_indirect_count_offset,
-                                  0,
-                                  track_dump_resources_.copy_exe_indirect_count);
+    json_path.clear();
+    json_path.emplace_back("execute_indirect_count", format::kNoneIndex);
+    CopyDrawcallResource(queue_object_info,
+                         front_command_list_ids,
+                         track_dump_resources_.target.exe_indirect_count_id,
+                         track_dump_resources_.target.exe_indirect_count_offset,
+                         0,
+                         sub_indices_emptry,
+                         json_path,
+                         "execute_indirect_count",
+                         write_type);
 }
 
-void Dx12ReplayConsumerBase::CopyResourceForBeforeDrawcallByGPUVA(
-    DxObjectInfo*                        queue_object_info,
-    const std::vector<format::HandleId>& front_command_list_ids,
-    D3D12_GPU_VIRTUAL_ADDRESS            captured_source_gpu_va,
-    uint64_t                             source_size,
-    graphics::CopyResourceData&          copy_resource_data)
+void Dx12ReplayConsumerBase::CopyDrawcallResourceByGPUVA(DxObjectInfo*                        queue_object_info,
+                                                         const std::vector<format::HandleId>& front_command_list_ids,
+                                                         D3D12_GPU_VIRTUAL_ADDRESS            captured_source_gpu_va,
+                                                         uint64_t                             source_size,
+                                                         const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                                         const std::string&                                  file_name,
+                                                         const std::string&                                  write_type)
 {
     if (captured_source_gpu_va == 0)
     {
         return;
     }
+    graphics::CopyResourceData copy_resource_data;
+    copy_resource_data.subresource_indices.emplace_back(0);
     copy_resource_data.source_resource_id = object_mapping::FindResourceIDbyGpuVA(captured_source_gpu_va, gpu_va_map_);
 
     auto source_resource_object_info = GetObjectInfo(copy_resource_data.source_resource_id);
     auto source_resource_extra_info  = GetExtraInfo<D3D12ResourceInfo>(source_resource_object_info);
 
-    CopyResourceForBeforeDrawcall(queue_object_info,
-                                  front_command_list_ids,
-                                  copy_resource_data.source_resource_id,
-                                  (captured_source_gpu_va - source_resource_extra_info->capture_address_),
-                                  source_size,
-                                  copy_resource_data);
+    CopyDrawcallResource(queue_object_info,
+                         front_command_list_ids,
+                         copy_resource_data.source_resource_id,
+                         (captured_source_gpu_va - source_resource_extra_info->capture_address_),
+                         source_size,
+                         copy_resource_data);
+
+    dump_resources_->WriteResource(copy_resource_data, json_path, file_name, write_type);
+    copy_resource_data.Clear();
+}
+
+void Dx12ReplayConsumerBase::CopyDrawcallResource(DxObjectInfo*                        queue_object_info,
+                                                  const std::vector<format::HandleId>& front_command_list_ids,
+                                                  format::HandleId                     source_resource_id,
+                                                  uint64_t                             source_offset,
+                                                  uint64_t                             source_size,
+                                                  const std::vector<uint32_t>&         subresource_indices,
+                                                  const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                                  const std::string&                                  file_name,
+                                                  const std::string&                                  write_type)
+{
+    graphics::CopyResourceData copy_resource_data;
+    copy_resource_data.subresource_indices = subresource_indices;
+
+    CopyDrawcallResource(
+        queue_object_info, front_command_list_ids, source_resource_id, source_offset, source_size, copy_resource_data);
+
+    dump_resources_->WriteResource(copy_resource_data, json_path, file_name, write_type);
+    copy_resource_data.Clear();
 }
 
 // If source_size = 0, the meaning is the whole after offset.
-void Dx12ReplayConsumerBase::CopyResourceForBeforeDrawcall(DxObjectInfo*                        queue_object_info,
-                                                           const std::vector<format::HandleId>& front_command_list_ids,
-                                                           format::HandleId                     source_resource_id,
-                                                           uint64_t                             source_offset,
-                                                           uint64_t                             source_size,
-                                                           graphics::CopyResourceData&          copy_resource_data)
+void Dx12ReplayConsumerBase::CopyDrawcallResource(DxObjectInfo*                        queue_object_info,
+                                                  const std::vector<format::HandleId>& front_command_list_ids,
+                                                  format::HandleId                     source_resource_id,
+                                                  uint64_t                             source_offset,
+                                                  uint64_t                             source_size,
+                                                  graphics::CopyResourceData&          copy_resource_data)
 {
     if (source_resource_id == 0)
     {
@@ -5674,8 +5759,7 @@ void Dx12ReplayConsumerBase::CopyResourceForBeforeDrawcall(DxObjectInfo*        
                                                         copy_resource_data.footprints,
                                                         copy_resource_data.total_size);
 
-    copy_resource_data.before_datas.resize(subresource_count);
-    copy_resource_data.after_datas.resize(subresource_count);
+    copy_resource_data.datas.resize(subresource_count);
 
     copy_resource_data.is_cpu_accessible = graphics::Dx12ResourceDataUtil::IsResourceCpuAccessible(
         source_resource, graphics::Dx12ResourceDataUtil::kCopyTypeRead);
@@ -5735,72 +5819,7 @@ void Dx12ReplayConsumerBase::CopyResourceForBeforeDrawcall(DxObjectInfo*        
         copy_resource_data.subresource_sizes[0]   = source_size;
     }
 
-    CopyResourceAsync(queue_object_info, front_command_list_ids, copy_resource_data, copy_resource_data.before_datas);
-}
-
-void Dx12ReplayConsumerBase::CopyResourcesForAfterDrawcall(DxObjectInfo*                        queue_object_info,
-                                                           const std::vector<format::HandleId>& front_command_list_ids)
-{
-    // vertex
-    CopyResourcesForAfterDrawcall(
-        queue_object_info, front_command_list_ids, track_dump_resources_.copy_vertex_resources);
-
-    // index
-    CopyResourceForAfterDrawcall(queue_object_info, front_command_list_ids, track_dump_resources_.copy_index_resource);
-
-    // descriptor
-    for (auto& heap_data : track_dump_resources_.descriptor_heap_datas)
-    {
-        // constant buffer
-        CopyResourcesForAfterDrawcall(
-            queue_object_info, front_command_list_ids, heap_data.copy_constant_buffer_resources);
-
-        if (TEST_SHADER_RES)
-        {
-            // shader resource
-            CopyResourcesForAfterDrawcall(queue_object_info, front_command_list_ids, heap_data.copy_shader_resources);
-
-            // unordered access
-            for (auto& uav : heap_data.copy_unordered_accesses)
-            {
-                CopyResourceForAfterDrawcall(queue_object_info, front_command_list_ids, uav.resource);
-                CopyResourceForAfterDrawcall(queue_object_info, front_command_list_ids, uav.counter_resource);
-            }
-        }
-    }
-
-    // render target
-    CopyResourcesForAfterDrawcall(
-        queue_object_info, front_command_list_ids, track_dump_resources_.copy_render_target_resources);
-    CopyResourceForAfterDrawcall(
-        queue_object_info, front_command_list_ids, track_dump_resources_.copy_depth_stencil_resource);
-
-    // ExecuteIndirect
-    CopyResourceForAfterDrawcall(
-        queue_object_info, front_command_list_ids, track_dump_resources_.copy_exe_indirect_argument);
-    CopyResourceForAfterDrawcall(
-        queue_object_info, front_command_list_ids, track_dump_resources_.copy_exe_indirect_count);
-}
-
-void Dx12ReplayConsumerBase::CopyResourcesForAfterDrawcall(DxObjectInfo*                        queue_object_info,
-                                                           const std::vector<format::HandleId>& front_command_list_ids,
-                                                           std::vector<graphics::CopyResourceData>& copy_resource_datas)
-{
-    for (auto& copy_resource : copy_resource_datas)
-    {
-        CopyResourceForAfterDrawcall(queue_object_info, front_command_list_ids, copy_resource);
-    }
-}
-
-void Dx12ReplayConsumerBase::CopyResourceForAfterDrawcall(DxObjectInfo*                        queue_object_info,
-                                                          const std::vector<format::HandleId>& front_command_list_ids,
-                                                          graphics::CopyResourceData&          copy_resource_data)
-{
-    if (copy_resource_data.source_resource_id == 0)
-    {
-        return;
-    }
-    CopyResourceAsync(queue_object_info, front_command_list_ids, copy_resource_data, copy_resource_data.after_datas);
+    CopyResourceAsync(queue_object_info, front_command_list_ids, copy_resource_data, copy_resource_data.datas);
 }
 
 bool Dx12ReplayConsumerBase::CopyResourceAsyncQueue(const std::vector<format::HandleId>& front_command_list_ids,
@@ -5970,8 +5989,6 @@ void Dx12ReplayConsumerBase::CopyResourceAsyncRead(ID3D12Fence*                 
         }
     }
 
-    // DUMPTODO: Write data to disk immediately, freeing up memory.
-
     // Signal command queue to continue execution.
     fence->Signal(fence_signal_value);
 }
@@ -6027,30 +6044,6 @@ Dx12ReplayConsumerBase::CreateCopyResourceAsyncReadQueueSyncEvent(ID3D12Fence*  
                                                         copy_resource_data,
                                                         subresource_datas);
                               } };
-}
-
-void Dx12ReplayConsumerBase::WriteDumpResources(DxObjectInfo* queue_object_info)
-{
-    gfxrecon::graphics::Dx12DumpResourcesConfig config;
-    config.captured_file_name                                   = options_.filename;
-    config.dump_resources_target                                = options_.dump_resources_target;
-    std::unique_ptr<graphics::Dx12DumpResources> dump_resources = gfxrecon::graphics::Dx12DumpResources::Create(config);
-
-    auto queue_extra_info = GetExtraInfo<D3D12CommandQueueInfo>(queue_object_info);
-    if (queue_extra_info->pending_events.empty())
-    {
-        dump_resources->WriteResources(track_dump_resources_);
-        track_dump_resources_.Clear();
-    }
-    else
-    {
-        auto queue_sync_event = QueueSyncEventInfo{ false, false, nullptr, 0, [&]() {
-                                                       dump_resources->WriteResources(track_dump_resources_);
-                                                       track_dump_resources_.Clear();
-                                                   } };
-
-        queue_extra_info->pending_events.push_back(queue_sync_event);
-    }
 }
 
 GFXRECON_END_NAMESPACE(decode)
