@@ -996,6 +996,8 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
 
     std::wstring ConstructObjectName(format::HandleId capture_id, format::ApiCallId call_id);
 
+    void InitializeDumpResources(ID3D12Device* device);
+
     void CopyDrawcallResources(DxObjectInfo*                        queue_object_info,
                                const std::vector<format::HandleId>& front_command_list_ids,
                                const std::string&                   type);
@@ -1073,9 +1075,7 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
     std::unordered_map<ID3D12Resource*, ResourceInitInfo> resource_init_infos_;
     graphics::TrackDumpResources                          track_dump_resources_;
 
-    std::unique_ptr<graphics::Dx12DumpResources>      dump_resources_{ nullptr };
-    std::vector<graphics::dx12::ID3D12ResourceComPtr> dump_resources_staging_buffers_;
-    std::vector<uint64_t>                             dump_resources_staging_buffer_sizes_;
+    std::unique_ptr<graphics::Dx12DumpResources> dump_resources_{ nullptr };
 };
 
 GFXRECON_END_NAMESPACE(decode)
