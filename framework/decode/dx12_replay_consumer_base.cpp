@@ -122,14 +122,6 @@ Dx12ReplayConsumerBase::Dx12ReplayConsumerBase(std::shared_ptr<application::Appl
         InitializeScreenshotHandler();
     }
 
-    if (options.enable_dump_resources)
-    {
-        gfxrecon::graphics::Dx12DumpResourcesConfig config;
-        config.captured_file_name    = options_.filename;
-        config.dump_resources_target = options_.dump_resources_target;
-        dump_resources_              = gfxrecon::graphics::Dx12DumpResources::Create(config);
-    }
-
     DetectAdapters();
 
     auto get_object_func = std::bind(&Dx12ReplayConsumerBase::GetObjectInfo, this, std::placeholders::_1);
@@ -2131,6 +2123,7 @@ void Dx12ReplayConsumerBase::OverrideExecuteCommandLists(DxObjectInfo*          
                 auto                            command_list_ids       = command_lists->GetPointer();
                 std::vector<format::HandleId>   front_command_list_ids;
                 std::vector<ID3D12CommandList*> modified_command_lists;
+                auto device = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(replay_object);
 
                 for (uint32_t i = 0; i < num_command_lists; ++i)
                 {
@@ -2144,7 +2137,7 @@ void Dx12ReplayConsumerBase::OverrideExecuteCommandLists(DxObjectInfo*          
                         replay_object->ExecuteCommandLists(modified_num_command_lists, modified_command_lists.data());
                         modified_command_lists.clear();
 
-                        dump_resources_->StartDump(track_dump_resources_);
+                        InitializeDumpResources(device);
                         CopyDrawcallResources(replay_object_info, front_command_list_ids, "before");
 
                         ID3D12CommandList* ppCommandLists[] = { track_dump_resources_.split_command_sets[1].list };
@@ -5401,6 +5394,28 @@ bool MatchDescriptorCPUGPUHandle(size_t                                      rep
     return false;
 }
 
+void Dx12ReplayConsumerBase::InitializeDumpResources(ID3D12Device* device)
+{
+    gfxrecon::graphics::Dx12DumpResourcesConfig config;
+    config.captured_file_name    = options_.filename;
+    config.dump_resources_target = options_.dump_resources_target;
+
+    dump_resources_ = gfxrecon::graphics::Dx12DumpResources::Create(config);
+    dump_resources_->StartDump(track_dump_resources_);
+
+    auto hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                             IID_PPV_ARGS(&track_dump_resources_.copy_cmd_allocator));
+    GFXRECON_ASSERT(SUCCEEDED(hr));
+    hr = device->CreateCommandList(0,
+                                   D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                   track_dump_resources_.copy_cmd_allocator,
+                                   nullptr,
+                                   IID_PPV_ARGS(&track_dump_resources_.copy_cmd_list));
+    GFXRECON_ASSERT(SUCCEEDED(hr));
+    hr = track_dump_resources_.copy_cmd_list->Close();
+    GFXRECON_ASSERT(SUCCEEDED(hr));
+}
+
 void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                        queue_object_info,
                                                    const std::vector<format::HandleId>& front_command_list_ids,
                                                    const std::string&                   write_type)
@@ -5742,7 +5757,6 @@ void Dx12ReplayConsumerBase::CopyDrawcallResource(DxObjectInfo*                 
 
     auto source_resource_object_info = GetObjectInfo(copy_resource_data.source_resource_id);
     auto source_resource             = reinterpret_cast<ID3D12Resource*>(source_resource_object_info->object);
-    auto device                      = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(source_resource);
     copy_resource_data.desc          = source_resource->GetDesc();
 
     size_t subresource_count;
@@ -5764,42 +5778,22 @@ void Dx12ReplayConsumerBase::CopyDrawcallResource(DxObjectInfo*                 
 
     if (!copy_resource_data.is_cpu_accessible)
     {
-        HRESULT hr     = E_UNEXPECTED;
-        auto    device = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(source_resource);
+        auto device = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(source_resource);
         if (device != nullptr)
         {
             // Get or create staging buffer.
-            // DUMPTODO: Use a single staging buffer, pre compute max needed size.
-            if (dump_resources_staging_buffers_.empty() ||
-                (dump_resources_staging_buffer_sizes_.back() < copy_resource_data.total_size))
+            if (!track_dump_resources_.copy_staging_buffer ||
+                (track_dump_resources_.copy_staging_buffer_size < copy_resource_data.total_size))
             {
-                auto new_staging_buffer = graphics::Dx12ResourceDataUtil::CreateStagingBuffer(
+                track_dump_resources_.copy_staging_buffer = nullptr;
+                track_dump_resources_.copy_staging_buffer = graphics::Dx12ResourceDataUtil::CreateStagingBuffer(
                     device, graphics::Dx12ResourceDataUtil::CopyType::kCopyTypeRead, copy_resource_data.total_size);
-                dump_resources_staging_buffers_.push_back(new_staging_buffer);
-                dump_resources_staging_buffer_sizes_.push_back(copy_resource_data.total_size);
-            }
-            copy_resource_data.read_resource                   = dump_resources_staging_buffers_.back();
-            copy_resource_data.read_resource_is_staging_buffer = true;
+                track_dump_resources_.copy_staging_buffer_size = copy_resource_data.total_size;
 
-            hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                                IID_PPV_ARGS(&copy_resource_data.cmd_allocator));
-            if (SUCCEEDED(hr))
-            {
-                hr = device->CreateCommandList(0,
-                                               D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                               copy_resource_data.cmd_allocator,
-                                               nullptr,
-                                               IID_PPV_ARGS(&copy_resource_data.cmd_list));
-                if (SUCCEEDED(hr))
-                {
-                    hr = copy_resource_data.cmd_list->Close();
-                }
+                GFXRECON_ASSERT(track_dump_resources_.copy_staging_buffer);
             }
-        }
-        if (!SUCCEEDED(hr))
-        {
-            GFXRECON_LOG_ERROR("Failed to create command list for copying resource ID=%" PRIu64 ".",
-                               source_resource_id);
+            copy_resource_data.read_resource                   = track_dump_resources_.copy_staging_buffer;
+            copy_resource_data.read_resource_is_staging_buffer = true;
         }
     }
 
@@ -5897,8 +5891,8 @@ bool Dx12ReplayConsumerBase::CopyResourceAsyncQueue(const std::vector<format::Ha
         }
 
         // Build command list for copying to staging buffer.
-        copy_resource_data.cmd_list->Reset(copy_resource_data.cmd_allocator, nullptr);
-        hr = graphics::Dx12ResourceDataUtil::RecordCommandsToCopyResource(copy_resource_data.cmd_list,
+        track_dump_resources_.copy_cmd_list->Reset(track_dump_resources_.copy_cmd_allocator, nullptr);
+        hr = graphics::Dx12ResourceDataUtil::RecordCommandsToCopyResource(track_dump_resources_.copy_cmd_list,
                                                                           source_resource,
                                                                           graphics::Dx12ResourceDataUtil::kCopyTypeRead,
                                                                           copy_resource_data.total_size,
@@ -5910,8 +5904,8 @@ bool Dx12ReplayConsumerBase::CopyResourceAsyncQueue(const std::vector<format::Ha
         if (SUCCEEDED(hr))
         {
             // Execute the command list.
-            hr                             = copy_resource_data.cmd_list->Close();
-            ID3D12CommandList* cmd_lists[] = { copy_resource_data.cmd_list };
+            hr                             = track_dump_resources_.copy_cmd_list->Close();
+            ID3D12CommandList* cmd_lists[] = { track_dump_resources_.copy_cmd_list };
             draw_call_queue->ExecuteCommandLists(1, cmd_lists);
         }
         else
