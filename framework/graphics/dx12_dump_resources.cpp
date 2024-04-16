@@ -39,10 +39,7 @@ const bool TEST_READABLE = true;
 
 Dx12DumpResources::Dx12DumpResources() : json_file_handle_(nullptr) {}
 
-Dx12DumpResources::~Dx12DumpResources()
-{
-    EndFile();
-}
+Dx12DumpResources::~Dx12DumpResources() {}
 
 void Dx12DumpResources::StartDump(const TrackDumpResources& resources)
 {
@@ -87,6 +84,7 @@ void Dx12DumpResources::CloseDump()
 {
     json_data_[NameDrawCall()] = drawcall_;
     WriteBlockEnd();
+    EndFile();
 }
 
 void Dx12DumpResources::WriteResource(nlohmann::ordered_json& jdata,
