@@ -33,7 +33,6 @@
 #include "generated/generated_vulkan_json_consumer.h"
 #include "decode/marker_json_consumer.h"
 #include "decode/metadata_json_consumer.h"
-#define CONVERT_EXPERIMENTAL_D3D12
 #if defined(CONVERT_EXPERIMENTAL_D3D12)
 #include "generated/generated_dx12_json_consumer.h"
 #endif
