@@ -404,7 +404,8 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                                  format::HandleId   object_id,
                                                                  format::HandleId   pCommandList)
     {
-        TrackTargetDrawcall(call_info, object_id, format::kNullHandleId, 0, format::kNullHandleId, 0, pCommandList);
+        TrackTargetDrawcall(
+            call_info, object_id, false, format::kNullHandleId, 0, format::kNullHandleId, 0, pCommandList);
     }
 
     virtual void Process_ID3D12GraphicsCommandList_Close(const ApiCallInfo& call_info,
@@ -477,7 +478,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                     ++all_drawcall_count;
                                     if (all_drawcall_count > dump_resources_target_.drawcall_index)
                                     {
-                                        if (TEST_AVAILABLE_ARGS == 2 && !drawcall->is_draw)
+                                        if (TEST_AVAILABLE_ARGS == 2 && !bundle_drawcall->is_draw)
                                         {
                                             // Find a draw drawcall in the following drawcall.
                                             is_modified_args = true;
