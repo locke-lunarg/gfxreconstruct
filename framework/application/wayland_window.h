@@ -113,6 +113,7 @@ class WaylandWindow : public decode::Window
     int32_t                                 scale_;
     struct wl_output*                       output_;
     bool                                    xdg_surface_configured_;
+    bool                                    force_windowed_;
 };
 
 class WaylandWindowFactory : public decode::WindowFactory

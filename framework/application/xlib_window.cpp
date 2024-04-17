@@ -71,18 +71,20 @@ bool XlibWindow::Create(const std::string& title,
     int32_t x             = xpos;
     int32_t y             = ypos;
     bool    go_fullscreen = false;
+    force_windowed_       = force_windowed;
+
+    if ((screen_height_ <= ypos) || (screen_width_ <= xpos))
+    {
+        GFXRECON_LOG_WARNING("Requested window location (%u, %u) exceeds current screen size (%ux%u).",
+                             xpos,
+                             ypos,
+                             screen_width_,
+                             screen_height_);
+    }
 
     if ((root_attributes.height <= height) || (root_attributes.width <= width))
     {
-        if ((screen_height_ == height) || (screen_width_ == width))
-        {
-            go_fullscreen = true;
-
-            // Place fullscreen window at 0, 0.
-            x = 0;
-            y = 0;
-        }
-        else
+        if ((screen_height_ < height) || (screen_width_ < width))
         {
             GFXRECON_LOG_WARNING(
                 "Requested window size (%ux%u) exceeds current screen size (%ux%u); replay may fail due to "
@@ -92,6 +94,14 @@ bool XlibWindow::Create(const std::string& title,
                 screen_width_,
                 screen_height_);
         }
+        if (!force_windowed)
+        {
+            go_fullscreen = true;
+
+            // Place fullscreen window at 0, 0.
+            x = 0;
+            y = 0;
+        } 
     }
 
     // Set window event mask to receive keyboard events
@@ -168,7 +178,7 @@ void XlibWindow::SetSize(const uint32_t width, const uint32_t height)
 {
     if ((width != width_) || (height != height_))
     {
-        if ((screen_width_ == width) || (screen_height_ == height))
+        if (!force_windowed_ && ((screen_width_ == width) || (screen_height_ == height))
         {
             SetFullscreen(true);
         }
