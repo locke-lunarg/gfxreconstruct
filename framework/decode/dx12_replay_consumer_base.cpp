@@ -40,7 +40,7 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
 
-constexpr uint32_t kDefaultWaitTimeout     = INFINITE;
+constexpr uint32_t kDefaultWaitTimeout = INFINITE;
 
 constexpr uint64_t kInternalEventId = static_cast<uint64_t>(~0);
 
@@ -710,7 +710,7 @@ void Dx12ReplayConsumerBase::PrePresent(DxObjectInfo* swapchain_object_info, UIN
     {
         dxgi_present_test_++;
     }
-    else if(screenshot_handler_ != nullptr )
+    else if (screenshot_handler_ != nullptr)
     {
         if (screenshot_handler_->IsScreenshotFrame())
         {
@@ -822,7 +822,7 @@ Dx12ReplayConsumerBase::OverrideCreateSwapChain(DxObjectInfo*                   
                                         options_.window_topleft_y,
                                         desc_pointer->BufferDesc.Width,
                                         desc_pointer->BufferDesc.Height,
-                                        options_.force_windowed || options_.force_windowed_origin);
+                                        options_.force_windowed);
     }
 
     if (window != nullptr)
@@ -2414,7 +2414,7 @@ HRESULT Dx12ReplayConsumerBase::CreateSwapChainForHwnd(
                                         options_.window_topleft_y,
                                         desc_pointer->Width,
                                         desc_pointer->Height,
-                                        options_.force_windowed || options_.force_windowed_origin);
+                                        options_.force_windowed);
     }
 
     if (window != nullptr)
@@ -2440,7 +2440,7 @@ HRESULT Dx12ReplayConsumerBase::CreateSwapChainForHwnd(
             }
 
             auto full_screen_desc_ptr = full_screen_desc->GetPointer();
-            if ((options_.force_windowed) || (options_.force_windowed_origin))
+            if (options_.force_windowed)
             {
                 full_screen_desc_ptr = nullptr;
             }
@@ -3299,7 +3299,7 @@ Dx12ReplayConsumerBase::OverrideSetFullscreenState(DxObjectInfo* swapchain_info,
     auto swapchain_extra_info = GetExtraInfo<DxgiSwapchainInfo>(swapchain_info);
 
     HRESULT replay_result = S_OK;
-    if ((options_.force_windowed) || (options_.force_windowed_origin))
+    if (options_.force_windowed)
     {
         replay_result                       = swapchain->SetFullscreenState(FALSE, nullptr);
         swapchain_extra_info->is_fullscreen = false;

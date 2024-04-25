@@ -98,8 +98,6 @@ const char kScreenshotSizeArgument[]             = "--screenshot-size";
 const char kScreenshotScaleArgument[]            = "--screenshot-scale";
 const char kForceWindowedShortArgument[]         = "--fw";
 const char kForceWindowedLongArgument[]          = "--force-windowed";
-const char kForceWindowWithOriginShortArgument[] = "--fwo";
-const char kForceWindowWithOriginLongArgument[]  = "--force-windowed-origin";
 const char kOutput[]                             = "--output";
 const char kMeasurementRangeArgument[]           = "--measurement-frame-range";
 const char kMeasurementFileArgument[]            = "--measurement-file";
@@ -745,32 +743,13 @@ static void IsForceWindowed(gfxrecon::decode::ReplayOptions& options, const gfxr
         std::string val;
 
         std::getline(value_input, val, ',');
-        options.windowed_width = std::stoi(val);
-        std::getline(value_input, val, ',');
-        options.windowed_height = std::stoi(val);
-    }
-}
-
-static void SetWindowOrigin(gfxrecon::decode::ReplayOptions& options, const gfxrecon::util::ArgumentParser& arg_parser)
-{
-    auto value = arg_parser.GetArgumentValue(kForceWindowWithOriginShortArgument);
-
-    if (value.empty())
-    {
-        value = arg_parser.GetArgumentValue(kForceWindowWithOriginLongArgument);
-    }
-    if (!value.empty())
-    {
-        options.force_windowed_origin = true;
-
-        std::istringstream value_input;
-        value_input.str(value);
-        std::string val;
-
-        std::getline(value_input, val, ',');
         options.window_topleft_x = std::stoi(val);
         std::getline(value_input, val, ',');
         options.window_topleft_y = std::stoi(val);
+        std::getline(value_input, val, ',');
+        options.windowed_width = std::stoi(val);
+        std::getline(value_input, val, ',');
+        options.windowed_height = std::stoi(val);
     }
 }
 
@@ -853,7 +832,6 @@ static void GetReplayOptions(gfxrecon::decode::ReplayOptions& options, const gfx
     }
 
     IsForceWindowed(options, arg_parser);
-    SetWindowOrigin(options, arg_parser);
 }
 
 static gfxrecon::decode::VulkanReplayOptions

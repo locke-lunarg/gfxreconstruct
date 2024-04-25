@@ -52,7 +52,6 @@ struct ReplayOptions
     bool     force_windowed{ false };
     uint32_t windowed_width{ 0 };
     uint32_t windowed_height{ 0 };
-    bool     force_windowed_origin{ false };
     int32_t  window_topleft_x{ 0 };
     int32_t  window_topleft_y{ 0 };
     int32_t  override_gpu_index{ -1 };

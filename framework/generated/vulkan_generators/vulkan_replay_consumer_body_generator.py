@@ -261,7 +261,7 @@ class VulkanReplayConsumerBodyGenerator(
                 for key in self.SKIP_FUNCTIONS_OFFSCREEN:
                     if self.is_has_specific_key_word_in_type(value, key):
                         if name == 'vkAcquireFullScreenExclusiveModeEXT':
-                            body += '    if ((options_.swapchain_option == util::SwapchainOption::kOffscreen) || (options_.force_windowed_origin == true) || (options_.force_windowed == true))\n'
+                            body += '    if ((options_.swapchain_option == util::SwapchainOption::kOffscreen) || (options_.force_windowed == true))\n'
                         else:
                             body += '    if (options_.swapchain_option == util::SwapchainOption::kOffscreen)\n'
                         body += '    {\n'
