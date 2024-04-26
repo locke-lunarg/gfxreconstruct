@@ -223,7 +223,7 @@ class VulkanReplayConsumerBase : public VulkanConsumer
 
     template <typename T>
     typename T::HandleType MapHandle(format::HandleId id,
-                                     const T* (VulkanObjectInfoTable::*MapFunc)(format::HandleId) const) const
+                                     const T*         (VulkanObjectInfoTable::*MapFunc)(format::HandleId) const) const
     {
         return handle_mapping::MapHandle(id, object_info_table_, MapFunc);
     }
@@ -264,7 +264,7 @@ class VulkanReplayConsumerBase : public VulkanConsumer
                    const format::HandleId*       id,
                    const typename T::HandleType* handle,
                    T&&                           initial_info,
-                   void (VulkanObjectInfoTable::*AddFunc)(T&&))
+                   void                          (VulkanObjectInfoTable::*AddFunc)(T&&))
     {
         if ((id != nullptr) && (handle != nullptr))
         {
@@ -277,7 +277,7 @@ class VulkanReplayConsumerBase : public VulkanConsumer
     void AddHandle(format::HandleId              parent_id,
                    const format::HandleId*       id,
                    const typename T::HandleType* handle,
-                   void (VulkanObjectInfoTable::*AddFunc)(T&&))
+                   void                          (VulkanObjectInfoTable::*AddFunc)(T&&))
     {
         if ((id != nullptr) && (handle != nullptr))
         {
@@ -292,7 +292,7 @@ class VulkanReplayConsumerBase : public VulkanConsumer
                     const typename T::HandleType* handles,
                     size_t                        handles_len,
                     std::vector<T>&&              initial_infos,
-                    void (VulkanObjectInfoTable::*AddFunc)(T&&))
+                    void                          (VulkanObjectInfoTable::*AddFunc)(T&&))
     {
         handle_mapping::AddHandleArray(
             parent_id, ids, ids_len, handles, handles_len, std::move(initial_infos), &object_info_table_, AddFunc);
@@ -304,7 +304,7 @@ class VulkanReplayConsumerBase : public VulkanConsumer
                     size_t                        ids_len,
                     const typename T::HandleType* handles,
                     size_t                        handles_len,
-                    void (VulkanObjectInfoTable::*AddFunc)(T&&))
+                    void                          (VulkanObjectInfoTable::*AddFunc)(T&&))
     {
         handle_mapping::AddHandleArray(parent_id, ids, ids_len, handles, handles_len, &object_info_table_, AddFunc);
     }
@@ -317,8 +317,8 @@ class VulkanReplayConsumerBase : public VulkanConsumer
                         const typename T::HandleType* handles,
                         size_t                        handles_len,
                         std::vector<T>&&              initial_infos,
-                        S* (VulkanObjectInfoTable::*GetPoolInfoFunc)(format::HandleId),
-                        void (VulkanObjectInfoTable::*AddFunc)(T&&))
+                        S*                            (VulkanObjectInfoTable::*GetPoolInfoFunc)(format::HandleId),
+                        void                          (VulkanObjectInfoTable::*AddFunc)(T&&))
     {
         handle_mapping::AddHandleArray(parent_id,
                                        pool_id,
@@ -339,8 +339,8 @@ class VulkanReplayConsumerBase : public VulkanConsumer
                         size_t                        ids_len,
                         const typename T::HandleType* handles,
                         size_t                        handles_len,
-                        S* (VulkanObjectInfoTable::*GetPoolInfoFunc)(format::HandleId),
-                        void (VulkanObjectInfoTable::*AddFunc)(T&&))
+                        S*                            (VulkanObjectInfoTable::*GetPoolInfoFunc)(format::HandleId),
+                        void                          (VulkanObjectInfoTable::*AddFunc)(T&&))
     {
         handle_mapping::AddHandleArray(
             parent_id, pool_id, ids, ids_len, handles, handles_len, &object_info_table_, GetPoolInfoFunc, AddFunc);
@@ -353,9 +353,9 @@ class VulkanReplayConsumerBase : public VulkanConsumer
 
     template <typename T>
     void RemovePoolHandle(format::HandleId id,
-                          T* (VulkanObjectInfoTable::*GetPoolInfoFunc)(format::HandleId),
-                          void (VulkanObjectInfoTable::*RemovePoolFunc)(format::HandleId),
-                          void (VulkanObjectInfoTable::*RemoveObjectFunc)(format::HandleId))
+                          T*               (VulkanObjectInfoTable::*GetPoolInfoFunc)(format::HandleId),
+                          void             (VulkanObjectInfoTable::*RemovePoolFunc)(format::HandleId),
+                          void             (VulkanObjectInfoTable::*RemoveObjectFunc)(format::HandleId))
     {
         handle_mapping::RemovePoolHandle(id, &object_info_table_, GetPoolInfoFunc, RemovePoolFunc, RemoveObjectFunc);
     }
@@ -364,7 +364,7 @@ class VulkanReplayConsumerBase : public VulkanConsumer
     void RemovePoolHandles(format::HandleId                                    pool_id,
                            const HandlePointerDecoder<typename T::HandleType>* handles_pointer,
                            size_t                                              handles_len,
-                           S* (VulkanObjectInfoTable::*GetPoolInfoFunc)(format::HandleId),
+                           S*   (VulkanObjectInfoTable::*GetPoolInfoFunc)(format::HandleId),
                            void (VulkanObjectInfoTable::*RemoveFunc)(format::HandleId))
     {
         // This parameter is only referenced by debug builds.
@@ -383,7 +383,7 @@ class VulkanReplayConsumerBase : public VulkanConsumer
     void SetOutputArrayCount(format::HandleId handle_id,
                              uint32_t         index,
                              size_t           count,
-                             HandleInfoT* (VulkanObjectInfoTable::*HandleInfoFunc)(format::HandleId))
+                             HandleInfoT*     (VulkanObjectInfoTable::*HandleInfoFunc)(format::HandleId))
     {
         HandleInfoT* info = (object_info_table_.*HandleInfoFunc)(handle_id);
         if (info != nullptr)
@@ -1153,6 +1153,15 @@ class VulkanReplayConsumerBase : public VulkanConsumer
     bool CheckCommandBufferInfoForFrameBoundary(const CommandBufferInfo* command_buffer_info);
     bool CheckPNextChainForFrameBoundary(const DeviceInfo* device_info, const PNextNode* pnext);
 
+    void ReplaceWindowedResolution(uint32_t& width, uint32_t& height)
+    {
+        if (options_.force_windowed)
+        {
+            width  = options_.windowed_width;
+            height = options_.windowed_height;
+        }
+    }
+
   private:
     struct HardwareBufferInfo
     {
@@ -1180,25 +1189,25 @@ class VulkanReplayConsumerBase : public VulkanConsumer
     typedef std::unordered_map<format::HandleId, HardwareBufferMemoryInfo> HardwareBufferMemoryMap;
 
   private:
-    util::platform::LibraryHandle                                    loader_handle_;
-    PFN_vkGetInstanceProcAddr                                        get_instance_proc_addr_;
-    PFN_vkCreateInstance                                             create_instance_proc_;
-    std::unordered_map<encode::DispatchKey, PFN_vkGetDeviceProcAddr> get_device_proc_addrs_;
-    std::unordered_map<encode::DispatchKey, PFN_vkCreateDevice>      create_device_procs_;
+    util::platform::LibraryHandle                                        loader_handle_;
+    PFN_vkGetInstanceProcAddr                                            get_instance_proc_addr_;
+    PFN_vkCreateInstance                                                 create_instance_proc_;
+    std::unordered_map<encode::DispatchKey, PFN_vkGetDeviceProcAddr>     get_device_proc_addrs_;
+    std::unordered_map<encode::DispatchKey, PFN_vkCreateDevice>          create_device_procs_;
     std::unordered_map<encode::DispatchKey, encode::VulkanInstanceTable> instance_tables_;
     std::unordered_map<encode::DispatchKey, encode::VulkanDeviceTable>   device_tables_;
-    std::function<void(const char*)>                                 fatal_error_handler_;
-    std::shared_ptr<application::Application>                        application_;
-    VulkanObjectInfoTable                                            object_info_table_;
-    bool                                                             loading_trim_state_;
-    bool                                                             replaying_trimmed_capture_;
-    SwapchainImageTracker                                            swapchain_image_tracker_;
-    HardwareBufferMap                                                hardware_buffers_;
-    HardwareBufferMemoryMap                                          hardware_buffer_memory_info_;
-    std::unique_ptr<ScreenshotHandler>                               screenshot_handler_;
-    std::unique_ptr<VulkanSwapchain>                                 swapchain_;
-    std::string                                                      screenshot_file_prefix_;
-    graphics::FpsInfo*                                               fps_info_;
+    std::function<void(const char*)>                                     fatal_error_handler_;
+    std::shared_ptr<application::Application>                            application_;
+    VulkanObjectInfoTable                                                object_info_table_;
+    bool                                                                 loading_trim_state_;
+    bool                                                                 replaying_trimmed_capture_;
+    SwapchainImageTracker                                                swapchain_image_tracker_;
+    HardwareBufferMap                                                    hardware_buffers_;
+    HardwareBufferMemoryMap                                              hardware_buffer_memory_info_;
+    std::unique_ptr<ScreenshotHandler>                                   screenshot_handler_;
+    std::unique_ptr<VulkanSwapchain>                                     swapchain_;
+    std::string                                                          screenshot_file_prefix_;
+    graphics::FpsInfo*                                                   fps_info_;
 
     // Imported semaphores are semaphores that are used to track external memory.
     // During replay, the external memory is not present (we have no Fds or handles to valid

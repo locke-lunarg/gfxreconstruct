@@ -86,7 +86,7 @@ VkResult VulkanSwapchain::CreateSurface(VkResult                            orig
         assert(window_factory);
 
         // By default, the created window will be automatically in full screen mode, and its location will be set to 0,0
-        // if the requested size exceeds or equals the current screen size. If the user specifies "--fw" or "--fwo" this
+        // if the requested size exceeds or equals the current screen size. If the user specifies "--fw" this
         // behavior will change, and replay will instead render in windowed mode.
         auto window = window_factory ? window_factory->Create(xpos, ypos, width, height, force_windowed) : nullptr;
 

@@ -816,7 +816,7 @@ Dx12ReplayConsumerBase::OverrideCreateSwapChain(DxObjectInfo*                   
         ReplaceWindowedResolution(desc_pointer->BufferDesc.Width, desc_pointer->BufferDesc.Height);
 
         // By default, the created window will be automatically in full screen mode, and its location will be set to 0,0
-        // if the requested size exceeds or equals the current screen size. If the user specifies "--fw" or "--fwo" this
+        // if the requested size exceeds or equals the current screen size. If the user specifies "--fw" this
         // behavior will change, and replay will instead render in windowed mode.
         window = window_factory->Create(options_.window_topleft_x,
                                         options_.window_topleft_y,

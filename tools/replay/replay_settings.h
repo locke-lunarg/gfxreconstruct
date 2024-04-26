@@ -155,8 +155,6 @@ static void PrintUsage(const char* exe_name)
     GFXRECON_WRITE_CONSOLE("          \t\t    %s\tReplay with the Direct3D API enabled.", kApiFamilyD3D12);
     GFXRECON_WRITE_CONSOLE("          \t\t    %s\t\tReplay with both the Vulkan and Direct3D 12 APIs", kApiFamilyAll);
     GFXRECON_WRITE_CONSOLE("          \t\t         \tenabled. This is the default.");
-    GFXRECON_WRITE_CONSOLE(
-        "  --fwo <x,y>\t\tForce windowed mode if not already, and allow setting of a custom window location.");
 #endif
     GFXRECON_WRITE_CONSOLE("")
     GFXRECON_WRITE_CONSOLE("Vulkan-only:")

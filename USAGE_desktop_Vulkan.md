@@ -525,7 +525,6 @@ gfxrecon-replay         [-h | --help] [--version] [--gpu <index>]
                         [--opcd | --omit-pipeline-cache-data] [--wsi <platform>]
                         [--surface-index <N>] [--remove-unsupported] [--validate]
                         [-m <mode> | --memory-translation <mode>]
-                        [--fwo <x,y> | --force-windowed-origin <x,y>]
                         [--use-captured-swapchain-indices]
                         [--swapchain MODE] [--use-captured-swapchain-indices]
                         [--mfr|--measurement-frame-range <start-frame>-<end-frame>]
@@ -633,8 +632,7 @@ Optional arguments:
                                         to different allocations with different
                                         offsets.  Uses VMA to manage allocations
                                         and suballocations.
-  --fwo <x,y>           Force windowed mode if not already, and allow setting of a custom window location.
-                        (Same as --force-windowed-origin)
+
   --api <api>           Use the specified API for replay (Windows only).
                         Available values are:
                             vulkan      Replay with the Vulkan API enabled.

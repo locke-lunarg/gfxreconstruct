@@ -385,6 +385,7 @@ void VulkanReplayConsumerBase::ProcessResizeWindowCommand(format::HandleId surfa
 
         if (window != nullptr)
         {
+            ReplaceWindowedResolution(width, height);
             window->SetSize(width, height);
         }
         else
@@ -423,6 +424,7 @@ void VulkanReplayConsumerBase::ProcessResizeWindowCommand2(format::HandleId surf
 
         if (window != nullptr)
         {
+            ReplaceWindowedResolution(width, height);
             window->SetSizePreTransform(width, height, pre_transform);
         }
         else
@@ -2028,9 +2030,10 @@ void VulkanReplayConsumerBase::SetSwapchainWindowSize(const Decoded_VkSwapchainC
                     pre_transform = format::ResizeWindowPreTransform::kPreTransform270;
                     break;
             }
-
-            surface_info->window->SetSizePreTransform(
-                create_info->imageExtent.width, create_info->imageExtent.height, pre_transform);
+            auto width  = create_info->imageExtent.width;
+            auto height = create_info->imageExtent.height;
+            ReplaceWindowedResolution(width, height);
+            surface_info->window->SetSizePreTransform(width, height, pre_transform);
         }
     }
 }
@@ -5318,6 +5321,7 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
         ProcessSwapchainFullScreenExclusiveInfo(pCreateInfo->GetMetaStructPointer());
 
         VkSwapchainCreateInfoKHR modified_create_info = (*replay_create_info);
+        ReplaceWindowedResolution(modified_create_info.imageExtent.width, modified_create_info.imageExtent.height);
 
         if (screenshot_handler_ != nullptr)
         {
