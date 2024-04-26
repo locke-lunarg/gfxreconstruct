@@ -1153,7 +1153,17 @@ class VulkanReplayConsumerBase : public VulkanConsumer
     bool CheckCommandBufferInfoForFrameBoundary(const CommandBufferInfo* command_buffer_info);
     bool CheckPNextChainForFrameBoundary(const DeviceInfo* device_info, const PNextNode* pnext);
 
+  protected:
     void ReplaceWindowedResolution(uint32_t& width, uint32_t& height)
+    {
+        if (options_.force_windowed)
+        {
+            width  = options_.windowed_width;
+            height = options_.windowed_height;
+        }
+    }
+
+    void ReplaceWindowedResolution(float& width, float& height)
     {
         if (options_.force_windowed)
         {

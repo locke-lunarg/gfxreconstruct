@@ -1459,7 +1459,12 @@ void VulkanReplayConsumer::Process_vkCmdSetViewport(
     VkCommandBuffer in_commandBuffer = MapHandle<CommandBufferInfo>(commandBuffer, &VulkanObjectInfoTable::GetCommandBufferInfo);
     const VkViewport* in_pViewports = pViewports->GetPointer();
 
-    GetDeviceTable(in_commandBuffer)->CmdSetViewport(in_commandBuffer, firstViewport, viewportCount, in_pViewports);
+    // GetDeviceTable(in_commandBuffer)->CmdSetViewport(in_commandBuffer, firstViewport, viewportCount, in_pViewports);
+
+    auto modified_viewports = (*in_pViewports);
+    ReplaceWindowedResolution(modified_viewports.width, modified_viewports.height);
+
+    GetDeviceTable(in_commandBuffer)->CmdSetViewport(in_commandBuffer, firstViewport, viewportCount, &modified_viewports);
 }
 
 void VulkanReplayConsumer::Process_vkCmdSetScissor(
@@ -1472,7 +1477,12 @@ void VulkanReplayConsumer::Process_vkCmdSetScissor(
     VkCommandBuffer in_commandBuffer = MapHandle<CommandBufferInfo>(commandBuffer, &VulkanObjectInfoTable::GetCommandBufferInfo);
     const VkRect2D* in_pScissors = pScissors->GetPointer();
 
-    GetDeviceTable(in_commandBuffer)->CmdSetScissor(in_commandBuffer, firstScissor, scissorCount, in_pScissors);
+    // GetDeviceTable(in_commandBuffer)->CmdSetScissor(in_commandBuffer, firstScissor, scissorCount, in_pScissors);
+
+    auto modified_scissors = (*in_pScissors);
+    ReplaceWindowedResolution(modified_scissors.extent.width, modified_scissors.extent.height);
+
+    GetDeviceTable(in_commandBuffer)->CmdSetScissor(in_commandBuffer, firstScissor, scissorCount, &modified_scissors);
 }
 
 void VulkanReplayConsumer::Process_vkCmdSetLineWidth(

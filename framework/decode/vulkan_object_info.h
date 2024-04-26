@@ -395,6 +395,8 @@ struct SwapchainKHRInfo : public VulkanObjectInfo<VkSwapchainKHR>
     VkSurfaceKHR         surface{ VK_NULL_HANDLE };
     format::HandleId     surface_id{ format::kNullHandleId };
     DeviceInfo*          device_info{ nullptr };
+    uint32_t             replay_width{ 0 };
+    uint32_t             replay_height{ 0 };
     uint32_t             width{ 0 };
     uint32_t             height{ 0 };
     VkFormat             format{ VK_FORMAT_UNDEFINED };
@@ -441,7 +443,7 @@ struct FramebufferInfo : public VulkanObjectInfo<VkFramebuffer>
 {
     VkFramebufferCreateFlags             framebuffer_flags{ 0 };
     std::unordered_map<uint32_t, size_t> array_counts;
-    std::vector<format::HandleId> attachment_image_view_ids;
+    std::vector<format::HandleId>        attachment_image_view_ids;
 };
 
 struct DeferredOperationKHRInfo : public VulkanObjectInfo<VkDeferredOperationKHR>

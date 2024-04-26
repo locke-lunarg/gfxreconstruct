@@ -5306,6 +5306,8 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
     auto swapchain_info   = reinterpret_cast<SwapchainKHRInfo*>(pSwapchain->GetConsumerData(0));
     assert(swapchain_info != nullptr);
 
+    VkSwapchainCreateInfoKHR modified_create_info = (*replay_create_info);
+
     // Ignore swapchain creation if surface creation was skipped when rendering is restricted to a specific surface.
     if (replay_create_info->surface != VK_NULL_HANDLE)
     {
@@ -5320,7 +5322,6 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
 
         ProcessSwapchainFullScreenExclusiveInfo(pCreateInfo->GetMetaStructPointer());
 
-        VkSwapchainCreateInfoKHR modified_create_info = (*replay_create_info);
         ReplaceWindowedResolution(modified_create_info.imageExtent.width, modified_create_info.imageExtent.height);
 
         if (screenshot_handler_ != nullptr)
@@ -5333,7 +5334,7 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
         PhysicalDeviceInfo* physical_device_info = object_info_table_.GetPhysicalDeviceInfo(device_info->parent_id);
         InstanceInfo*       instance_info        = object_info_table_.GetInstanceInfo(physical_device_info->parent_id);
 
-        auto colorspace_extension_map_iterator = kColorSpaceExtensionMap.find(replay_create_info->imageColorSpace);
+        auto colorspace_extension_map_iterator = kColorSpaceExtensionMap.find(modified_create_info.imageColorSpace);
         if (colorspace_extension_map_iterator != kColorSpaceExtensionMap.end())
         {
             auto supported_extension_iterator = std::find(instance_info->enabled_extensions.begin(),
@@ -5419,24 +5420,26 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
         swapchain_info->surface_id = format::kNullHandleId;
     }
 
-    swapchain_info->image_flags        = replay_create_info->flags;
-    swapchain_info->image_array_layers = replay_create_info->imageArrayLayers;
-    swapchain_info->image_usage        = replay_create_info->imageUsage;
-    swapchain_info->image_sharing_mode = replay_create_info->imageSharingMode;
+    swapchain_info->image_flags        = modified_create_info.flags;
+    swapchain_info->image_array_layers = modified_create_info.imageArrayLayers;
+    swapchain_info->image_usage        = modified_create_info.imageUsage;
+    swapchain_info->image_sharing_mode = modified_create_info.imageSharingMode;
     swapchain_info->device_info        = device_info;
-    swapchain_info->width              = replay_create_info->imageExtent.width;
-    swapchain_info->height             = replay_create_info->imageExtent.height;
-    swapchain_info->format             = replay_create_info->imageFormat;
+    swapchain_info->replay_width       = replay_create_info->imageExtent.width;
+    swapchain_info->replay_height      = replay_create_info->imageExtent.height;
+    swapchain_info->width              = modified_create_info.imageExtent.width;
+    swapchain_info->height             = modified_create_info.imageExtent.height;
+    swapchain_info->format             = modified_create_info.imageFormat;
 
     if ((result == VK_SUCCESS) && ((*replay_swapchain) != VK_NULL_HANDLE))
     {
-        if ((replay_create_info->imageSharingMode == VK_SHARING_MODE_CONCURRENT) &&
-            (replay_create_info->queueFamilyIndexCount > 0) && (replay_create_info->pQueueFamilyIndices != nullptr))
+        if ((modified_create_info.imageSharingMode == VK_SHARING_MODE_CONCURRENT) &&
+            (modified_create_info.queueFamilyIndexCount > 0) && (modified_create_info.pQueueFamilyIndices != nullptr))
         {
-            swapchain_info->queue_family_indices.resize(replay_create_info->queueFamilyIndexCount);
+            swapchain_info->queue_family_indices.resize(modified_create_info.queueFamilyIndexCount);
             std::memcpy(swapchain_info->queue_family_indices.data(),
-                        replay_create_info->pQueueFamilyIndices,
-                        sizeof(uint32_t) * replay_create_info->queueFamilyIndexCount);
+                        modified_create_info.pQueueFamilyIndices,
+                        sizeof(uint32_t) * modified_create_info.queueFamilyIndexCount);
         }
         else
         {
@@ -5444,7 +5447,7 @@ VkResult VulkanReplayConsumerBase::OverrideCreateSwapchainKHR(
             swapchain_info->queue_family_indices.emplace_back(0);
         }
 
-        swapchain_info->surface    = replay_create_info->surface;
+        swapchain_info->surface    = modified_create_info.surface;
         swapchain_info->surface_id = pCreateInfo->GetMetaStructPointer()->surface;
     }
 
@@ -7207,8 +7210,12 @@ void VulkanReplayConsumerBase::OverrideCmdBeginRenderPass(
         }
     }
 
+    auto modified_begin_info = (*render_pass_begin_info_decoder->GetPointer());
+    ReplaceWindowedResolution(modified_begin_info.renderArea.extent.width,
+                              modified_begin_info.renderArea.extent.height);
+
     VkCommandBuffer command_buffer = command_buffer_info->handle;
-    return func(command_buffer, render_pass_begin_info_decoder->GetPointer(), contents);
+    return func(command_buffer, &modified_begin_info, contents);
 }
 
 VkResult VulkanReplayConsumerBase::OverrideCreateImageView(
@@ -7245,24 +7252,27 @@ VkResult VulkanReplayConsumerBase::OverrideCreateFramebuffer(
     StructPointerDecoder<Decoded_VkAllocationCallbacks>*   allocator_decoder,
     HandlePointerDecoder<VkFramebuffer>*                   frame_buffer_decoder)
 {
-    VkDevice                       device          = device_info->handle;
-    const VkFramebufferCreateInfo* create_info     = create_info_decoder->GetPointer();
-    const VkAllocationCallbacks*   allocator       = GetAllocationCallbacks(allocator_decoder);
-    VkFramebuffer*                 out_framebuffer = frame_buffer_decoder->GetHandlePointer();
+    VkDevice                       device             = device_info->handle;
+    const VkFramebufferCreateInfo* replay_create_info = create_info_decoder->GetPointer();
+    const VkAllocationCallbacks*   allocator          = GetAllocationCallbacks(allocator_decoder);
+    VkFramebuffer*                 out_framebuffer    = frame_buffer_decoder->GetHandlePointer();
 
-    VkResult result = func(device, create_info, allocator, out_framebuffer);
+    auto modified_create_info = (*replay_create_info);
+    ReplaceWindowedResolution(modified_create_info.width, modified_create_info.height);
+
+    VkResult result = func(device, &modified_create_info, allocator, out_framebuffer);
 
     if ((result == VK_SUCCESS) && ((*out_framebuffer) != VK_NULL_HANDLE))
     {
         auto framebuffer_info = reinterpret_cast<FramebufferInfo*>(frame_buffer_decoder->GetConsumerData(0));
         GFXRECON_ASSERT(framebuffer_info != nullptr);
 
-        framebuffer_info->framebuffer_flags = create_info->flags;
+        framebuffer_info->framebuffer_flags = modified_create_info.flags;
 
-        if ((create_info->attachmentCount > 0) && (create_info->pAttachments != nullptr) &&
-            ((create_info->flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT) != VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT))
+        if ((modified_create_info.attachmentCount > 0) && (modified_create_info.pAttachments != nullptr) &&
+            ((modified_create_info.flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT) != VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT))
         {
-            for (uint32_t i = 0; i < create_info->attachmentCount; ++i)
+            for (uint32_t i = 0; i < modified_create_info.attachmentCount; ++i)
             {
                 framebuffer_info->attachment_image_view_ids.push_back(
                     create_info_decoder->GetMetaStructPointer()->pAttachments.GetPointer()[i]);
