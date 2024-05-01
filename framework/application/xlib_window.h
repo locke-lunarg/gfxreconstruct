@@ -86,6 +86,7 @@ class XlibWindow : public decode::Window
     uint32_t     screen_height_;
     bool         visible_;
     bool         fullscreen_;
+    bool         force_windowed_;
 };
 
 class XlibWindowFactory : public decode::WindowFactory

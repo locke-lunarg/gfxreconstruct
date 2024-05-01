@@ -151,8 +151,9 @@ bool WaylandWindow::Create(const std::string& title,
         }
     }
 
-    width_  = width;
-    height_ = height;
+    width_          = width;
+    height_         = height;
+    force_windowed_ = force_windowed;
     UpdateWindowSize();
 
     return true;
@@ -292,7 +293,7 @@ void WaylandWindow::UpdateWindowSize()
             scale_ = output_info.scale;
         }
 
-        if (output_info.width == width_ && output_info.height == height_)
+        if (!force_windowed_ && (output_info.width == width_ && output_info.height == height_))
         {
             if (xdg_toplevel_ != nullptr)
             {
