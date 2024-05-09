@@ -1008,6 +1008,7 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
                                      const std::vector<format::HandleId>&                front_command_list_ids,
                                      D3D12_GPU_VIRTUAL_ADDRESS                           capture_source_gpu_va,
                                      uint64_t                                            source_size,
+                                     DXGI_FORMAT                                         view_format,
                                      const std::vector<std::pair<std::string, int32_t>>& json_path,
                                      const std::string&                                  file_name,
                                      const std::string&                                  write_type);
@@ -1017,6 +1018,7 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
                               format::HandleId                                    source_resource_id,
                               uint64_t                                            source_offset,
                               uint64_t                                            source_size,
+                              DXGI_FORMAT                                         view_format,
                               const std::vector<uint32_t>&                        subresource_indices,
                               const std::vector<std::pair<std::string, int32_t>>& json_path,
                               const std::string&                                  file_name,

@@ -53,7 +53,11 @@ struct CopyResourceData
     CopyResourceData()                        = default;
     CopyResourceData(const CopyResourceData&) = delete;
 
-    format::HandleId                                source_resource_id{ format::kNullHandleId };
+    format::HandleId source_resource_id{ format::kNullHandleId };
+    // The resource format could be typeless, so we need the view's format, like SHADER_RESOURCE_VIEW.
+    // Some views don't have format, like CONSTANT_BUFFER_VIEW.
+    // If the view's flag is RAW, the view's format could also be typeless.
+    DXGI_FORMAT                                     view_format{ DXGI_FORMAT_UNKNOWN };
     D3D12_RESOURCE_DESC                             desc{};
     std::vector<uint64_t>                           subresource_offsets;
     std::vector<uint64_t>                           subresource_sizes;

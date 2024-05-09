@@ -5547,6 +5547,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                
                                         front_command_list_ids,
                                         view.BufferLocation,
                                         view.SizeInBytes,
+                                        DXGI_FORMAT_UNKNOWN,
                                         json_path,
                                         "vertex",
                                         write_type);
@@ -5573,6 +5574,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                
                                     front_command_list_ids,
                                     index_buffer_view->BufferLocation,
                                     index_buffer_view->SizeInBytes,
+                                    index_buffer_view->Format,
                                     json_path,
                                     "index",
                                     write_type);
@@ -5627,6 +5629,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                
                                                 front_command_list_ids,
                                                 info.captured_view.BufferLocation,
                                                 info.captured_view.SizeInBytes,
+                                                DXGI_FORMAT_UNKNOWN,
                                                 json_path_sub,
                                                 "constant_buffer",
                                                 write_type);
@@ -5671,6 +5674,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                
                                              info.resource_id,
                                              offset,
                                              size,
+                                             info.view.Format,
                                              info.subresource_indices,
                                              json_path_sub,
                                              "shader_resource",
@@ -5715,6 +5719,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                
                                              info.resource_id,
                                              offset,
                                              size,
+                                             info.view.Format,
                                              info.subresource_indices,
                                              json_path_sub,
                                              "unordered_access_resource",
@@ -5730,6 +5735,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                
                                                  info.counter_resource_id,
                                                  info.view.Buffer.CounterOffsetInBytes,
                                                  0,
+                                                 info.view.Format,
                                                  sub_indices_emptry,
                                                  json_path_sub,
                                                  "unordered_access_counter_resource",
@@ -5777,6 +5783,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                
                                      info.resource_id,
                                      0,
                                      0,
+                                     info.view.Format,
                                      info.subresource_indices,
                                      json_path,
                                      "render_target",
@@ -5806,6 +5813,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                
                                      info.resource_id,
                                      0,
                                      0,
+                                     info.view.Format,
                                      info.subresource_indices,
                                      json_path,
                                      "depth_stencil",
@@ -5834,6 +5842,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                
                              exe_indirect_info->argument_id,
                              exe_indirect_info->argument_offset,
                              0,
+                             DXGI_FORMAT_UNKNOWN,
                              sub_indices_emptry,
                              json_path,
                              "execute_indirect_argument",
@@ -5845,6 +5854,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResources(DxObjectInfo*                
                              exe_indirect_info->count_id,
                              exe_indirect_info->count_offset,
                              0,
+                             DXGI_FORMAT_UNKNOWN,
                              sub_indices_emptry,
                              json_path,
                              "execute_indirect_count",
@@ -5856,6 +5866,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResourceByGPUVA(DxObjectInfo*          
                                                          const std::vector<format::HandleId>& front_command_list_ids,
                                                          D3D12_GPU_VIRTUAL_ADDRESS            captured_source_gpu_va,
                                                          uint64_t                             source_size,
+                                                         DXGI_FORMAT                          view_format,
                                                          const std::vector<std::pair<std::string, int32_t>>& json_path,
                                                          const std::string&                                  file_name,
                                                          const std::string&                                  write_type)
@@ -5865,6 +5876,7 @@ void Dx12ReplayConsumerBase::CopyDrawcallResourceByGPUVA(DxObjectInfo*          
         return;
     }
     graphics::CopyResourceDataPtr copy_resource_data(new graphics::CopyResourceData());
+    copy_resource_data->view_format = view_format;
     copy_resource_data->subresource_indices.emplace_back(0);
     copy_resource_data->source_resource_id = object_mapping::FindResourceIDbyGpuVA(captured_source_gpu_va, gpu_va_map_);
 
@@ -5884,12 +5896,14 @@ void Dx12ReplayConsumerBase::CopyDrawcallResource(DxObjectInfo*                 
                                                   format::HandleId                     source_resource_id,
                                                   uint64_t                             source_offset,
                                                   uint64_t                             source_size,
+                                                  DXGI_FORMAT                          view_format,
                                                   const std::vector<uint32_t>&         subresource_indices,
                                                   const std::vector<std::pair<std::string, int32_t>>& json_path,
                                                   const std::string&                                  file_name,
                                                   const std::string&                                  write_type)
 {
     graphics::CopyResourceDataPtr copy_resource_data(new graphics::CopyResourceData());
+    copy_resource_data->view_format         = view_format;
     copy_resource_data->subresource_indices = subresource_indices;
     copy_resource_data->json_path           = json_path;
     copy_resource_data->file_name           = file_name;
