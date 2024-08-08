@@ -992,8 +992,10 @@ void Dx12StateWriter::WriteCommandListState(const Dx12StateTable& state_table)
 {
     auto                           trim_boundary  = D3D12CaptureManager::Get()->GetTrimBundary();
     CaptureSettings::TrimDrawcalls trim_drawcalls = {};
-    std::vector<format::HandleId>  target_command_ids;
-    format::HandleId               last_target_command_id = format::kNullHandleId;
+    std::vector<format::HandleId>  trim_drawcalls_target_bundle_command_ids;
+    format::HandleId               trim_drawcalls_last_target_bundle_command_id = format::kNullHandleId;
+    std::vector<format::HandleId>  trim_drawcalls_target_command_ids;
+    format::HandleId               trim_drawcalls_last_target_command_id = format::kNullHandleId;
 
     // Write target commandlists in direct_command_lists for TrimBoundary::kDrawcalls.
     if (trim_boundary == CaptureSettings::TrimBoundary::kDrawcalls)
@@ -1006,15 +1008,16 @@ void Dx12StateWriter::WriteCommandListState(const Dx12StateTable& state_table)
         for (format::HandleId id : command_ids)
         {
             ++command_index;
-            target_command_ids.emplace_back(id);
+            trim_drawcalls_target_command_ids.emplace_back(id);
             if (command_index == trim_drawcalls.command_index)
             {
-                last_target_command_id = id;
+                trim_drawcalls_last_target_command_id = id;
                 break;
             }
         }
     }
 
+    std::vector<ID3D12CommandList_Wrapper*> bundle_command_lists;
     std::vector<ID3D12CommandList_Wrapper*> direct_command_lists;
     // TrimBoundary::kDrawcalls only runs one ExecuteCommandLists, so it doesn't need !is_closed commandlists.
     std::vector<ID3D12CommandList_Wrapper*> open_command_lists;
@@ -1032,51 +1035,70 @@ void Dx12StateWriter::WriteCommandListState(const Dx12StateTable& state_table)
 
         // Write create calls and commands for bundle command lists. Keep track of primary and open command lists to be
         // written afterward.
-        // TrimBoundary::kDrawcalls doesn't filter Bundle commandlists. All are writed.
-        if (list->GetType() == D3D12_COMMAND_LIST_TYPE_BUNDLE)
-        {
-            if (list_info->is_closed)
-            {
-                util::UintRange drawcall_indices;
-                WriteCommandListCreation(list_wrapper);
-                WriteCommandListCommands(list_wrapper, state_table, drawcall_indices);
-            }
-            else if (trim_boundary != CaptureSettings::TrimBoundary::kDrawcalls)
-            {
-                open_command_lists.push_back(list_wrapper);
-            }
-        }
-        else
-        {
-            direct_command_lists.push_back(list_wrapper);
-        }
-    });
-
-    // Write primary command lists state.
-    for (auto list_wrapper : direct_command_lists)
-    {
-        auto list_info = list_wrapper->GetObjectInfo();
         if (list_info->is_closed)
         {
-            if (!target_command_ids.empty() &&
-                (std::find(target_command_ids.begin(), target_command_ids.end(), list_wrapper->GetCaptureId()) ==
-                 target_command_ids.end()))
+            if (list->GetType() == D3D12_COMMAND_LIST_TYPE_BUNDLE)
             {
-                continue;
+                bundle_command_lists.push_back(list_wrapper);
             }
-
-            util::UintRange drawcall_indices;
-            if (last_target_command_id == list_wrapper->GetCaptureId())
+            else
             {
-                drawcall_indices = trim_drawcalls.drawcall_indices;
+                if (trim_boundary == CaptureSettings::TrimBoundary::kDrawcalls)
+                {
+                    if (!trim_drawcalls_target_command_ids.empty() &&
+                        (std::find(trim_drawcalls_target_command_ids.begin(),
+                                   trim_drawcalls_target_command_ids.end(),
+                                   list_wrapper->GetCaptureId()) == trim_drawcalls_target_command_ids.end()))
+                    {
+                        return;
+                    }
+                    if (!list_info->execute_bundles_commandlist_ids.empty())
+                    {
+                        trim_drawcalls_target_bundle_command_ids.insert(
+                            trim_drawcalls_target_bundle_command_ids.end(),
+                            list_info->execute_bundles_commandlist_ids.begin(),
+                            list_info->execute_bundles_commandlist_ids.end());
+                    }
+                }
+                direct_command_lists.push_back(list_wrapper);
             }
-            WriteCommandListCreation(list_wrapper);
-            WriteCommandListCommands(list_wrapper, state_table, drawcall_indices);
         }
         else if (trim_boundary != CaptureSettings::TrimBoundary::kDrawcalls)
         {
             open_command_lists.push_back(list_wrapper);
         }
+    });
+
+    for (auto list_wrapper : bundle_command_lists)
+    {
+        auto            list_info = list_wrapper->GetObjectInfo();
+        util::UintRange drawcall_indices;
+
+        if (trim_boundary == CaptureSettings::TrimBoundary::kDrawcalls)
+        {
+            if (!trim_drawcalls_target_bundle_command_ids.empty() &&
+                (std::find(trim_drawcalls_target_bundle_command_ids.begin(),
+                           trim_drawcalls_target_bundle_command_ids.end(),
+                           list_wrapper->GetCaptureId()) == trim_drawcalls_target_bundle_command_ids.end()))
+            {
+                break;
+            }
+        }
+        WriteCommandListCreation(list_wrapper);
+        WriteCommandListCommands(list_wrapper, state_table, drawcall_indices);
+    }
+
+    // Write primary command lists state.
+    for (auto list_wrapper : direct_command_lists)
+    {
+        auto list_info = list_wrapper->GetObjectInfo();
+        util::UintRange drawcall_indices;
+        if (trim_drawcalls_last_target_command_id == list_wrapper->GetCaptureId())
+        {
+            drawcall_indices = trim_drawcalls.drawcall_indices;
+        }
+        WriteCommandListCreation(list_wrapper);
+        WriteCommandListCommands(list_wrapper, state_table, drawcall_indices);
     }
 
     // Write open command lists state.
