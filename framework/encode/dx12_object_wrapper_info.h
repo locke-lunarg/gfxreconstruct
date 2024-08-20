@@ -449,6 +449,12 @@ struct ID3D12CommandListInfo : public DxWrapperInfo
     // Track acceleration structure builds that are recorded to this command list.
     std::vector<DxAccelerationStructureBuildInfo> acceleration_structure_builds;
     std::vector<DxAccelerationStructureCopyInfo>  acceleration_structure_copies;
+
+    uint32_t drawcall_count{ 0 }; // DrawInstanced, DrawIndexedInstanced, Dispatch, ExecuteIndirect, ExecuteBundle
+
+    // GFXRECON_CAPTURE_DRAWCALLS
+    std::array<graphics::dx12::CommandSet, 3> split_command_sets;
+    bool                                      is_split_commandlist{ false };
 };
 
 struct ID3D10BlobInfo : public DxWrapperInfo
