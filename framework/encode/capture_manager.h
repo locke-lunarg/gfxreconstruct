@@ -132,6 +132,10 @@ class CommonCaptureManager
 
     void CheckStartCaptureForTrackMode(format::ApiFamilyId api_family, uint32_t current_boundary_count);
 
+    void ActivateTrimmingDrawcalls(format::ApiFamilyId api_family);
+
+    void DeactivateTrimmingDrawcalls();
+
     bool IsTrimHotkeyPressed();
 
     CaptureSettings::RuntimeTriggerState GetRuntimeTriggerState();
