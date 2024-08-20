@@ -32,6 +32,23 @@ GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(graphics)
 GFXRECON_BEGIN_NAMESPACE(dx12)
 
+uint32_t Dx12DumpResourcePosToArrayIndex(Dx12DumpResourcePos pos)
+{
+    switch (pos)
+    {
+        case Dx12DumpResourcePos::kBeforeDrawCall:
+            return kBeforeDrawCallArrayIndex;
+        case Dx12DumpResourcePos::kDrawCall:
+            return kDrawCallArrayIndex;
+        case Dx12DumpResourcePos::kAfterDrawCall:
+            return kAfterDrawCallArrayIndex;
+        case Dx12DumpResourcePos::kUnknown:
+        default:
+            GFXRECON_ASSERT(false && "Invalid use of Dx12DumpResourcePosToArrayIndex.");
+            return 0;
+    }
+}
+
 UINT GetTexturePitch(UINT64 width)
 {
     return (width * graphics::BytesPerPixel + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) /
