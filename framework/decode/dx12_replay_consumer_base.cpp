@@ -365,9 +365,19 @@ void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
     GFXRECON_ASSERT(resource_data_util_);
     if (resource_infos.size() > 0)
     {
-        resource_data_util_->ResetCommandList();
         for (auto resource_info : resource_infos)
         {
+            // For copy swapchain buffers:
+            // 1. The queue has to been swapchain's queue.
+            // 2. One ExecuteCommandLists could work for only one swapchain buffer.
+            // 3. The current back buffer index has to match the swapchain buffer.
+            // 4. After ExecuteCommandLists, the current back buffer index has to back init.
+            IDXGISwapChain3*    swapchain            = nullptr;
+            DxgiSwapchainInfo*  swapchain_extra_info = nullptr;
+            ID3D12CommandQueue* swapchain_queue      = nullptr;
+
+            resource_data_util_->ResetCommandList();
+
             if (resource_info.first != nullptr)
             {
                 resource_data_util_->WriteToResource(resource_info.second.resource,
@@ -384,10 +394,29 @@ void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
             {
                 auto extra_info                  = GetExtraInfo<D3D12ResourceInfo>(object_info);
                 extra_info->resource_state_infos = resource_info.second.after_states;
+                if (extra_info->swap_chain_id)
+                {
+                    auto swapchain_info  = GetObjectInfo(extra_info->swap_chain_id);
+                    swapchain_extra_info = GetExtraInfo<DxgiSwapchainInfo>(swapchain_info);
+                    swapchain_queue      = swapchain_extra_info->command_queue;
+                    swapchain            = reinterpret_cast<IDXGISwapChain3*>(swapchain_info->object);
+                    while (extra_info->buffer_index != swapchain->GetCurrentBackBufferIndex())
+                    {
+                        swapchain->Present(0, 0);
+                    }
+                }
+            }
+            resource_data_util_->CloseCommandList();
+            resource_data_util_->ExecuteAndWaitForCommandList(swapchain_queue);
+
+            if (swapchain && swapchain_extra_info)
+            {
+                while (swapchain_extra_info->init_buffer_index != swapchain->GetCurrentBackBufferIndex())
+                {
+                    swapchain->Present(0, 0);
+                }
             }
         }
-        resource_data_util_->CloseCommandList();
-        resource_data_util_->ExecuteAndWaitForCommandList();
         resource_infos.clear();
     }
 }
@@ -527,7 +556,9 @@ void Dx12ReplayConsumerBase::ProcessSetSwapchainImageStateQueueSubmit(ID3D12Comm
     HRESULT                            ret    = command_queue->GetDevice(IID_PPV_ARGS(&device));
     GFXRECON_ASSERT(SUCCEEDED(ret));
 
-    auto                 swapchain = static_cast<IDXGISwapChain3*>(swapchain_info->object);
+    auto swapchain_extra_info               = GetExtraInfo<DxgiSwapchainInfo>(swapchain_info);
+    swapchain_extra_info->init_buffer_index = current_buffer_index;
+    auto                 swapchain          = static_cast<IDXGISwapChain3*>(swapchain_info->object);
     DXGI_SWAP_CHAIN_DESC swap_chain_desc;
     swapchain->GetDesc(&swap_chain_desc);
     auto buffer_count = swap_chain_desc.BufferCount;
@@ -2411,6 +2442,9 @@ HRESULT Dx12ReplayConsumerBase::OverrideGetBuffer(DxObjectInfo*                r
                 // object info table while the swapchain is active.
                 ++object_info->extra_ref;
 
+                auto res_info           = GetExtraInfo<D3D12ResourceInfo>(object_info);
+                res_info->swap_chain_id = replay_object_info->capture_id;
+                res_info->buffer_index  = buffer;
                 // Store the surface's HandleId so the reference can be released later.
                 swapchain_info->image_ids[buffer] = *surface->GetPointer();
             }
