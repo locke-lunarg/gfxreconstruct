@@ -37,7 +37,7 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 // 1: enable. The target could be Draw or Dispatch.
 // 2: enable, and the target is Draw, not Dispatch.
 // ExecuteIndirect isn't available to check if it's Draw, so it doesn't work for 2.
-constexpr int TEST_AVAILABLE_ARGS = 0;
+constexpr int TEST_AVAILABLE_ARGS = 1;
 
 struct ExecuteIndirectInfo
 {
