@@ -41,6 +41,8 @@ class FileOptimizer : public decode::FileTransformer
 
     void SetUnreferencedBlocks(const std::unordered_set<uint64_t>& unreferenced_blocks);
 
+    void SetUnreferencedIds(const std::unordered_set<format::HandleId>& unreferenced_ids);
+
     uint64_t GetUnreferencedBlocksSize();
 
   protected:

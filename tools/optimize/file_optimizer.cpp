@@ -45,6 +45,11 @@ void FileOptimizer::SetUnreferencedBlocks(const std::unordered_set<uint64_t>& un
     unreferenced_blocks_ = unreferenced_blocks;
 }
 
+void FileOptimizer::SetUnreferencedIds(const std::unordered_set<format::HandleId>& unreferenced_ids)
+{
+    unreferenced_ids_ = unreferenced_ids;
+}
+
 uint64_t FileOptimizer::GetUnreferencedBlocksSize()
 {
     return unreferenced_blocks_.size();

@@ -24,14 +24,18 @@
 #define GFXRECON_DECODE_DX12_OBJECT_SCANNING_CONSUMER_BASE_H
 
 #include "decode/referenced_object_table.h"
+#include "decode/referenced_resource_table.h"
 #include "generated/generated_dx12_consumer.h"
 #include "util/to_string.h"
 
 #include <cctype>
 
+#include <functional>
+
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
 
+class DescriptorUpdateTemplateDecoder;
 class Dx12ObjectScanningConsumerBase : public Dx12Consumer
 {
   public:
@@ -56,8 +60,70 @@ class Dx12ObjectScanningConsumerBase : public Dx12Consumer
         referenced_objects_.GetUnreferencedObjectCreationBlocks(unreferenced_blocks, calls_info);
     }
 
+    void GetReferencedResourceIds(std::unordered_set<format::HandleId>* referenced_ids,
+                                  std::unordered_set<format::HandleId>* unreferenced_ids) const
+    {
+        table_.GetReferencedResourceIds(referenced_ids, unreferenced_ids);
+    }
+
+  private:
+    uint32_t GetBindingCount(format::HandleId container_id, uint32_t binding) const;
+
+    void AddDescriptorToContainer(format::HandleId                                 container_id,
+                                  int32_t                                          binding,
+                                  uint32_t                                         element,
+                                  uint32_t                                         count,
+                                  std::function<void(uint32_t, int32_t, uint32_t)> add_descriptor);
+
+    void AddImagesToContainer(format::HandleId                     container_id,
+                              int32_t                              binding,
+                              uint32_t                             element,
+                              uint32_t                             count,
+                              const Decoded_VkDescriptorImageInfo* image_infos);
+
+    void AddBuffersToContainer(format::HandleId                      container_id,
+                               int32_t                               binding,
+                               uint32_t                              element,
+                               uint32_t                              count,
+                               const Decoded_VkDescriptorBufferInfo* buffer_infos);
+
+    void AddResourcesToContainer(format::HandleId        container_id,
+                                 int32_t                 binding,
+                                 uint32_t                element,
+                                 uint32_t                count,
+                                 const format::HandleId* resource_ids);
+
+    void AddImagesToUser(format::HandleId user_id, size_t count, const Decoded_VkDescriptorImageInfo* image_info);
+
+    void AddBuffersToUser(format::HandleId user_id, size_t count, const Decoded_VkDescriptorBufferInfo* buffer_info);
+
+    void AddTexelBufferViewsToUser(format::HandleId user_id, size_t count, const format::HandleId* view_ids);
+
+    void CreateDescriptorUpdateTemplate(
+        const StructPointerDecoder<Decoded_VkDescriptorUpdateTemplateCreateInfo>* pCreateInfo,
+        const HandlePointerDecoder<VkDescriptorUpdateTemplate>*                   pDescriptorUpdateTemplate);
+
+    void UpdateDescriptorSetWithTemplate(format::HandleId                       container_id,
+                                         format::HandleId                       template_id,
+                                         const DescriptorUpdateTemplateDecoder* decoder);
+
+    void PushDescriptorSetWithTemplate(format::HandleId                       user_id,
+                                       format::HandleId                       template_id,
+                                       const DescriptorUpdateTemplateDecoder* decoder);
+
   private:
     ReferencedObjectTable referenced_objects_;
+
+    bool                    loading_state_;
+    bool                    loaded_state_;
+    ReferencedResourceTable table_;
+    LayoutBindingCounts     layout_binding_counts_;
+    SetLayouts              set_layouts_;
+    UpdateTemplateInfos     template_infos_;
+    bool                    not_optimizable_;
+
+    std::unordered_map<format::HandleId, VkDeviceAddress> dev_address_to_resource_map;
+    std::unordered_map<VkDeviceAddress, format::HandleId> dev_address_to_buffers_map;
 };
 
 GFXRECON_END_NAMESPACE(decode)

@@ -37,6 +37,35 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
 
+struct UpdateTemplateEntryInfo
+{
+    uint32_t         binding{ std::numeric_limits<uint32_t>::max() };
+    uint32_t         array_element{ 0 };
+    uint32_t         count{ 0 };
+    VkDescriptorType type{};
+};
+
+struct UpdateTemplateInfo
+{
+    format::HandleId                     set_id{ format::kNullHandleId };
+    std::vector<UpdateTemplateEntryInfo> image_infos;
+    std::vector<UpdateTemplateEntryInfo> buffer_infos;
+    std::vector<UpdateTemplateEntryInfo> texel_buffer_view_infos;
+    std::vector<UpdateTemplateEntryInfo> acceleration_structure_infos;
+    std::vector<UpdateTemplateEntryInfo> inline_uniform_block_infos;
+};
+
+// Table of descriptor update template info, keyed by VkDescriptorUpdateTemplate ID.
+typedef std::unordered_map<format::HandleId, UpdateTemplateInfo> UpdateTemplateInfos;
+
+// Table of descriptor set layout binding counts, keyed by VkDescriptorSetLayout ID.  Each entry is a table of
+// descriptor counts keyed by binding index.
+typedef std::unordered_map<format::HandleId, std::unordered_map<uint32_t, uint32_t>> LayoutBindingCounts;
+
+// Table to associate VkDescriptorSet IDs with the VkDescriptorSetLayout IDs used to create them, keyed by
+// VkDescriptorSet ID.
+typedef std::unordered_map<format::HandleId, format::HandleId> SetLayouts;
+
 class ReferencedResourceTable
 {
   public:

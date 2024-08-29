@@ -51,6 +51,8 @@ struct Dx12OptimizationInfo
     decode::Dx12FillCommandResourceValueMap  fill_command_resource_values;
     decode::Dx12UnassociatedResourceValueMap unassociated_resource_values;
 
+    std::unordered_set<gfxrecon::format::HandleId> unreferenced_ids;
+
     bool found_opt_fill_mem{ false };
     bool inject_noop_resource_value_optimization{ false };
 };
@@ -158,6 +160,9 @@ bool GetPsoOptimizationInfo(const std::string&               input_filename,
             {
                 options.optimize_resource_values = false;
             }
+
+            // Get the list of resources that were included in a command buffer submission during replay.
+            resref_consumer.GetReferencedResourceIds(nullptr, &info.unreferenced_ids);
         }
         else if (pso_pass_file_processor.GetErrorState() != gfxrecon::decode::FileProcessor::kErrorNone)
         {
@@ -390,6 +395,7 @@ bool ApplyDx12OptimizationInfo(const std::string&                     input_file
         gfxrecon::Dx12FileOptimizer file_optimizer;
         if (file_optimizer.Initialize(input_filename, output_filename))
         {
+            file_optimizer.SetUnreferencedIds(info.unreferenced_ids);
             file_optimizer.SetUnreferencedBlocks(info.unreferenced_blocks);
             file_optimizer.SetFillCommandResourceValues(&info.fill_command_resource_values,
                                                         info.inject_noop_resource_value_optimization);
