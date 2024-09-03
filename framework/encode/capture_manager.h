@@ -132,9 +132,9 @@ class CommonCaptureManager
 
     void CheckStartCaptureForTrackMode(format::ApiFamilyId api_family, uint32_t current_boundary_count);
 
-    void ActivateTrimmingDrawcalls(format::ApiFamilyId api_family);
+    void ActivateTrimmingDrawCalls(format::ApiFamilyId api_family);
 
-    void DeactivateTrimmingDrawcalls();
+    void DeactivateTrimmingDrawCalls();
 
     bool IsTrimHotkeyPressed();
 
@@ -261,8 +261,8 @@ class CommonCaptureManager
     bool                                GetDisableDxrSetting() const { return disable_dxr_; }
     auto                                GetAccelStructPaddingSetting() const { return accel_struct_padding_; }
     bool                                GetForceFifoPresentModeSetting() const { return force_fifo_present_mode_; }
-    auto                                GetTrimBundary() const { return trim_boundary_; }
-    auto                                GetTrimDrawcalls() const { return trim_drawcalls_; }
+    auto                                GetTrimBoundary() const { return trim_boundary_; }
+    auto                                GetTrimDrawCalls() const { return trim_draw_calls_; }
     auto                                GetQueueSubmitCount() const { return queue_submit_count_; }
 
     util::Compressor*      GetCompressor() { return compressor_.get(); }
@@ -272,8 +272,8 @@ class CommonCaptureManager
     util::ScreenshotFormat GetScreenShotFormat() const { return screenshot_format_; }
 
     std::string CreateTrimFilename(const std::string& base_filename, const util::UintRange& trim_range);
-    std::string CreateTrimDrawcallsFilename(const std::string&                    base_filename,
-                                            const CaptureSettings::TrimDrawcalls& trim_drawcalls);
+    std::string CreateTrimDrawCallsFilename(const std::string&                    base_filename,
+                                            const CaptureSettings::TrimDrawCalls& trim_draw_calls);
     bool        CreateCaptureFile(format::ApiFamilyId api_family, const std::string& base_filename);
     void        WriteCaptureOptions(std::string& operation_annotation);
     void        ActivateTrimming();
@@ -370,7 +370,7 @@ class CommonCaptureManager
     bool                                    trim_enabled_;
     CaptureSettings::TrimBoundary           trim_boundary_;
     std::vector<util::UintRange>            trim_ranges_;
-    CaptureSettings::TrimDrawcalls          trim_drawcalls_;
+    CaptureSettings::TrimDrawCalls          trim_draw_calls_;
     std::string                             trim_key_;
     uint32_t                                trim_key_frames_;
     uint32_t                                trim_key_first_frame_;
