@@ -374,7 +374,7 @@ void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
             // 4. After ExecuteCommandLists, the current back buffer index has to back init.
             IDXGISwapChain3*    swapchain            = nullptr;
             DxgiSwapchainInfo*  swapchain_extra_info = nullptr;
-            ID3D12CommandQueue* swapchain_queue      = nullptr;
+            ID3D12CommandQueue* queue                = nullptr;
 
             resource_data_util_->ResetCommandList();
 
@@ -398,7 +398,7 @@ void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
                 {
                     auto swapchain_info  = GetObjectInfo(extra_info->swap_chain_id);
                     swapchain_extra_info = GetExtraInfo<DxgiSwapchainInfo>(swapchain_info);
-                    swapchain_queue      = swapchain_extra_info->command_queue;
+                    queue                = swapchain_extra_info->command_queue;
                     swapchain            = reinterpret_cast<IDXGISwapChain3*>(swapchain_info->object);
                     while (extra_info->buffer_index != swapchain->GetCurrentBackBufferIndex())
                     {
@@ -407,7 +407,7 @@ void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
                 }
             }
             resource_data_util_->CloseCommandList();
-            resource_data_util_->ExecuteAndWaitForCommandList(swapchain_queue);
+            resource_data_util_->ExecuteAndWaitForCommandList(queue);
 
             if (swapchain && swapchain_extra_info)
             {
