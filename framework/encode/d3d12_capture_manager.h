@@ -41,6 +41,12 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(encode)
 
+class D3D12CaptureManager;
+extern "C"
+{
+    extern D3D12CaptureManager* singleton_;
+}
+
 class D3D12CaptureManager : public ApiCaptureManager
 {
   public:
@@ -864,7 +870,7 @@ class D3D12CaptureManager : public ApiCaptureManager
 
     void                              PrePresent(IDXGISwapChain_Wrapper* wrapper);
     void                              PostPresent(IDXGISwapChain_Wrapper* wrapper, UINT flags);
-    static D3D12CaptureManager*       singleton_;
+    // static D3D12CaptureManager*       singleton_;
     std::set<ID3D12Resource_Wrapper*> mapped_resources_; ///< Track mapped resources for unassisted tracking mode.
     DxgiDispatchTable  dxgi_dispatch_table_;  ///< DXGI dispatch table for functions retrieved from the DXGI DLL.
     D3D12DispatchTable d3d12_dispatch_table_; ///< D3D12 dispatch table for functions retrieved from the D3D12 DLL.

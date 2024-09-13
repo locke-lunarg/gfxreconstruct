@@ -22,6 +22,7 @@
 */
 
 #include "decode/dx12_replay_consumer_base.h"
+#include "encode/d3d12_capture_manager.h"
 
 #include "decode/dx12_enum_util.h"
 #include "decode/custom_dx12_struct_object_mappers.h"
@@ -44,6 +45,11 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 constexpr uint32_t kDefaultWaitTimeout = INFINITE;
 
 constexpr uint64_t kInternalEventId = static_cast<uint64_t>(~0);
+
+extern "C"
+{
+    extern encode::D3D12CaptureManager* singleton_;
+}
 
 template <typename T, typename U>
 void SetExtraInfo(HandlePointerDecoder<T>* decoder, std::unique_ptr<U>&& extra_info)
@@ -363,6 +369,17 @@ void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
     std::unordered_map<ID3D12Resource*, ResourceInitInfo>& resource_infos)
 {
     GFXRECON_ASSERT(resource_data_util_);
+    auto manager = encode::D3D12CaptureManager::Get();
+    if (manager)
+    {
+        manager->IncrementCallScope();
+    }
+    singleton_;
+    if (singleton_)
+    {
+        singleton_->IncrementCallScope();
+    }
+
     if (resource_infos.size() > 0)
     {
         std::unordered_map<ID3D12Resource*, ResourceInitInfo*> swapchain_resource_infos;
@@ -468,6 +485,10 @@ void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
         resource_data_util_->CloseCommandList();
         resource_data_util_->ExecuteAndWaitForCommandList();
         resource_infos.clear();
+    }
+    if (manager)
+    {
+        manager->DecrementCallScope();
     }
 }
 

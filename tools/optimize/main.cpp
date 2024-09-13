@@ -28,10 +28,11 @@
 
 #if defined(D3D12_SUPPORT)
 #include "dx12_optimize_util.h"
+#include "decode/dx12_optimize_options.h"
+#include "encode/d3d12_capture_manager.h"
 #endif
 
 #include "decode/decode_api_detection.h"
-#include "decode/dx12_optimize_options.h"
 #include "decode/file_processor.h"
 #include "format/format.h"
 #include "format/format_util.h"
@@ -50,6 +51,9 @@
 #include <vector>
 
 #if defined(WIN32)
+// This IID is not defined in d3dcommon.h or dxguid.lib
+DEFINE_GUID(IID_ID3DDestructionNotifier, 0xa06eb39a, 0x50da, 0x425b, 0x8c, 0x31, 0x4e, 0xec, 0xd6, 0xc2, 0x70, 0xf3);
+
 extern "C"
 {
     __declspec(dllexport) extern const UINT D3D12SDKVersion = 610;
@@ -58,6 +62,11 @@ extern "C"
 {
     __declspec(dllexport) extern const char* D3D12SDKPath = u8".\\D3D12\\";
 }
+extern "C"
+{
+    __declspec(dllexport) extern gfxrecon::encode::D3D12CaptureManager* singleton_ = nullptr;
+}
+
 #endif
 
 const char kOptions[]   = "-h|--help,--version,--no-debug-popup,--d3d12-pso-removal,--dxr,--dxr-experimental";

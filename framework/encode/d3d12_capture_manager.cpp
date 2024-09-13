@@ -38,7 +38,6 @@ GFXRECON_BEGIN_NAMESPACE(encode)
 
 static constexpr char kDx12RuntimeName[] = "D3D12Core.dll";
 
-D3D12CaptureManager*  D3D12CaptureManager::singleton_  = nullptr;
 thread_local uint32_t D3D12CaptureManager::call_scope_ = 0;
 
 D3D12CaptureManager::D3D12CaptureManager() :
