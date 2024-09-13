@@ -41,10 +41,16 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(encode)
 
+#ifdef BUILDDLL
+#define DLL __declspec(dllexport)
+#else
+#define DLL __declspec(dllimport)
+#endif
+
 class D3D12CaptureManager;
 extern "C"
 {
-    extern D3D12CaptureManager* singleton_;
+    __declspec(dllexport) extern D3D12CaptureManager* singleton_;
 }
 
 class D3D12CaptureManager : public ApiCaptureManager
