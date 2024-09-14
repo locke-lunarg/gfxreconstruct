@@ -48,7 +48,7 @@ constexpr uint64_t kInternalEventId = static_cast<uint64_t>(~0);
 
 extern "C"
 {
-    extern encode::D3D12CaptureManager* singleton_;
+    __declspec(dllimport) extern encode::D3D12CaptureManager* singleton_;
 }
 
 template <typename T, typename U>
