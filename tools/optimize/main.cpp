@@ -29,7 +29,6 @@
 #if defined(D3D12_SUPPORT)
 #include "dx12_optimize_util.h"
 #include "decode/dx12_optimize_options.h"
-#include "encode/d3d12_capture_manager.h"
 #endif
 
 #include "decode/decode_api_detection.h"
@@ -61,10 +60,6 @@ extern "C"
 extern "C"
 {
     __declspec(dllexport) extern const char* D3D12SDKPath = u8".\\D3D12\\";
-}
-extern "C"
-{
-    __declspec(dllexport) extern gfxrecon::encode::D3D12CaptureManager* singleton_ = nullptr;
 }
 
 #endif

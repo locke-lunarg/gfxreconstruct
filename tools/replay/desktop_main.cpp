@@ -39,7 +39,6 @@
 #include "generated/generated_dx12_decoder.h"
 #include "generated/generated_dx12_replay_consumer.h"
 #include "decode/dx12_browse_consumer.h"
-#include "encode/d3d12_capture_manager.h"
 #ifdef GFXRECON_AGS_SUPPORT
 #include "decode/custom_ags_consumer_base.h"
 #include "decode/custom_ags_decoder.h"
@@ -65,10 +64,6 @@ extern "C"
 extern "C"
 {
     __declspec(dllexport) extern const char* D3D12SDKPath = u8".\\D3D12\\";
-}
-extern "C"
-{
-    __declspec(dllexport) extern gfxrecon::encode::D3D12CaptureManager* singleton_ = nullptr;
 }
 
 #include <conio.h>

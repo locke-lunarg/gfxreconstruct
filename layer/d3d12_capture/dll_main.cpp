@@ -27,7 +27,6 @@
 #ifdef GFXRECON_AGS_SUPPORT
 #include "encode/custom_ags_wrappers.h"
 #endif // GFXRECON_AGS_SUPPORT
-#include "encode/d3d12_capture_manager.h"
 #include "encode/d3d12_dispatch_table.h"
 #include "encode/dxgi_dispatch_table.h"
 #include "generated/generated_dx12_wrappers.h"
@@ -35,10 +34,6 @@
 // This IID is not defined in d3dcommon.h or dxguid.lib
 DEFINE_GUID(IID_ID3DDestructionNotifier, 0xa06eb39a, 0x50da, 0x425b, 0x8c, 0x31, 0x4e, 0xec, 0xd6, 0xc2, 0x70, 0xf3);
 
-extern "C"
-{
-    __declspec(dllexport) extern gfxrecon::encode::D3D12CaptureManager* singleton_ = nullptr;
-}
 
 EXTERN_C bool InitializeDxgiCapture(gfxrecon::encode::DxgiDispatchTable* table)
 {
