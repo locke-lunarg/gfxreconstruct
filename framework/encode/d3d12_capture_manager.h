@@ -52,10 +52,15 @@ extern "C"
 {
     __declspec(dllexport) extern D3D12CaptureManager* singleton_;
 }
+extern "C"
+{
+    __declspec(dllexport) extern int replay_write;
+}
 
 class D3D12CaptureManager : public ApiCaptureManager
 {
   public:
+
     static D3D12CaptureManager* Get() { return singleton_; }
     // Creates the capture manager instance if none exists, or increments a reference count if an instance already
     // exists.

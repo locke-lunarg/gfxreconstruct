@@ -2150,7 +2150,12 @@ HRESULT STDMETHODCALLTYPE IDXGISwapChain_Wrapper::Present(
     UINT Flags)
 {
     HRESULT result{};
-
+    replay_write;
+    if(replay_write > 100)
+    {
+        int i =0;
+        ++i;
+    }
     auto manager = D3D12CaptureManager::Get();
     auto call_scope = manager->IncrementCallScope();
 
@@ -9809,7 +9814,12 @@ HRESULT WINAPI D3D12GetDebugInterface(
 
     auto manager = D3D12CaptureManager::Get();
     auto call_scope = manager->IncrementCallScope();
-
+    replay_write;
+    if(replay_write > 100)
+    {
+        int i =0;
+        ++i;
+    }
     if (call_scope == 1)
     {
         auto force_command_serialization = D3D12CaptureManager::Get()->GetForceCommandSerialization();

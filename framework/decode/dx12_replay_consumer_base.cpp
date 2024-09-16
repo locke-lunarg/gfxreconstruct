@@ -51,6 +51,12 @@ extern "C"
     __declspec(dllimport) extern encode::D3D12CaptureManager* singleton_;
 }
 
+extern "C"
+{
+    extern int replay_write;
+}
+
+
 template <typename T, typename U>
 void SetExtraInfo(HandlePointerDecoder<T>* decoder, std::unique_ptr<U>&& extra_info)
 {
@@ -369,6 +375,7 @@ void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
     std::unordered_map<ID3D12Resource*, ResourceInitInfo>& resource_infos)
 {
     GFXRECON_ASSERT(resource_data_util_);
+    replay_write += 11;
     auto manager = encode::D3D12CaptureManager::Get();
     if (manager)
     {
@@ -490,6 +497,7 @@ void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
     {
         manager->DecrementCallScope();
     }
+    replay_write += 11;
 }
 
 void Dx12ReplayConsumerBase::ProcessBeginResourceInitCommand(format::HandleId device_id,

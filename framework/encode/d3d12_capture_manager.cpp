@@ -40,6 +40,7 @@ static constexpr char kDx12RuntimeName[] = "D3D12Core.dll";
 
 D3D12CaptureManager* singleton_ = nullptr;
 thread_local uint32_t D3D12CaptureManager::call_scope_ = 0;
+int replay_write = 100;
 
 D3D12CaptureManager::D3D12CaptureManager() :
     ApiCaptureManager(format::ApiFamilyId::ApiFamily_D3D12), dxgi_dispatch_table_{}, d3d12_dispatch_table_{},
