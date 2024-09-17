@@ -46,6 +46,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <dxgidebug.h>
+#include <windows.h>
 
 #include <wrl/client.h>
 
@@ -224,6 +225,12 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
     void AddObject(const format::HandleId* p_id, T** pp_object, DxObjectInfo&& initial_info, format::ApiCallId call_id)
     {
         object_mapping::AddObject<T>(p_id, pp_object, std::move(initial_info), &object_info_table_);
+
+        if (*p_id == 586)
+        {
+            int i = 0;
+            ++i;
+        }
 
         if (options_.override_object_names)
         {
@@ -897,6 +904,9 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
 
     DxReplayOptions                    options_;
     std::unique_ptr<Dx12DumpResources> dump_resources_{ nullptr };
+
+    void EnableReplayWrite() { _putenv("DISABLE_REPLAY_WRITE="); }
+    void DisableReplayWrite() { _putenv("DISABLE_REPLAY_WRITE=1"); }
 
   private:
     struct MappedMemoryEntry

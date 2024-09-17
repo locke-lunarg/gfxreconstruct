@@ -71,9 +71,16 @@ class CommonCaptureManager
         return &thread_data->handle_unwrap_memory_;
     }
 
+    bool CheckReplayWrite()
+    {
+        size_t requiredSize;
+        getenv_s(&requiredSize, NULL, 0, "DISABLE_REPLAY_WRITE");
+        return requiredSize == 0 ? true : false;
+    }
+
     ParameterEncoder* BeginTrackedApiCallCapture(format::ApiCallId call_id)
     {
-        if (capture_mode_ != kModeDisabled)
+        if (capture_mode_ != kModeDisabled && CheckReplayWrite())
         {
             return InitApiCallCapture(call_id);
         }
@@ -83,7 +90,7 @@ class CommonCaptureManager
 
     ParameterEncoder* BeginApiCallCapture(format::ApiCallId call_id)
     {
-        if ((capture_mode_ & kModeWrite) == kModeWrite)
+        if ((capture_mode_ & kModeWrite) == kModeWrite && CheckReplayWrite())
         {
             return InitApiCallCapture(call_id);
         }
@@ -93,7 +100,7 @@ class CommonCaptureManager
 
     ParameterEncoder* BeginTrackedMethodCallCapture(format::ApiCallId call_id, format::HandleId object_id)
     {
-        if (capture_mode_ != kModeDisabled)
+        if (capture_mode_ != kModeDisabled && CheckReplayWrite())
         {
             return InitMethodCallCapture(call_id, object_id);
         }
@@ -103,7 +110,7 @@ class CommonCaptureManager
 
     ParameterEncoder* BeginMethodCallCapture(format::ApiCallId call_id, format::HandleId object_id)
     {
-        if ((capture_mode_ & kModeWrite) == kModeWrite)
+        if ((capture_mode_ & kModeWrite) == kModeWrite && CheckReplayWrite())
         {
             return InitMethodCallCapture(call_id, object_id);
         }

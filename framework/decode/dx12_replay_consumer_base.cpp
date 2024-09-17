@@ -362,6 +362,8 @@ void Dx12ReplayConsumerBase::SetResourceInitInfoState(ResourceInitInfo&         
 void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
     std::unordered_map<ID3D12Resource*, ResourceInitInfo>& resource_infos)
 {
+    DisableReplayWrite();
+
     GFXRECON_ASSERT(resource_data_util_);
     if (resource_infos.size() > 0)
     {
@@ -469,6 +471,7 @@ void Dx12ReplayConsumerBase::ApplyBatchedResourceInitInfo(
         resource_data_util_->ExecuteAndWaitForCommandList();
         resource_infos.clear();
     }
+    EnableReplayWrite();
 }
 
 void Dx12ReplayConsumerBase::ProcessBeginResourceInitCommand(format::HandleId device_id,
@@ -600,6 +603,8 @@ void Dx12ReplayConsumerBase::ProcessSetSwapchainImageStateQueueSubmit(ID3D12Comm
                                                                       DxObjectInfo*       swapchain_info,
                                                                       uint32_t            current_buffer_index)
 {
+    DisableReplayWrite();
+
     GFXRECON_ASSERT((current_buffer_index != std::numeric_limits<uint32_t>::max()));
 
     graphics::dx12::ID3D12DeviceComPtr device = nullptr;
@@ -631,6 +636,7 @@ void Dx12ReplayConsumerBase::ProcessSetSwapchainImageStateQueueSubmit(ID3D12Comm
         GFXRECON_ASSERT(SUCCEEDED(ret));
     }
     GFXRECON_ASSERT(swapchain->GetCurrentBackBufferIndex() == current_buffer_index);
+    EnableReplayWrite();
 }
 
 void Dx12ReplayConsumerBase::ProcessSetSwapchainImageStateCommand(
@@ -709,6 +715,11 @@ void Dx12ReplayConsumerBase::RemoveObject(DxObjectInfo* info)
 {
     if (info != nullptr)
     {
+        if (info->capture_id == 586)
+        {
+            int i = 0;
+            ++i;
+        }
         DestroyObjectExtraInfo(info, true);
         object_mapping::RemoveObject(info->capture_id, &object_info_table_);
     }
