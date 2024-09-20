@@ -211,6 +211,9 @@ bool Dx12DumpResources::ExecuteCommandLists(DxObjectInfo*                       
                     replay_object->ExecuteCommandLists(modified_num_command_lists, modified_command_lists.data());
                     modified_command_lists.clear();
 
+                    auto hr = graphics::dx12::WaitForQueue(replay_object);
+                    GFXRECON_ASSERT(SUCCEEDED(hr));
+
                     StartDump(device, filename);
 
                     // Before and after copy resources do the same processes, so they do some duplicated
@@ -222,6 +225,9 @@ bool Dx12DumpResources::ExecuteCommandLists(DxObjectInfo*                       
 
                     ID3D12CommandList* ppCommandLists[] = { track_dump_resources_.split_command_sets[1].list };
                     replay_object->ExecuteCommandLists(1, ppCommandLists);
+
+                    hr = graphics::dx12::WaitForQueue(replay_object);
+                    GFXRECON_ASSERT(SUCCEEDED(hr));
 
                     CopyDrawcallResources(
                         replay_object_info, front_command_list_ids, Dx12DumpResourcePos::kAfterDrawCall);
