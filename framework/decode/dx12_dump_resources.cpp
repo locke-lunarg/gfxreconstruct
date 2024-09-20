@@ -191,6 +191,9 @@ bool Dx12DumpResources::ExecuteCommandLists(DxObjectInfo*                       
 
                     StartDump(device, filename);
 
+                    auto hr = graphics::dx12::WaitForQueue(replay_object);
+                    GFXRECON_ASSERT(SUCCEEDED(hr));
+
                     // Before and after copy resources do the same processes, so they do some duplicated
                     // processes, for exmaples: finding resource by GPU VA, getting the resource infomation, and
                     // write resource id, offset, size. But those duplicated processes shouldn't hurt the
@@ -201,6 +204,9 @@ bool Dx12DumpResources::ExecuteCommandLists(DxObjectInfo*                       
 
                     ID3D12CommandList* ppCommandLists[] = { track_dump_resources_.split_command_sets[1].list };
                     replay_object->ExecuteCommandLists(1, ppCommandLists);
+
+                    hr = graphics::dx12::WaitForQueue(replay_object);
+                    GFXRECON_ASSERT(SUCCEEDED(hr));
 
                     CopyDrawCallResources(replay_object_info,
                                           front_command_list_ids,
