@@ -1740,11 +1740,37 @@ void D3D12CaptureManager::PreProcess_ID3D12CommandQueue_ExecuteCommandLists(ID3D
     GFXRECON_UNREFERENCED_PARAMETER(num_lists);
     GFXRECON_UNREFERENCED_PARAMETER(lists);
 
-    if (IsTrimEnabled() && GetTrimBoundary() == CaptureSettings::TrimBoundary::kDrawCalls)
+    bool is_split_commandlist = false;
+    for (uint32_t i = 0; i < num_lists; ++i)
+    {
+        auto cmd_wrapper = reinterpret_cast<ID3D12CommandList_Wrapper*>(lists[i]);
+        GFXRECON_ASSERT(cmd_wrapper);
+
+        auto cmd_info = cmd_wrapper->GetObjectInfo();
+        GFXRECON_ASSERT(cmd_info);
+
+        if (cmd_info->is_split_commandlist)
+        {
+            is_split_commandlist = true;
+            break;
+        }
+    }
+
+    if (!is_split_commandlist && IsTrimEnabled() && GetTrimBoundary() == CaptureSettings::TrimBoundary::kDrawCalls)
     {
         auto trim_draw_calls = GetTrimDrawCalls();
         if (common_manager_->GetQueueSubmitCount() == trim_draw_calls.submit_index)
         {
+            DecrementCallScope();
+
+            auto                       target_cmdlist = lists[trim_draw_calls.command_index];
+            ID3D12CommandList_Wrapper* target_wrapper = nullptr;
+            target_cmdlist->QueryInterface(IID_IUnknown_Wrapper, reinterpret_cast<void**>(&target_wrapper));
+            GFXRECON_ASSERT(target_wrapper);
+
+            auto target_info = target_wrapper->GetObjectInfo();
+            GFXRECON_ASSERT(target_info);
+
             if (num_lists <= trim_draw_calls.command_index)
             {
                 GFXRECON_LOG_FATAL(
@@ -1760,13 +1786,6 @@ void D3D12CaptureManager::PreProcess_ID3D12CommandQueue_ExecuteCommandLists(ID3D
             {
                 cmdlists.emplace_back(lists[i]);
             }
-            auto                       target_cmdlist = lists[trim_draw_calls.command_index];
-            ID3D12CommandList_Wrapper* target_wrapper = nullptr;
-            target_cmdlist->QueryInterface(IID_IUnknown_Wrapper, reinterpret_cast<void**>(&target_wrapper));
-            GFXRECON_ASSERT(target_wrapper);
-
-            auto target_info = target_wrapper->GetObjectInfo();
-            GFXRECON_ASSERT(target_info);
 
             if (!target_info->find_target_draw_calls)
             {
@@ -1791,11 +1810,10 @@ void D3D12CaptureManager::PreProcess_ID3D12CommandQueue_ExecuteCommandLists(ID3D
             GFXRECON_ASSERT(before_draw_call_cmd);
             cmdlists.emplace_back(before_draw_call_cmd);
 
-            auto queue         = wrapper->GetWrappedObjectAs<ID3D12CommandQueue>();
-            auto unwrap_memory = GetHandleUnwrapMemory();
-            queue->ExecuteCommandLists(
-                cmdlists.size(), UnwrapObjects<ID3D12CommandList>(cmdlists.data(), cmdlists.size(), unwrap_memory));
+            wrapper->ExecuteCommandLists(cmdlists.size(), cmdlists.data());
+            auto queue = reinterpret_cast<ID3D12CommandQueue*>(wrapper->GetWrappedObject());
             graphics::dx12::WaitForQueue(queue);
+            IncrementCallScope();
         }
     }
 
@@ -1844,27 +1862,44 @@ void D3D12CaptureManager::PreProcess_ID3D12CommandQueue_ExecuteCommandLists(ID3D
         }
     }
 
-    PreQueueSubmit();
+    // Split commandlist is for trim drawcalls. It means that this is a extra ExecuteCommandLists. It shouldn't count
+    // queue_submit_count_.
+    if (!is_split_commandlist)
+    {
+        PreQueueSubmit();
+    }
 }
 
 void D3D12CaptureManager::OverrideID3D12CommandQueue_ExecuteCommandLists(ID3D12CommandQueue_Wrapper* wrapper,
                                                                          UINT                        num_lists,
                                                                          ID3D12CommandList* const*   lists)
 {
-    auto queue         = wrapper->GetWrappedObjectAs<ID3D12CommandQueue>();
-    auto unwrap_memory = GetHandleUnwrapMemory();
+    bool is_complete          = false;
+    bool is_split_commandlist = false;
+    for (uint32_t i = 0; i < num_lists; ++i)
+    {
+        auto cmd_wrapper = reinterpret_cast<ID3D12CommandList_Wrapper*>(lists[i]);
+        GFXRECON_ASSERT(cmd_wrapper);
 
-    bool is_complete = false;
-    if (IsTrimEnabled() && GetTrimBoundary() == CaptureSettings::TrimBoundary::kDrawCalls)
+        auto cmd_info = cmd_wrapper->GetObjectInfo();
+        GFXRECON_ASSERT(cmd_info);
+
+        if (cmd_info->is_split_commandlist)
+        {
+            is_split_commandlist = true;
+            break;
+        }
+    }
+
+    if (!is_split_commandlist && IsTrimEnabled() && GetTrimBoundary() == CaptureSettings::TrimBoundary::kDrawCalls)
     {
         auto trim_draw_calls = GetTrimDrawCalls();
         // TODO: When queue_submit_count_ becomes 0-based, remove "-1".
         if ((common_manager_->GetQueueSubmitCount() - 1) == trim_draw_calls.submit_index)
         {
-            // target of splitted
+            DecrementCallScope();
             common_manager_->ActivateTrimmingDrawCalls(format::ApiFamilyId::ApiFamily_D3D12);
 
-            std::vector<ID3D12CommandList*> cmdlists;
             auto                            target_cmdlist = lists[trim_draw_calls.command_index];
             ID3D12CommandList_Wrapper*      target_wrapper = nullptr;
             target_cmdlist->QueryInterface(IID_IUnknown_Wrapper, reinterpret_cast<void**>(&target_wrapper));
@@ -1873,21 +1908,22 @@ void D3D12CaptureManager::OverrideID3D12CommandQueue_ExecuteCommandLists(ID3D12C
             auto target_info = target_wrapper->GetObjectInfo();
             GFXRECON_ASSERT(target_info);
 
+            std::vector<ID3D12CommandList*> cmdlists;
+
             auto target_draw_call_cmd = target_info->split_command_sets[graphics::dx12::kDrawCallArrayIndex].list;
             GFXRECON_ASSERT(target_draw_call_cmd);
             cmdlists.emplace_back(target_draw_call_cmd);
 
-            queue->ExecuteCommandLists(
-                cmdlists.size(), UnwrapObjects<ID3D12CommandList>(cmdlists.data(), cmdlists.size(), unwrap_memory));
-
-            Encode_ID3D12CommandQueue_ExecuteCommandLists(wrapper, cmdlists.size(), cmdlists.data());
+            // target of splitted
+            wrapper->ExecuteCommandLists(cmdlists.size(), cmdlists.data());
 
             cmdlists.clear();
 
             common_manager_->DeactivateTrimmingDrawCalls();
 
             // after of splitted and lists
-            auto after_draw_call_cmd = target_info->split_command_sets[graphics::dx12::kAfterDrawCallArrayIndex].list;
+            auto after_draw_call_cmd =
+                target_info->split_command_sets[graphics::dx12::kAfterDrawCallArrayIndex].list;
             GFXRECON_ASSERT(after_draw_call_cmd);
             cmdlists.emplace_back(after_draw_call_cmd);
 
@@ -1896,14 +1932,16 @@ void D3D12CaptureManager::OverrideID3D12CommandQueue_ExecuteCommandLists(ID3D12C
                 cmdlists.emplace_back(lists[i]);
             }
 
-            queue->ExecuteCommandLists(
-                cmdlists.size(), UnwrapObjects<ID3D12CommandList>(cmdlists.data(), cmdlists.size(), unwrap_memory));
+            wrapper->ExecuteCommandLists(cmdlists.size(), cmdlists.data());
             is_complete = true;
+            IncrementCallScope();
         }
     }
 
     if (!is_complete)
     {
+        auto queue         = wrapper->GetWrappedObjectAs<ID3D12CommandQueue>();
+        auto unwrap_memory = GetHandleUnwrapMemory();
         queue->ExecuteCommandLists(num_lists, UnwrapObjects<ID3D12CommandList>(lists, num_lists, unwrap_memory));
     }
 }
@@ -1912,7 +1950,29 @@ void D3D12CaptureManager::PostProcess_ID3D12CommandQueue_ExecuteCommandLists(ID3
                                                                              UINT                        num_lists,
                                                                              ID3D12CommandList* const*   lists)
 {
-    PostQueueSubmit();
+    bool is_split_commandlist = false;
+    for (uint32_t i = 0; i < num_lists; ++i)
+    {
+        ID3D12CommandList_Wrapper* cmd_wrapper = nullptr;
+        lists[i]->QueryInterface(IID_IUnknown_Wrapper, reinterpret_cast<void**>(&cmd_wrapper));
+        GFXRECON_ASSERT(cmd_wrapper);
+
+        auto cmd_info = cmd_wrapper->GetObjectInfo();
+        GFXRECON_ASSERT(cmd_info);
+
+        if (cmd_info->is_split_commandlist)
+        {
+            is_split_commandlist = true;
+            break;
+        }
+    }
+
+    // Split commandlist is for trim drawcalls. It means that this is a extra ExecuteCommandLists. It shouldn't count
+    // queue_submit_count_.
+    if (!is_split_commandlist)
+    {
+        PostQueueSubmit();
+    }
 
     if (IsCaptureModeTrack())
     {
