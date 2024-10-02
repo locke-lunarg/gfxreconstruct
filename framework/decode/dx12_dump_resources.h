@@ -127,6 +127,7 @@ struct TrackDumpResources
     graphics::dx12::ID3D12ResourceComPtr         copy_staging_buffer{ nullptr };
     uint64_t                                     copy_staging_buffer_size{ 0 };
 
+    graphics::dx12::CommandSet                clear_depth_command_set;
     std::array<graphics::dx12::CommandSet, 3> split_command_sets;
     std::array<graphics::dx12::CommandSet, 3> split_bundle_command_sets;
 
@@ -312,6 +313,9 @@ class Dx12DumpResources
     std::unique_ptr<DefaultDx12DumpResourcesDelegate> default_delegate_;
     Dx12DumpResourcesDelegate*                        user_delegate_;
     Dx12DumpResourcesDelegate*                        active_delegate_;
+
+public:
+    D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView;
 };
 
 GFXRECON_END_NAMESPACE(decode)

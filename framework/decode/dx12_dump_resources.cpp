@@ -43,7 +43,7 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 // TEST_READABLE is only for test because data type could be various.
 // But here uses fixed type.
 // According to the resource's desc.Dimension, float is for buffer, image is for the others.
-constexpr bool TEST_READABLE   = false;
+constexpr bool TEST_READABLE   = true;
 constexpr bool TEST_SHADER_RES = true;
 
 static const char* Dx12ResourceTypeToString(Dx12DumpResourceType type)
@@ -176,6 +176,12 @@ bool Dx12DumpResources::ExecuteCommandLists(DxObjectInfo*                       
             std::vector<format::HandleId>   front_command_list_ids;
             std::vector<ID3D12CommandList*> modified_command_lists;
             auto device = graphics::dx12::GetDeviceComPtrFromChild<ID3D12Device>(replay_object);
+
+            track_dump_resources_.clear_depth_command_set.list->ClearDepthStencilView(
+                DepthStencilView, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+            track_dump_resources_.clear_depth_command_set.list->Close();
+
+            modified_command_lists.emplace_back(track_dump_resources_.clear_depth_command_set.list);
 
             for (uint32_t i = 0; i < num_command_lists; ++i)
             {
@@ -1332,6 +1338,20 @@ std::vector<graphics::dx12::CommandSet> Dx12DumpResources::GetCommandListsForDum
                                       nullptr,
                                       IID_PPV_ARGS(&command_set.list));
         }
+    }
+
+    if (track_dump_resources_.clear_depth_command_set.allocator == nullptr)
+    {
+        device->CreateCommandAllocator(cmd_list_extra_info->create_list_type,
+                                       IID_PPV_ARGS(&track_dump_resources_.clear_depth_command_set.allocator));
+    }
+    if (track_dump_resources_.clear_depth_command_set.list == nullptr)
+    {
+        device->CreateCommandList(0,
+                                  cmd_list_extra_info->create_list_type,
+                                  track_dump_resources_.clear_depth_command_set.allocator,
+                                  nullptr,
+                                  IID_PPV_ARGS(&track_dump_resources_.clear_depth_command_set.list));
     }
 
     graphics::dx12::Dx12DumpResourcePos split_type = graphics::dx12::Dx12DumpResourcePos::kBeforeDrawCall;

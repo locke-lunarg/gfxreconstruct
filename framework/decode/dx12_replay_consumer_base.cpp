@@ -4976,6 +4976,12 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateDepthStencilView(
     DepthStencilInfo info;
     info.resource_id   = pResource;
     info.replay_handle = *DestDescriptor.decoded_value;
+
+    if (dump_resources_)
+    {
+        dump_resources_->DepthStencilView = info.replay_handle;
+    }
+
     if (pDesc->IsNull())
     {
         info.is_view_null = true;
