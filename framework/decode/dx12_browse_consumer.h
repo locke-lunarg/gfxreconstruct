@@ -67,7 +67,8 @@ struct TrackDumpDrawCall
 
     // descriptor
     std::vector<format::HandleId>               descriptor_heap_ids;
-    std::map<UINT, D3D12_GPU_DESCRIPTOR_HANDLE> captured_descriptor_gpu_handles;
+    std::map<UINT, D3D12_GPU_DESCRIPTOR_HANDLE> captured_graphics_root_descriptor_tables;
+    std::map<UINT, D3D12_GPU_DESCRIPTOR_HANDLE> captured_compute_root_descriptor_tables;
 
     // ExecuteIndirect
     ExecuteIndirectInfo execute_indirect_info{};
@@ -84,9 +85,11 @@ struct TrackDumpDrawCall
     {
         captured_vertex_buffer_views.clear();
         descriptor_heap_ids.clear();
-        captured_descriptor_gpu_handles.clear();
-        bundle_commandlist_id  = format::kNullHandleId;
+        captured_graphics_root_descriptor_tables.clear();
+        captured_compute_root_descriptor_tables.clear();
+        bundle_commandlist_id   = format::kNullHandleId;
         bundle_target_draw_call = nullptr;
+        is_draw                 = false;
     }
 };
 
@@ -105,7 +108,8 @@ struct TrackDumpCommandList
 
     // descriptor
     std::vector<format::HandleId>               current_descriptor_heap_ids;
-    std::map<UINT, D3D12_GPU_DESCRIPTOR_HANDLE> current_captured_descriptor_gpu_handles;
+    std::map<UINT, D3D12_GPU_DESCRIPTOR_HANDLE> current_captured_graphics_root_descriptor_tables;
+    std::map<UINT, D3D12_GPU_DESCRIPTOR_HANDLE> current_captured_compute_root_descriptor_tables;
 
     // render target
     // Track render target info in replay, not here.
@@ -121,7 +125,8 @@ struct TrackDumpCommandList
         current_captured_vertex_buffer_views.clear();
         current_captured_index_buffer_view = {};
         current_descriptor_heap_ids.clear();
-        current_captured_descriptor_gpu_handles.clear();
+        current_captured_graphics_root_descriptor_tables.clear();
+        current_captured_compute_root_descriptor_tables.clear();
         track_dump_draw_calls.clear();
     }
 };
@@ -341,7 +346,8 @@ class Dx12BrowseConsumer : public Dx12Consumer
                 {
                     it->second.current_descriptor_heap_ids[i] = heap_ids[i];
                 }
-                it->second.current_captured_descriptor_gpu_handles.clear();
+                it->second.current_captured_compute_root_descriptor_tables.clear();
+                it->second.current_captured_graphics_root_descriptor_tables.clear();
             }
         }
     }
@@ -357,7 +363,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
-                it->second.current_captured_descriptor_gpu_handles[RootParameterIndex] =
+                it->second.current_captured_compute_root_descriptor_tables[RootParameterIndex] =
                     (*BaseDescriptor.decoded_value);
             }
         }
@@ -374,7 +380,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
-                it->second.current_captured_descriptor_gpu_handles[RootParameterIndex] =
+                it->second.current_captured_graphics_root_descriptor_tables[RootParameterIndex] =
                     (*BaseDescriptor.decoded_value);
             }
         }
@@ -646,7 +652,10 @@ class Dx12BrowseConsumer : public Dx12Consumer
                 track_draw_call.captured_vertex_buffer_views      = it->second.current_captured_vertex_buffer_views;
                 track_draw_call.captured_index_buffer_view        = it->second.current_captured_index_buffer_view;
                 track_draw_call.descriptor_heap_ids               = it->second.current_descriptor_heap_ids;
-                track_draw_call.captured_descriptor_gpu_handles   = it->second.current_captured_descriptor_gpu_handles;
+                track_draw_call.captured_graphics_root_descriptor_tables =
+                    it->second.current_captured_graphics_root_descriptor_tables;
+                track_draw_call.captured_compute_root_descriptor_tables =
+                    it->second.current_captured_compute_root_descriptor_tables;
                 track_draw_call.execute_indirect_info.argument_id = exe_indirect_argument_id;
                 track_draw_call.execute_indirect_info.argument_offset = exe_indirect_argument_offset;
                 track_draw_call.execute_indirect_info.count_id        = exe_indirect_count_id;
