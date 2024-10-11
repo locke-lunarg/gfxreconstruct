@@ -50,8 +50,6 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 constexpr size_t   kNullCpuAddress = 0;
 constexpr uint64_t kNullGpuAddress = 0;
 
-typedef std::array<UINT, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> DescriptorIncrements;
-
 enum class DxObjectInfoType : uint32_t
 {
     kUnused = 0,
