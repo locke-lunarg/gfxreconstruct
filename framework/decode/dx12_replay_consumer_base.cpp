@@ -5050,6 +5050,24 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateDepthStencilView(
     heap_extra_info->depth_stencil_infos[DestDescriptor.index] = std::move(info);
 }
 
+void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateSampler(
+    const ApiCallInfo&                                           call_info,
+    DxObjectInfo*                                                object_info,
+    StructPointerDecoder<Decoded_D3D12_SAMPLER_DESC>*            pDesc,
+    Decoded_D3D12_CPU_DESCRIPTOR_HANDLE                          DestDescriptor)
+{
+    auto heap_object_info = GetObjectInfo(DestDescriptor.heap_id);
+    auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
+
+    GFXRECON_ASSERT(pDesc != nullptr);
+    auto desc = pDesc->GetMetaStructPointer();
+
+    DHSamplerInfo info;
+    info.desc                                            = *(desc->decoded_value);
+    info.replay_handle                                   = (*DestDescriptor.decoded_value);
+    heap_extra_info->sampler_infos[DestDescriptor.index] = std::move(info);
+}
+
 void Dx12ReplayConsumerBase::PostCall_ID3D12GraphicsCommandList_OMSetRenderTargets(
     const ApiCallInfo&                                         call_info,
     DxObjectInfo*                                              object_info,

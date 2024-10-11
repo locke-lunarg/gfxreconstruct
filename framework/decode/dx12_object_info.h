@@ -50,8 +50,6 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 constexpr size_t   kNullCpuAddress = 0;
 constexpr uint64_t kNullGpuAddress = 0;
 
-typedef std::array<UINT, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> DescriptorIncrements;
-
 enum class DxObjectInfoType : uint32_t
 {
     kUnused = 0,
@@ -311,6 +309,12 @@ struct DepthStencilInfo
     std::vector<uint32_t>         subresource_indices;
 };
 
+struct DHSamplerInfo
+{
+    D3D12_SAMPLER_DESC            desc{};
+    D3D12_CPU_DESCRIPTOR_HANDLE   replay_handle{ kNullCpuAddress };
+};
+
 struct D3D12DescriptorHeapInfo : DxObjectExtraInfo
 {
     static constexpr DxObjectInfoType kType         = DxObjectInfoType::kID3D12DescriptorHeapInfo;
@@ -331,6 +335,7 @@ struct D3D12DescriptorHeapInfo : DxObjectExtraInfo
     std::map<uint32_t, UnorderedAccessInfo> unordered_access_infos;
     std::map<uint32_t, RenderTargetInfo>    render_target_infos;
     std::map<uint32_t, DepthStencilInfo>    depth_stencil_infos;
+    std::map<uint32_t, DHSamplerInfo>       sampler_infos;
 };
 
 struct D3D12FenceInfo : DxObjectExtraInfo

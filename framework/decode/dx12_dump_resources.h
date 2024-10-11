@@ -56,6 +56,8 @@ enum class Dx12DumpResourceType : uint32_t
     kCbv,
     kExecuteIndirectArg,
     kExecuteIndirectCount,
+    kDrawRtv,
+    kDrawDsv,
 };
 
 struct CopyResourceData
@@ -152,6 +154,10 @@ class Dx12DumpResourcesDelegate
     virtual void BeginDumpResources(const std::string& filename, const TrackDumpResources& track_dump_resources) = 0;
     virtual void DumpResource(CopyResourceDataPtr resource_data)                                                 = 0;
     virtual void EndDumpResources()                                                                              = 0;
+    virtual void
+    WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path, const std::string& key, uint64_t value) = 0;
+    virtual void
+    WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path, const uint32_t index, uint64_t value) = 0;
 };
 
 class DefaultDx12DumpResourcesDelegate : public Dx12DumpResourcesDelegate
@@ -163,6 +169,14 @@ class DefaultDx12DumpResourcesDelegate : public Dx12DumpResourcesDelegate
                                     const TrackDumpResources& track_dump_resources) override;
     virtual void DumpResource(CopyResourceDataPtr resource_data) override;
     virtual void EndDumpResources() override;
+
+    virtual void WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
+                                 const std::string&                           key,
+                                 uint64_t                                     value) override;
+
+    virtual void WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
+                                 const uint32_t                               index,
+                                 uint64_t                                     value) override;
 
   private:
     void WriteResource(const CopyResourceDataPtr resource_data);
