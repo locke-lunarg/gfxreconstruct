@@ -113,6 +113,14 @@ struct CopyResourceData
 
 typedef std::shared_ptr<CopyResourceData> CopyResourceDataPtr;
 
+struct RootParameter
+{
+    D3D12_ROOT_PARAMETER_TYPE            type;
+    std::vector<D3D12_DESCRIPTOR_RANGE1> descriptor_tables;
+    D3D12_ROOT_CONSTANTS                 constants;
+    D3D12_ROOT_DESCRIPTOR1               descriptor;
+};
+
 struct TrackDumpResources
 {
     TrackDumpDrawCall target{};
@@ -130,6 +138,8 @@ struct TrackDumpResources
     std::array<graphics::dx12::CommandSet, 3> split_command_sets;
     std::array<graphics::dx12::CommandSet, 3> split_bundle_command_sets;
 
+    std::vector<RootParameter> root_paramaters;
+
     graphics::dx12::ID3D12FenceComPtr fence;
     HANDLE                            fence_event;
     uint64_t                          fence_signal_value{ 1 };
@@ -139,6 +149,7 @@ struct TrackDumpResources
         target.Clear();
         render_target_heap_ids.clear();
         replay_render_target_handles.clear();
+        root_paramaters.clear();
         copy_cmd_allocator  = nullptr;
         copy_staging_buffer = nullptr;
     }
@@ -156,7 +167,10 @@ class Dx12DumpResourcesDelegate
     WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path, const std::string& key, uint64_t value) = 0;
     virtual void
     WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path, const uint32_t index, uint64_t value) = 0;
-    virtual void WriteEmptyData(std::vector<std::pair<std::string, int32_t>> json_path)                           = 0;
+    virtual void WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
+                                 const std::string&                           key,
+                                 const std::string&                           value)                              = 0;
+    virtual void WriteEmptyNode(std::vector<std::pair<std::string, int32_t>> json_path)                           = 0;
 };
 
 class DefaultDx12DumpResourcesDelegate : public Dx12DumpResourcesDelegate
@@ -176,8 +190,10 @@ class DefaultDx12DumpResourcesDelegate : public Dx12DumpResourcesDelegate
     virtual void WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
                                  const uint32_t                               index,
                                  uint64_t                                     value) override;
-
-    virtual void WriteEmptyData(std::vector<std::pair<std::string, int32_t>> json_path) override;
+    virtual void WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
+                                 const std::string&                           key,
+                                 const std::string&                           value) override;
+    virtual void WriteEmptyNode(std::vector<std::pair<std::string, int32_t>> json_path) override;
 
   private:
     void WriteResource(const CopyResourceDataPtr resource_data);

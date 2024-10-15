@@ -4441,7 +4441,6 @@ void Dx12ReplayConsumerBase::PreCall_ID3D12Device_CreateConstantBufferView(
 {
     auto heap_object_info = GetObjectInfo(DestDescriptor.heap_id);
     auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
-
     GFXRECON_ASSERT(pDesc != nullptr);
     auto desc = pDesc->GetMetaStructPointer();
 
@@ -4451,7 +4450,7 @@ void Dx12ReplayConsumerBase::PreCall_ID3D12Device_CreateConstantBufferView(
         // ID3D12Device::CreateConstantBufferView. In this case, the meta struct pointer returned from the
         // StructPointerDecoder could be null, so check for it.
         ConstantBufferInfo info;
-        info.captured_view = *(desc->decoded_value);
+        info.captured_desc = *(desc->decoded_value);
 
         heap_extra_info->constant_buffer_infos[DestDescriptor.index] = std::move(info);
     }
@@ -4467,6 +4466,23 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateConstantBufferView(
     auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
 
     heap_extra_info->constant_buffer_infos[DestDescriptor.index].replay_handle = (*DestDescriptor.decoded_value);
+}
+
+void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateSampler(
+    const ApiCallInfo&                                call_info,
+    DxObjectInfo*                                     object_info,
+    StructPointerDecoder<Decoded_D3D12_SAMPLER_DESC>* pDesc,
+    Decoded_D3D12_CPU_DESCRIPTOR_HANDLE               DestDescriptor)
+{
+    auto heap_object_info = GetObjectInfo(DestDescriptor.heap_id);
+    auto heap_extra_info  = GetExtraInfo<D3D12DescriptorHeapInfo>(heap_object_info);
+    GFXRECON_ASSERT(pDesc != nullptr);
+    auto desc = pDesc->GetMetaStructPointer();
+
+    DHSamplerInfo info;
+    info.desc                                            = *(desc->decoded_value);
+    info.replay_handle                                   = (*DestDescriptor.decoded_value);
+    heap_extra_info->sampler_infos[DestDescriptor.index] = std::move(info);
 }
 
 std::vector<uint32_t> GetDescriptorSubresourceIndices(uint32_t first_mip_slice,
@@ -4504,27 +4520,27 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateShaderResourceView(
     info.replay_handle = *DestDescriptor.decoded_value;
     if (pDesc->IsNull())
     {
-        info.is_view_null = true;
+        info.is_desc_null = true;
         info.subresource_indices.emplace_back(0);
     }
     else
     {
-        info.view         = *(pDesc->GetMetaStructPointer()->decoded_value);
-        info.is_view_null = false;
+        info.desc         = *(pDesc->GetMetaStructPointer()->decoded_value);
+        info.is_desc_null = false;
 
         if (pResource != format::kNullHandleId)
         {
             auto desc        = reinterpret_cast<ID3D12Resource*>(GetObjectInfo(pResource)->object)->GetDesc();
             auto mip_count   = desc.MipLevels;
             auto array_count = desc.DepthOrArraySize;
-            switch (info.view.ViewDimension)
+            switch (info.desc.ViewDimension)
             {
                 case D3D12_SRV_DIMENSION_BUFFER:
                     info.subresource_indices.emplace_back(0);
                     break;
                 case D3D12_SRV_DIMENSION_TEXTURE1D:
                 {
-                    auto view     = info.view.Texture1D;
+                    auto view     = info.desc.Texture1D;
                     auto mip_size = view.MipLevels;
                     if (mip_size == -1)
                     {
@@ -4549,7 +4565,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateShaderResourceView(
                 }
                 case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
                 {
-                    auto view     = info.view.Texture1DArray;
+                    auto view     = info.desc.Texture1DArray;
                     auto mip_size = view.MipLevels;
                     if (mip_size == -1)
                     {
@@ -4589,7 +4605,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateShaderResourceView(
                 }
                 case D3D12_SRV_DIMENSION_TEXTURE2D:
                 {
-                    auto view     = info.view.Texture2D;
+                    auto view     = info.desc.Texture2D;
                     auto mip_size = view.MipLevels;
                     if (mip_size == -1)
                     {
@@ -4614,7 +4630,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateShaderResourceView(
                 }
                 case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
                 {
-                    auto view     = info.view.Texture2DArray;
+                    auto view     = info.desc.Texture2DArray;
                     auto mip_size = view.MipLevels;
                     if (mip_size == -1)
                     {
@@ -4659,7 +4675,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateShaderResourceView(
                 }
                 case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY:
                 {
-                    auto view       = info.view.Texture2DMSArray;
+                    auto view       = info.desc.Texture2DMSArray;
                     auto array_size = view.ArraySize;
                     if (array_size == -1)
                     {
@@ -4672,7 +4688,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateShaderResourceView(
                 case D3D12_SRV_DIMENSION_TEXTURE3D:
                 {
                     array_count   = 1;
-                    auto view     = info.view.Texture3D;
+                    auto view     = info.desc.Texture3D;
                     auto mip_size = view.MipLevels;
                     if (mip_size == -1)
                     {
@@ -4696,7 +4712,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateShaderResourceView(
                 }
                 case D3D12_SRV_DIMENSION_TEXTURECUBE:
                 {
-                    auto view     = info.view.TextureCube;
+                    auto view     = info.desc.TextureCube;
                     auto mip_size = view.MipLevels;
                     if (mip_size == -1)
                     {
@@ -4720,7 +4736,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateShaderResourceView(
                 }
                 case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
                 {
-                    auto view     = info.view.TextureCubeArray;
+                    auto view     = info.desc.TextureCubeArray;
                     auto mip_size = view.MipLevels;
                     if (mip_size == -1)
                     {
@@ -4784,31 +4800,31 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateUnorderedAccessView(
     info.replay_handle       = *DestDescriptor.decoded_value;
     if (pDesc->IsNull())
     {
-        info.is_view_null = true;
+        info.is_desc_null = true;
         info.subresource_indices.emplace_back(0);
     }
     else
     {
-        info.view         = *(pDesc->GetMetaStructPointer()->decoded_value);
-        info.is_view_null = false;
+        info.desc         = *(pDesc->GetMetaStructPointer()->decoded_value);
+        info.is_desc_null = false;
 
         if (pResource != format::kNullHandleId)
         {
             auto desc        = reinterpret_cast<ID3D12Resource*>(GetObjectInfo(pResource)->object)->GetDesc();
             auto mip_count   = desc.MipLevels;
             auto array_count = desc.DepthOrArraySize;
-            switch (info.view.ViewDimension)
+            switch (info.desc.ViewDimension)
             {
                 case D3D12_UAV_DIMENSION_BUFFER:
                     info.subresource_indices.emplace_back(0);
                     break;
                 case D3D12_UAV_DIMENSION_TEXTURE1D:
                     info.subresource_indices = GetDescriptorSubresourceIndices(
-                        info.view.Texture1D.MipSlice, 1, mip_count, 0, 1, array_count, 0);
+                        info.desc.Texture1D.MipSlice, 1, mip_count, 0, 1, array_count, 0);
                     break;
                 case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
                 {
-                    auto view       = info.view.Texture1DArray;
+                    auto view       = info.desc.Texture1DArray;
                     auto array_size = view.ArraySize;
                     if (array_size == -1)
                     {
@@ -4820,11 +4836,11 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateUnorderedAccessView(
                 }
                 case D3D12_UAV_DIMENSION_TEXTURE2D:
                     info.subresource_indices = GetDescriptorSubresourceIndices(
-                        info.view.Texture2D.MipSlice, 1, mip_count, 0, 1, array_count, info.view.Texture2D.PlaneSlice);
+                        info.desc.Texture2D.MipSlice, 1, mip_count, 0, 1, array_count, info.desc.Texture2D.PlaneSlice);
                     break;
                 case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
                 {
-                    auto view       = info.view.Texture2DArray;
+                    auto view       = info.desc.Texture2DArray;
                     auto array_size = view.ArraySize;
                     if (array_size == -1)
                     {
@@ -4839,7 +4855,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateUnorderedAccessView(
                     break;
                 case D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY:
                 {
-                    auto view       = info.view.Texture2DMSArray;
+                    auto view       = info.desc.Texture2DMSArray;
                     auto array_size = view.ArraySize;
                     if (array_size == -1)
                     {
@@ -4853,7 +4869,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateUnorderedAccessView(
                 {
                     // DUMPTODO: handle FirstWSlice and WSize
                     info.subresource_indices =
-                        GetDescriptorSubresourceIndices(info.view.Texture3D.MipSlice, 1, mip_count, 0, 1, 1, 0);
+                        GetDescriptorSubresourceIndices(info.desc.Texture3D.MipSlice, 1, mip_count, 0, 1, 1, 0);
                     break;
                 }
                 case D3D12_UAV_DIMENSION_UNKNOWN:
@@ -4881,31 +4897,31 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateRenderTargetView(
     info.replay_handle = *DestDescriptor.decoded_value;
     if (pDesc->IsNull())
     {
-        info.is_view_null = true;
+        info.is_desc_null = true;
         info.subresource_indices.emplace_back(0);
     }
     else
     {
-        info.view         = *(pDesc->GetMetaStructPointer()->decoded_value);
-        info.is_view_null = false;
+        info.desc         = *(pDesc->GetMetaStructPointer()->decoded_value);
+        info.is_desc_null = false;
 
         if (pResource != format::kNullHandleId)
         {
             auto desc        = reinterpret_cast<ID3D12Resource*>(GetObjectInfo(pResource)->object)->GetDesc();
             auto mip_count   = desc.MipLevels;
             auto array_count = desc.DepthOrArraySize;
-            switch (info.view.ViewDimension)
+            switch (info.desc.ViewDimension)
             {
                 case D3D12_RTV_DIMENSION_BUFFER:
                     info.subresource_indices.emplace_back(0);
                     break;
                 case D3D12_RTV_DIMENSION_TEXTURE1D:
                     info.subresource_indices = GetDescriptorSubresourceIndices(
-                        info.view.Texture1D.MipSlice, 1, mip_count, 0, 1, array_count, 0);
+                        info.desc.Texture1D.MipSlice, 1, mip_count, 0, 1, array_count, 0);
                     break;
                 case D3D12_RTV_DIMENSION_TEXTURE1DARRAY:
                 {
-                    auto view       = info.view.Texture1DArray;
+                    auto view       = info.desc.Texture1DArray;
                     auto array_size = view.ArraySize;
                     if (array_size == -1)
                     {
@@ -4917,11 +4933,11 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateRenderTargetView(
                 }
                 case D3D12_RTV_DIMENSION_TEXTURE2D:
                     info.subresource_indices = GetDescriptorSubresourceIndices(
-                        info.view.Texture2D.MipSlice, 1, mip_count, 0, 1, array_count, info.view.Texture2D.PlaneSlice);
+                        info.desc.Texture2D.MipSlice, 1, mip_count, 0, 1, array_count, info.desc.Texture2D.PlaneSlice);
                     break;
                 case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
                 {
-                    auto view       = info.view.Texture2DArray;
+                    auto view       = info.desc.Texture2DArray;
                     auto array_size = view.ArraySize;
                     if (array_size == -1)
                     {
@@ -4936,7 +4952,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateRenderTargetView(
                     break;
                 case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY:
                 {
-                    auto view       = info.view.Texture2DMSArray;
+                    auto view       = info.desc.Texture2DMSArray;
                     auto array_size = view.ArraySize;
                     if (array_size == -1)
                     {
@@ -4950,7 +4966,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateRenderTargetView(
                 {
                     // DUMPTODO: Handle FirstWSlice and WSize
                     info.subresource_indices =
-                        GetDescriptorSubresourceIndices(info.view.Texture3D.MipSlice, 1, mip_count, 0, 1, 1, 0);
+                        GetDescriptorSubresourceIndices(info.desc.Texture3D.MipSlice, 1, mip_count, 0, 1, 1, 0);
                     break;
                 }
                 case D3D12_RTV_DIMENSION_UNKNOWN:
@@ -4978,28 +4994,28 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateDepthStencilView(
     info.replay_handle = *DestDescriptor.decoded_value;
     if (pDesc->IsNull())
     {
-        info.is_view_null = true;
+        info.is_desc_null = true;
         info.subresource_indices.emplace_back(0);
     }
     else
     {
-        info.view         = *(pDesc->GetMetaStructPointer()->decoded_value);
-        info.is_view_null = false;
+        info.desc         = *(pDesc->GetMetaStructPointer()->decoded_value);
+        info.is_desc_null = false;
 
         if (pResource != format::kNullHandleId)
         {
             auto desc        = reinterpret_cast<ID3D12Resource*>(GetObjectInfo(pResource)->object)->GetDesc();
             auto mip_count   = desc.MipLevels;
             auto array_count = desc.DepthOrArraySize;
-            switch (info.view.ViewDimension)
+            switch (info.desc.ViewDimension)
             {
                 case D3D12_DSV_DIMENSION_TEXTURE1D:
                     info.subresource_indices = GetDescriptorSubresourceIndices(
-                        info.view.Texture1D.MipSlice, 1, mip_count, 0, 1, array_count, 0);
+                        info.desc.Texture1D.MipSlice, 1, mip_count, 0, 1, array_count, 0);
                     break;
                 case D3D12_DSV_DIMENSION_TEXTURE1DARRAY:
                 {
-                    auto view       = info.view.Texture1DArray;
+                    auto view       = info.desc.Texture1DArray;
                     auto array_size = view.ArraySize;
                     if (array_size == -1)
                     {
@@ -5011,11 +5027,11 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateDepthStencilView(
                 }
                 case D3D12_DSV_DIMENSION_TEXTURE2D:
                     info.subresource_indices = GetDescriptorSubresourceIndices(
-                        info.view.Texture2D.MipSlice, 1, mip_count, 0, 1, array_count, 0);
+                        info.desc.Texture2D.MipSlice, 1, mip_count, 0, 1, array_count, 0);
                     break;
                 case D3D12_DSV_DIMENSION_TEXTURE2DARRAY:
                 {
-                    auto view       = info.view.Texture2DArray;
+                    auto view       = info.desc.Texture2DArray;
                     auto array_size = view.ArraySize;
                     if (array_size == -1)
                     {
@@ -5030,7 +5046,7 @@ void Dx12ReplayConsumerBase::PostCall_ID3D12Device_CreateDepthStencilView(
                     break;
                 case D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY:
                 {
-                    auto view       = info.view.Texture2DMSArray;
+                    auto view       = info.desc.Texture2DMSArray;
                     auto array_size = view.ArraySize;
                     if (array_size == -1)
                     {
