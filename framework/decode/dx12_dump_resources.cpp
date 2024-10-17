@@ -47,6 +47,12 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 constexpr bool TEST_READABLE   = false;
 constexpr bool TEST_SHADER_RES = true;
 
+// root parameter's descriptor range type might mismatch view type in heap.
+constexpr bool TEST_WRITE_MISMATCH_VIEW_HEAP = true;
+
+// root parameter's descriptor range type's index mightn't have a view in heap.
+constexpr bool TEST_WRITE_INVAILD_VIEW_HEAP = true;
+
 static const char* Dx12ResourceTypeToString(Dx12DumpResourceType type)
 {
     switch (type)
@@ -804,6 +810,17 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                                 }
                                 break;
                             }
+                            default:
+                            {
+                                for (uint32_t di = 0; di < param_table.NumDescriptors; ++di)
+                                {
+                                }
+                                const auto& info_entry = heap_extra_info->cbv_srv_uav_infos.find(table_heap_index);
+                                if (info_entry->second.type == param_table.RangeType)
+                                {
+                                }
+                                break;
+                            }
                             case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
                             {
                                 if (heap_extra_info->descriptor_type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
@@ -1030,8 +1047,6 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                                 }
                                 break;
                             }
-                            default:
-                                break;
                         }
                         ++param_index;
                     }
@@ -1091,8 +1106,8 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
             active_delegate_->WriteSingleData(json_path, "heap_id", descriptor_heap_id);
             active_delegate_->WriteSingleData(json_path, "heap_index", rt_heap_index);
 
-            auto info_entry = heap_extra_info->render_target_infos.find(rt_heap_index);
-            if (info_entry != heap_extra_info->render_target_infos.end())
+            auto info_entry = heap_extra_info->rtv_infos.find(rt_heap_index);
+            if (info_entry != heap_extra_info->rtv_infos.end())
             {
                 auto        descriptor_heap_index = info_entry->first;
                 const auto& info                  = info_entry->second;
@@ -1143,8 +1158,8 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                 active_delegate_->WriteSingleData(json_path, "heap_id", descriptor_heap_id);
                 active_delegate_->WriteSingleData(json_path, "heap_index", ds_heap_index);
 
-                auto info_entry = heap_extra_info->depth_stencil_infos.find(ds_heap_index);
-                if (info_entry != heap_extra_info->depth_stencil_infos.end())
+                auto info_entry = heap_extra_info->dsv_infos.find(ds_heap_index);
+                if (info_entry != heap_extra_info->dsv_infos.end())
                 {
                     auto        descriptor_heap_index = info_entry->first;
                     const auto& info                  = info_entry->second;

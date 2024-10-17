@@ -284,32 +284,26 @@ struct D3D12DeviceInfo : DxObjectExtraInfo
     bool is_uma{ false };
 };
 
-struct ConstantBufferInfo
+// Constant Buffer View, Shader Resource View and Unordered Access View could overrride each other.
+// So they should be in the one container.
+struct CbvSrvUavInfo
 {
-    D3D12_CONSTANT_BUFFER_VIEW_DESC captured_desc{};
-    D3D12_CPU_DESCRIPTOR_HANDLE     replay_handle{ kNullCpuAddress };
-};
+    D3D12_DESCRIPTOR_RANGE_TYPE type{};
 
-struct ShaderResourceInfo
-{
+    D3D12_CONSTANT_BUFFER_VIEW_DESC captured_cbv_desc{};
+
     format::HandleId                resource_id{ format::kNullHandleId };
-    D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
-    bool                            is_desc_null{ false };
-    D3D12_CPU_DESCRIPTOR_HANDLE     replay_handle{ kNullCpuAddress };
-    std::vector<uint32_t>           subresource_indices;
-};
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
 
-struct UnorderedAccessInfo
-{
-    format::HandleId                 resource_id{ format::kNullHandleId };
     format::HandleId                 counter_resource_id{ format::kNullHandleId };
-    D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
-    bool                             is_desc_null{ false };
-    D3D12_CPU_DESCRIPTOR_HANDLE      replay_handle{ kNullCpuAddress };
-    std::vector<uint32_t>            subresource_indices;
+    D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc{};
+
+    bool                        is_desc_null{ false };
+    D3D12_CPU_DESCRIPTOR_HANDLE replay_handle{ kNullCpuAddress };
+    std::vector<uint32_t>       subresource_indices;
 };
 
-struct RenderTargetInfo
+struct RenderTargetViewInfo
 {
     format::HandleId              resource_id{ format::kNullHandleId };
     D3D12_RENDER_TARGET_VIEW_DESC desc{};
@@ -318,7 +312,7 @@ struct RenderTargetInfo
     std::vector<uint32_t>         subresource_indices;
 };
 
-struct DepthStencilInfo
+struct DepthStencilViewInfo
 {
     format::HandleId              resource_id{ format::kNullHandleId };
     D3D12_DEPTH_STENCIL_VIEW_DESC desc{};
@@ -348,12 +342,10 @@ struct D3D12DescriptorHeapInfo : DxObjectExtraInfo
     uint64_t                              replay_gpu_addr_begin{ kNullGpuAddress };
 
     // Descriptor info maps. Key is descriptor's uint32_t heap index.
-    std::map<uint32_t, ConstantBufferInfo>  constant_buffer_infos;
-    std::map<uint32_t, ShaderResourceInfo>  shader_resource_infos;
-    std::map<uint32_t, UnorderedAccessInfo> unordered_access_infos;
-    std::map<uint32_t, RenderTargetInfo>    render_target_infos;
-    std::map<uint32_t, DepthStencilInfo>    depth_stencil_infos;
-    std::map<uint32_t, DHSamplerInfo>       sampler_infos;
+    std::map<uint32_t, CbvSrvUavInfo>        cbv_srv_uav_infos;
+    std::map<uint32_t, RenderTargetViewInfo> rtv_infos;
+    std::map<uint32_t, DepthStencilViewInfo> dsv_infos;
+    std::map<uint32_t, DHSamplerInfo>        sampler_infos;
 };
 
 struct D3D12FenceInfo : DxObjectExtraInfo
