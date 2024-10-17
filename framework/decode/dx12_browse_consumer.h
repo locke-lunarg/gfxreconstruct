@@ -284,6 +284,79 @@ class Dx12BrowseConsumer : public Dx12Consumer
         }
     }
 
+    virtual void Process_ID3D12GraphicsCommandList_SetComputeRoot32BitConstant(const ApiCallInfo& call_info,
+                                                                               format::HandleId   object_id,
+                                                                               UINT               RootParameterIndex,
+                                                                               UINT               SrcData,
+                                                                               UINT DestOffsetIn32BitValues)
+    {}
+
+    virtual void Process_ID3D12GraphicsCommandList_SetGraphicsRoot32BitConstant(const ApiCallInfo& call_info,
+                                                                                format::HandleId   object_id,
+                                                                                UINT               RootParameterIndex,
+                                                                                UINT               SrcData,
+                                                                                UINT DestOffsetIn32BitValues)
+    {}
+
+    virtual void Process_ID3D12GraphicsCommandList_SetComputeRoot32BitConstants(const ApiCallInfo& call_info,
+                                                                                format::HandleId   object_id,
+                                                                                UINT               RootParameterIndex,
+                                                                                UINT               Num32BitValuesToSet,
+                                                                                PointerDecoder<uint8_t>* pSrcData,
+                                                                                UINT DestOffsetIn32BitValues)
+    {}
+
+    virtual void Process_ID3D12GraphicsCommandList_SetGraphicsRoot32BitConstants(const ApiCallInfo& call_info,
+                                                                                 format::HandleId   object_id,
+                                                                                 UINT               RootParameterIndex,
+                                                                                 UINT               Num32BitValuesToSet,
+                                                                                 PointerDecoder<uint8_t>* pSrcData,
+                                                                                 UINT DestOffsetIn32BitValues)
+    {}
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetComputeRootConstantBufferView(const ApiCallInfo&        call_info,
+                                                                       format::HandleId          object_id,
+                                                                       UINT                      RootParameterIndex,
+                                                                       D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {}
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetGraphicsRootConstantBufferView(const ApiCallInfo&        call_info,
+                                                                        format::HandleId          object_id,
+                                                                        UINT                      RootParameterIndex,
+                                                                        D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {}
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetComputeRootShaderResourceView(const ApiCallInfo&        call_info,
+                                                                       format::HandleId          object_id,
+                                                                       UINT                      RootParameterIndex,
+                                                                       D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {}
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetGraphicsRootShaderResourceView(const ApiCallInfo&        call_info,
+                                                                        format::HandleId          object_id,
+                                                                        UINT                      RootParameterIndex,
+                                                                        D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {}
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetComputeRootUnorderedAccessView(const ApiCallInfo&        call_info,
+                                                                        format::HandleId          object_id,
+                                                                        UINT                      RootParameterIndex,
+                                                                        D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {}
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetGraphicsRootUnorderedAccessView(const ApiCallInfo&        call_info,
+                                                                         format::HandleId          object_id,
+                                                                         UINT                      RootParameterIndex,
+                                                                         D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {}
+
+
     virtual void
     Process_ID3D12GraphicsCommandList_IASetVertexBuffers(const ApiCallInfo& call_info,
                                                          format::HandleId   object_id,
