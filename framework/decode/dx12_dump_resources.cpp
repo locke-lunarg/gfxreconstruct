@@ -47,11 +47,11 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 constexpr bool TEST_READABLE   = false;
 constexpr bool TEST_SHADER_RES = true;
 
-// root parameter's descriptor range type might mismatch view type in heap.
-constexpr bool TEST_WRITE_MISMATCH_VIEW_HEAP = true;
-
 // root parameter's descriptor range type's index mightn't have a view in heap.
-constexpr bool TEST_WRITE_INVAILD_VIEW_HEAP = true;
+constexpr bool TEST_WRITE_NOT_FOUND_VIEWS = true;
+
+// resource id or BufferLocation could be 0 in view of heap.
+constexpr bool TEST_WRITE_NULL_RESOURCE_VIEWS = true;
 
 static const char* Dx12ResourceTypeToString(Dx12DumpResourceType type)
 {
@@ -747,7 +747,7 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                     }
 
                     std::string error_msg = "Root parameter index: " + std::to_string(index) +
-                                            " can't be found in root descripotor tables.";
+                                            " can't be found in root descripotor tables";
 
                     active_delegate_->WriteSingleData(json_path, "note", error_msg);
                     GFXRECON_LOG_ERROR(error_msg.c_str());
@@ -766,9 +766,13 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                     }
 
                     uint32_t param_index = 0;
-                    uint32_t heap_index  = table_heap_index;
+                    uint32_t root_heap_index  = table_heap_index;
                     for (const auto& param_table : root_parameter.descriptor_tables)
                     {
+                        if (param_index > 0)
+                        {
+                            root_heap_index += root_parameter.descriptor_tables[param_index - 1].NumDescriptors;
+                        }
                         json_path_sub = json_path;
                         if (is_draw)
                         {
@@ -779,273 +783,206 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                             json_path_sub.emplace_back("compute_root_descriptor_tables", param_index);
                         }
                         active_delegate_->WriteSingleData(json_path_sub, "heap_id", heap_id);
-                        active_delegate_->WriteSingleData(json_path_sub, "heap_index", table_heap_index);
+                        active_delegate_->WriteSingleData(json_path_sub, "heap_index", root_heap_index);
                         active_delegate_->WriteSingleData(json_path_sub, "num_descriptors", param_table.NumDescriptors);
 
-                        switch (param_table.RangeType)
+                        if (param_table.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
                         {
-                            case D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER:
+                            auto json_path_sub1 = json_path_sub;
+                            json_path_sub.emplace_back("samplers", format::kNoneIndex);
+                            active_delegate_->WriteEmptyNode(json_path_sub);
+                            continue;
+                        }
+
+                        for (uint32_t di = 0; di < param_table.NumDescriptors; ++di)
+                        {
+                            auto heap_index     = root_heap_index + di;
+                            auto json_path_sub1 = json_path_sub;
+                            json_path_sub1.emplace_back("descs", di);
+                            const auto& info_entry = heap_extra_info->cbv_srv_uav_infos.find(heap_index);
+
+                            if (info_entry == heap_extra_info->cbv_srv_uav_infos.end())
                             {
-                                if (heap_extra_info->descriptor_type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+                                if (TEST_WRITE_NOT_FOUND_VIEWS)
                                 {
-                                    for (uint32_t di = 0; di < param_table.NumDescriptors; ++di)
+                                    active_delegate_->WriteSingleData(
+                                        json_path_sub1, "range_type", param_table.RangeType);
+                                    active_delegate_->WriteSingleData(json_path_sub1, "heap_id", heap_id);
+                                    active_delegate_->WriteSingleData(json_path_sub1, "heap_index", heap_index);
+
+                                    active_delegate_->WriteSingleData(
+                                        json_path_sub1,
+                                        "note",
+                                        "This heap_index can't be found a view in this heap_id");
+                                }
+                                continue;
+                            }
+
+                            bool is_null_resource = false;
+                            if (info_entry->second.type == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+                            {
+                                if (info_entry->second.captured_cbv_desc.BufferLocation == kNullGpuAddress)
+                                {
+                                    is_null_resource = true;
+                                }
+                            }
+                            else if (info_entry->second.resource_id == format::kNullHandleId)
+                            {
+                                is_null_resource = true;
+                            }
+
+                            if (is_null_resource)
+                            {
+                                if (TEST_WRITE_NULL_RESOURCE_VIEWS)
+                                {
+                                    active_delegate_->WriteSingleData(
+                                        json_path_sub1, "range_type", param_table.RangeType);
+
+                                    if (info_entry->second.type != param_table.RangeType)
                                     {
-                                        auto json_path_sub1 = json_path_sub;
-                                        json_path_sub1.emplace_back("samplers", di);
-                                        active_delegate_->WriteSingleData(json_path_sub1, "heap_id", heap_id);
-                                        active_delegate_->WriteSingleData(json_path_sub1, "heap_index", heap_index);
-                                        ++heap_index;
+                                        std::string error_msg =
+                                            "View type: " + util::ToString(info_entry->second.type) +
+                                            " mismatch to range_type.";
+
+                                        active_delegate_->WriteSingleData(json_path_sub1, "note", error_msg);
+                                    }
+
+                                    active_delegate_->WriteSingleData(json_path_sub1, "heap_id", heap_id);
+                                    active_delegate_->WriteSingleData(json_path_sub1, "heap_index", heap_index);
+
+                                    if (info_entry->second.type == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+                                    {
+                                        active_delegate_->WriteSingleData(json_path_sub1, "buffer_location", 0);
+                                    }
+                                    else
+                                    {
+                                        active_delegate_->WriteSingleData(json_path_sub1, "res_id", 0);
                                     }
                                 }
-                                else
-                                {
-                                    std::string error_msg =
-                                        "Descriptor range type: SAMPLER doesn't match descriptor heap type:" +
-                                        util::ToString(heap_extra_info->descriptor_type);
-
-                                    active_delegate_->WriteSingleData(json_path_sub, "note", error_msg);
-                                    GFXRECON_LOG_ERROR(error_msg.c_str());
-
-                                    heap_index += param_table.NumDescriptors;
-                                }
-                                break;
+                                continue;
                             }
-                            default:
+
+                            active_delegate_->WriteSingleData(json_path_sub1, "range_type", param_table.RangeType);
+
+                            if (info_entry->second.type != param_table.RangeType)
                             {
-                                for (uint32_t di = 0; di < param_table.NumDescriptors; ++di)
-                                {
-                                }
-                                const auto& info_entry = heap_extra_info->cbv_srv_uav_infos.find(table_heap_index);
-                                if (info_entry->second.type == param_table.RangeType)
-                                {
-                                }
-                                break;
+                                std::string error_msg = "View type: " + util::ToString(info_entry->second.type) +
+                                                        " mismatch to range_type.";
+
+                                active_delegate_->WriteSingleData(json_path_sub1, "note", error_msg);
                             }
-                            case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
+
+                            switch (info_entry->second.type)
                             {
-                                if (heap_extra_info->descriptor_type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+                                case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
                                 {
-                                    for (uint32_t di = 0; di < param_table.NumDescriptors; ++di)
+                                    const auto& desc   = info_entry->second.srv_desc;
+                                    uint64_t    offset = 0;
+                                    uint64_t    size   = 0;
+                                    switch (desc.ViewDimension)
                                     {
-                                        auto json_path_sub1 = json_path_sub;
-                                        json_path_sub1.emplace_back("shader_resource_views", di);
-                                        active_delegate_->WriteSingleData(json_path_sub1, "heap_id", heap_id);
-                                        active_delegate_->WriteSingleData(json_path_sub1, "heap_index", heap_index);
-
-                                        if (TEST_SHADER_RES)
+                                        case D3D12_SRV_DIMENSION_BUFFER:
                                         {
-                                            auto srv_info_entry =
-                                                heap_extra_info->shader_resource_infos.find(heap_index);
-                                            if (srv_info_entry != heap_extra_info->shader_resource_infos.end())
+                                            auto size = desc.Buffer.StructureByteStride;
+                                            if (size == 0)
                                             {
-                                                const auto& info   = srv_info_entry->second;
-                                                uint64_t    offset = 0;
-                                                uint64_t    size   = 0;
-                                                switch (srv_info_entry->second.desc.ViewDimension)
-                                                {
-                                                    case D3D12_SRV_DIMENSION_BUFFER:
-                                                    {
-                                                        auto size = info.desc.Buffer.StructureByteStride;
-                                                        if (size == 0)
-                                                        {
-                                                            size = graphics::dx12::GetSubresourcePixelByteSize(
-                                                                info.desc.Format);
-                                                        }
-                                                        offset = info.desc.Buffer.FirstElement * size;
-                                                        size   = info.desc.Buffer.NumElements * size;
-                                                        break;
-                                                    }
-                                                    default:
-                                                        break;
-                                                }
-                                                active_delegate_->WriteSingleData(
-                                                    json_path_sub1, "res_id", info.resource_id);
-
-                                                CopyDrawCallResourceBySubresource(queue_object_info,
-                                                                                  front_command_list_ids,
-                                                                                  info.resource_id,
-                                                                                  offset,
-                                                                                  size,
-                                                                                  info.subresource_indices,
-                                                                                  json_path_sub1,
-                                                                                  Dx12DumpResourceType::kSrv,
-                                                                                  pos,
-                                                                                  heap_id,
-                                                                                  heap_index);
+                                                size = graphics::dx12::GetSubresourcePixelByteSize(desc.Format);
                                             }
-                                            else
-                                            {
-                                                std::string error_msg =
-                                                    "Index: " + std::to_string(heap_index) +
-                                                    " can't be found in shader resource views of heap id: " +
-                                                    std::to_string(heap_id);
-
-                                                active_delegate_->WriteSingleData(json_path_sub1, "note", error_msg);
-                                                GFXRECON_LOG_ERROR(error_msg.c_str());
-                                            }
-                                            ++heap_index;
+                                            offset = desc.Buffer.FirstElement * size;
+                                            size   = desc.Buffer.NumElements * size;
+                                            break;
                                         }
+                                        default:
+                                            break;
                                     }
-                                }
-                                else
-                                {
-                                    std::string error_msg =
-                                        "Descriptor range type: CBV_SRV_UAV doesn't match descriptor heap type: " +
-                                        util::ToString(heap_extra_info->descriptor_type);
 
-                                    active_delegate_->WriteSingleData(json_path_sub, "note", error_msg);
-                                    GFXRECON_LOG_ERROR(error_msg.c_str());
-
-                                    heap_index += param_table.NumDescriptors;
+                                    CopyDrawCallResourceBySubresource(queue_object_info,
+                                                                      front_command_list_ids,
+                                                                      info_entry->second.resource_id,
+                                                                      offset,
+                                                                      size,
+                                                                      info_entry->second.subresource_indices,
+                                                                      json_path_sub1,
+                                                                      Dx12DumpResourceType::kSrv,
+                                                                      pos,
+                                                                      heap_id,
+                                                                      heap_index);
+                                    break;
                                 }
-                                break;
-                            }
-                            case D3D12_DESCRIPTOR_RANGE_TYPE_UAV:
-                            {
-                                if (heap_extra_info->descriptor_type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+                                case D3D12_DESCRIPTOR_RANGE_TYPE_UAV:
                                 {
-                                    for (uint32_t di = 0; di < param_table.NumDescriptors; ++di)
+                                    const auto& desc   = info_entry->second.uav_desc;
+                                    uint64_t    offset = 0;
+                                    uint64_t    size   = 0;
+                                    switch (desc.ViewDimension)
                                     {
-                                        auto json_path_sub1 = json_path_sub;
-                                        json_path_sub1.emplace_back("unordered_access_views", di);
-                                        active_delegate_->WriteSingleData(json_path_sub1, "heap_id", heap_id);
-                                        active_delegate_->WriteSingleData(json_path_sub1, "heap_index", heap_index);
-
-                                        auto uav_info_entry = heap_extra_info->unordered_access_infos.find(heap_index);
-                                        if (uav_info_entry != heap_extra_info->unordered_access_infos.end())
+                                        case D3D12_UAV_DIMENSION_BUFFER:
                                         {
-                                            const auto& info                  = uav_info_entry->second;
-                                            uint64_t    offset                = 0;
-                                            uint64_t    size                  = 0;
-                                            switch (info.desc.ViewDimension)
+                                            auto size = desc.Buffer.StructureByteStride;
+                                            if (size == 0)
                                             {
-                                                case D3D12_UAV_DIMENSION_BUFFER:
-                                                {
-                                                    auto size = info.desc.Buffer.StructureByteStride;
-                                                    if (size == 0)
-                                                    {
-                                                        size = graphics::dx12::GetSubresourcePixelByteSize(
-                                                            info.desc.Format);
-                                                    }
-                                                    offset = info.desc.Buffer.FirstElement * size;
-                                                    size   = info.desc.Buffer.NumElements * size;
-                                                    break;
-                                                }
-                                                default:
-                                                    break;
+                                                size = graphics::dx12::GetSubresourcePixelByteSize(desc.Format);
                                             }
-                                            auto json_path_sub2 = json_path_sub1;
-                                            json_path_sub2.emplace_back("resource", format::kNoneIndex);
-                                            active_delegate_->WriteSingleData(
-                                                json_path_sub2, "res_id", info.resource_id);
-
-                                            CopyDrawCallResourceBySubresource(queue_object_info,
-                                                                              front_command_list_ids,
-                                                                              info.resource_id,
-                                                                              offset,
-                                                                              size,
-                                                                              info.subresource_indices,
-                                                                              json_path_sub2,
-                                                                              Dx12DumpResourceType::kUav,
-                                                                              pos,
-                                                                              heap_id,
-                                                                              heap_index);
-
-                                            json_path_sub2 = json_path_sub1;
-                                            json_path_sub2.emplace_back("counter_resource", format::kNoneIndex);
-                                            active_delegate_->WriteSingleData(
-                                                json_path_sub2, "res_id", info.counter_resource_id);
-
-                                            CopyDrawCallResourceBySubresource(queue_object_info,
-                                                                              front_command_list_ids,
-                                                                              info.counter_resource_id,
-                                                                              info.desc.Buffer.CounterOffsetInBytes,
-                                                                              0,
-                                                                              sub_indices_emptry,
-                                                                              json_path_sub2,
-                                                                              Dx12DumpResourceType::kUavCounter,
-                                                                              pos,
-                                                                              heap_id,
-                                                                              heap_index);
+                                            offset = desc.Buffer.FirstElement * size;
+                                            size   = desc.Buffer.NumElements * size;
+                                            break;
                                         }
-                                        else
-                                        {
-                                            std::string error_msg = "Index: " + std::to_string(heap_index);
-                                            error_msg += " can't be found in unordered access views of heap id: " +
-                                                         std::to_string(heap_id);
-
-                                            active_delegate_->WriteSingleData(json_path_sub1, "note", error_msg);
-                                            GFXRECON_LOG_ERROR(error_msg.c_str());
-                                        }
-                                        ++heap_index;
+                                        default:
+                                            break;
                                     }
+                                    auto json_path_sub2 = json_path_sub1;
+                                    json_path_sub2.emplace_back("resource", format::kNoneIndex);
+
+                                    CopyDrawCallResourceBySubresource(queue_object_info,
+                                                                      front_command_list_ids,
+                                                                      info_entry->second.resource_id,
+                                                                      offset,
+                                                                      size,
+                                                                      info_entry->second.subresource_indices,
+                                                                      json_path_sub2,
+                                                                      Dx12DumpResourceType::kUav,
+                                                                      pos,
+                                                                      heap_id,
+                                                                      heap_index);
+
+                                    json_path_sub2 = json_path_sub1;
+                                    json_path_sub2.emplace_back("counter_resource", format::kNoneIndex);
+                                    active_delegate_->WriteSingleData(
+                                        json_path_sub2, "res_id", info_entry->second.counter_resource_id);
+
+                                    CopyDrawCallResourceBySubresource(queue_object_info,
+                                                                      front_command_list_ids,
+                                                                      info_entry->second.counter_resource_id,
+                                                                      desc.Buffer.CounterOffsetInBytes,
+                                                                      0,
+                                                                      sub_indices_emptry,
+                                                                      json_path_sub2,
+                                                                      Dx12DumpResourceType::kUavCounter,
+                                                                      pos,
+                                                                      heap_id,
+                                                                      heap_index);
+                                    break;
                                 }
-                                else
+                                case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
                                 {
-                                    std::string error_msg =
-                                        "Descriptor range type: CBV_SRV_UAV doesn't match descriptor heap type: " +
-                                        util::ToString(heap_extra_info->descriptor_type);
+                                    const auto& desc = info_entry->second.captured_cbv_desc;
 
-                                    active_delegate_->WriteSingleData(json_path_sub, "note", error_msg);
-                                    GFXRECON_LOG_ERROR(error_msg.c_str());
+                                    active_delegate_->WriteSingleData(
+                                        json_path_sub1, "buffer_location", desc.BufferLocation);
 
-                                    heap_index += param_table.NumDescriptors;
+                                    CopyDrawCallResourceByGPUVA(queue_object_info,
+                                                                front_command_list_ids,
+                                                                desc.BufferLocation,
+                                                                desc.SizeInBytes,
+                                                                json_path_sub1,
+                                                                Dx12DumpResourceType::kCbv,
+                                                                pos,
+                                                                heap_id,
+                                                                heap_index);
+                                    break;
                                 }
-                                break;
-                            }
-                            case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
-                            {
-                                if (heap_extra_info->descriptor_type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
-                                {
-                                    for (uint32_t di = 0; di < param_table.NumDescriptors; ++di)
-                                    {
-                                        auto json_path_sub1= json_path_sub;
-                                        json_path_sub1.emplace_back("constant_buffer_views", di);
-                                        active_delegate_->WriteSingleData(json_path_sub1, "heap_id", heap_id);
-                                        active_delegate_->WriteSingleData(json_path_sub1, "heap_index", heap_index);
-
-                                        auto cbv_info_entry = heap_extra_info->constant_buffer_infos.find(heap_index);
-                                        if (cbv_info_entry != heap_extra_info->constant_buffer_infos.end())
-                                        {
-                                            const auto& info = cbv_info_entry->second;
-                                            active_delegate_->WriteSingleData(
-                                                json_path_sub1, "buffer_location", info.captured_desc.BufferLocation);
-
-                                            CopyDrawCallResourceByGPUVA(queue_object_info,
-                                                                        front_command_list_ids,
-                                                                        info.captured_desc.BufferLocation,
-                                                                        info.captured_desc.SizeInBytes,
-                                                                        json_path_sub1,
-                                                                        Dx12DumpResourceType::kCbv,
-                                                                        pos,
-                                                                        heap_id,
-                                                                        heap_index);
-                                        }
-                                        else
-                                        {
-                                            std::string error_msg =
-                                                "Index: " + std::to_string(heap_index) +
-                                                " can't be found in constant buffer views of heap id: " +
-                                                std::to_string(heap_id);
-
-                                            active_delegate_->WriteSingleData(json_path_sub1, "note", error_msg);
-                                            GFXRECON_LOG_ERROR(error_msg.c_str());
-                                        }
-                                        ++heap_index;
-                                    }
-                                }
-                                else
-                                {
-                                    std::string error_msg =
-                                        "Descriptor range type: CBV_SRV_UAV doesn't match descriptor heap type: " +
-                                        util::ToString(heap_extra_info->descriptor_type);
-
-                                    active_delegate_->WriteSingleData(json_path_sub, "note", error_msg);
-                                    GFXRECON_LOG_ERROR(error_msg.c_str());
-
-                                    heap_index += param_table.NumDescriptors;
-                                }
-                                break;
+                                default:
+                                    break;
                             }
                         }
                         ++param_index;
@@ -1937,6 +1874,8 @@ void DefaultDx12DumpResourcesDelegate::WriteResource(nlohmann::ordered_json&   j
 
     std::string file_name = prefix_file_name + "_res_id_" + std::to_string(resource_data->source_resource_id);
 
+    util::FieldToJson(jdata["heap_id"], resource_data->descriptor_heap_id, json_options_);
+    util::FieldToJson(jdata["heap_index"], resource_data->descriptor_heap_index, json_options_);
     util::FieldToJson(jdata["res_id"], resource_data->source_resource_id, json_options_);
     util::FieldToJson(jdata["dimension"], util::ToString(resource_data->desc.Dimension), json_options_);
 
