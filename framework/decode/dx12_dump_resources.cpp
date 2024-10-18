@@ -295,7 +295,7 @@ bool Dx12DumpResources::CreateRootSignature(DxObjectInfo*                device_
         
         for (uint32_t pi = 0; pi < param_size; ++pi)
         {
-            RootParameter dump_param;
+            TrackDumpRootParameter dump_param;
             dump_param.type = params[pi].ParameterType;
 
             switch (dump_param.type)
@@ -329,11 +329,7 @@ bool Dx12DumpResources::CreateRootSignature(DxObjectInfo*                device_
                     params[pi].DescriptorTable.pDescriptorRanges = ranges[pi].data();
                     break;
                 }
-                case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
-                    dump_param.constants = params[pi].Constants;
-                    break;
                 default:
-                    dump_param.descriptor = params[pi].Descriptor;
                     break;
             }
             dump_root_parameters.emplace_back(dump_param);

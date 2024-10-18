@@ -113,14 +113,6 @@ struct CopyResourceData
 
 typedef std::shared_ptr<CopyResourceData> CopyResourceDataPtr;
 
-struct RootParameter
-{
-    D3D12_ROOT_PARAMETER_TYPE            type;
-    std::vector<D3D12_DESCRIPTOR_RANGE1> descriptor_tables;
-    D3D12_ROOT_CONSTANTS                 constants;
-    D3D12_ROOT_DESCRIPTOR1               descriptor;
-};
-
 struct TrackDumpResources
 {
     TrackDumpDrawCall target{};
@@ -137,8 +129,6 @@ struct TrackDumpResources
 
     std::array<graphics::dx12::CommandSet, 3> split_command_sets;
     std::array<graphics::dx12::CommandSet, 3> split_bundle_command_sets;
-
-    std::vector<RootParameter> root_paramaters;
 
     graphics::dx12::ID3D12FenceComPtr fence;
     HANDLE                            fence_event;
