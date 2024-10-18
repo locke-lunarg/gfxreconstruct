@@ -47,6 +47,26 @@ struct ExecuteIndirectInfo
     uint64_t         count_offset{ 0 };
 };
 
+struct TrackRootParameter
+{
+    // These are tracked in commandlist bindings.
+    D3D12_ROOT_PARAMETER_TYPE cmd_bind_type{};
+
+    union
+    {
+        D3D12_GPU_DESCRIPTOR_HANDLE cmd_bind_captured_base_descriptor{ kNullGpuAddress }; // RootDescriptorTable
+        D3D12_GPU_VIRTUAL_ADDRESS cmd_bind_captured_buffer_location; // RootConstantBufferView, RootShaderResourceView,
+                                                                     // RootUnorderedAccessView
+        // Root32BitConstant has no resources or descriptors info, so no track.
+    };
+
+    // These are tracked in Dx12DumpResources::CreateRootSignature.
+    D3D12_ROOT_PARAMETER_TYPE            signature_type{};
+    std::vector<D3D12_DESCRIPTOR_RANGE1> signature_descriptor_tables; // D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE
+
+    // The other parameter types have no resources or descriptors info, so no track.
+};
+
 struct TrackDumpDrawCall
 {
     DumpResourcesTarget dump_resources_target{};
@@ -66,9 +86,8 @@ struct TrackDumpDrawCall
     D3D12_INDEX_BUFFER_VIEW captured_index_buffer_view{};
 
     // descriptor
-    std::vector<format::HandleId>               descriptor_heap_ids;
-    std::map<UINT, D3D12_GPU_DESCRIPTOR_HANDLE> captured_graphics_root_descriptor_tables;
-    std::map<UINT, D3D12_GPU_DESCRIPTOR_HANDLE> captured_compute_root_descriptor_tables;
+    std::vector<format::HandleId>                    descriptor_heap_ids;
+    std::unordered_map<uint32_t, TrackRootParameter> root_parameters;
 
     // ExecuteIndirect
     ExecuteIndirectInfo execute_indirect_info{};
@@ -85,8 +104,7 @@ struct TrackDumpDrawCall
     {
         captured_vertex_buffer_views.clear();
         descriptor_heap_ids.clear();
-        captured_graphics_root_descriptor_tables.clear();
-        captured_compute_root_descriptor_tables.clear();
+        root_parameters.clear();
         bundle_commandlist_id   = format::kNullHandleId;
         bundle_target_draw_call = nullptr;
         is_draw                 = false;
@@ -98,7 +116,8 @@ struct TrackDumpCommandList
     uint64_t         begin_block_index{ 0 };
     uint64_t         current_begin_renderpass_block_index{ 0 };
     uint64_t         current_set_render_targets_block_index{ 0 };
-    format::HandleId current_root_signature_handle_id{ format::kNullHandleId };
+    format::HandleId current_compute_root_signature_handle_id{ format::kNullHandleId };
+    format::HandleId current_graphics_root_signature_handle_id{ format::kNullHandleId };
 
     // vertex
     std::vector<D3D12_VERTEX_BUFFER_VIEW> current_captured_vertex_buffer_views;
@@ -107,9 +126,9 @@ struct TrackDumpCommandList
     D3D12_INDEX_BUFFER_VIEW current_captured_index_buffer_view{};
 
     // descriptor
-    std::vector<format::HandleId>               current_descriptor_heap_ids;
-    std::map<UINT, D3D12_GPU_DESCRIPTOR_HANDLE> current_captured_graphics_root_descriptor_tables;
-    std::map<UINT, D3D12_GPU_DESCRIPTOR_HANDLE> current_captured_compute_root_descriptor_tables;
+    std::vector<format::HandleId>                    current_descriptor_heap_ids;
+    std::unordered_map<uint32_t, TrackRootParameter> current_compute_root_parameters;
+    std::unordered_map<uint32_t, TrackRootParameter> current_graphics_root_parameters;
 
     // render target
     // Track render target info in replay, not here.
@@ -122,11 +141,13 @@ struct TrackDumpCommandList
         begin_block_index                      = 0;
         current_begin_renderpass_block_index   = 0;
         current_set_render_targets_block_index = 0;
+        current_compute_root_signature_handle_id = format::kNullHandleId;
+        current_graphics_root_signature_handle_id = format::kNullHandleId;
         current_captured_vertex_buffer_views.clear();
         current_captured_index_buffer_view = {};
         current_descriptor_heap_ids.clear();
-        current_captured_graphics_root_descriptor_tables.clear();
-        current_captured_compute_root_descriptor_tables.clear();
+        current_compute_root_parameters.clear();
+        current_graphics_root_parameters.clear();
         track_dump_draw_calls.clear();
     }
 };
@@ -265,7 +286,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
-                it->second.current_root_signature_handle_id = pRootSignature;
+                it->second.current_compute_root_signature_handle_id = pRootSignature;
             }
         }
     }
@@ -279,83 +300,10 @@ class Dx12BrowseConsumer : public Dx12Consumer
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
-                it->second.current_root_signature_handle_id = pRootSignature;
+                it->second.current_graphics_root_signature_handle_id = pRootSignature;
             }
         }
     }
-
-    virtual void Process_ID3D12GraphicsCommandList_SetComputeRoot32BitConstant(const ApiCallInfo& call_info,
-                                                                               format::HandleId   object_id,
-                                                                               UINT               RootParameterIndex,
-                                                                               UINT               SrcData,
-                                                                               UINT DestOffsetIn32BitValues)
-    {}
-
-    virtual void Process_ID3D12GraphicsCommandList_SetGraphicsRoot32BitConstant(const ApiCallInfo& call_info,
-                                                                                format::HandleId   object_id,
-                                                                                UINT               RootParameterIndex,
-                                                                                UINT               SrcData,
-                                                                                UINT DestOffsetIn32BitValues)
-    {}
-
-    virtual void Process_ID3D12GraphicsCommandList_SetComputeRoot32BitConstants(const ApiCallInfo& call_info,
-                                                                                format::HandleId   object_id,
-                                                                                UINT               RootParameterIndex,
-                                                                                UINT               Num32BitValuesToSet,
-                                                                                PointerDecoder<uint8_t>* pSrcData,
-                                                                                UINT DestOffsetIn32BitValues)
-    {}
-
-    virtual void Process_ID3D12GraphicsCommandList_SetGraphicsRoot32BitConstants(const ApiCallInfo& call_info,
-                                                                                 format::HandleId   object_id,
-                                                                                 UINT               RootParameterIndex,
-                                                                                 UINT               Num32BitValuesToSet,
-                                                                                 PointerDecoder<uint8_t>* pSrcData,
-                                                                                 UINT DestOffsetIn32BitValues)
-    {}
-
-    virtual void
-    Process_ID3D12GraphicsCommandList_SetComputeRootConstantBufferView(const ApiCallInfo&        call_info,
-                                                                       format::HandleId          object_id,
-                                                                       UINT                      RootParameterIndex,
-                                                                       D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-    {}
-
-    virtual void
-    Process_ID3D12GraphicsCommandList_SetGraphicsRootConstantBufferView(const ApiCallInfo&        call_info,
-                                                                        format::HandleId          object_id,
-                                                                        UINT                      RootParameterIndex,
-                                                                        D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-    {}
-
-    virtual void
-    Process_ID3D12GraphicsCommandList_SetComputeRootShaderResourceView(const ApiCallInfo&        call_info,
-                                                                       format::HandleId          object_id,
-                                                                       UINT                      RootParameterIndex,
-                                                                       D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-    {}
-
-    virtual void
-    Process_ID3D12GraphicsCommandList_SetGraphicsRootShaderResourceView(const ApiCallInfo&        call_info,
-                                                                        format::HandleId          object_id,
-                                                                        UINT                      RootParameterIndex,
-                                                                        D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-    {}
-
-    virtual void
-    Process_ID3D12GraphicsCommandList_SetComputeRootUnorderedAccessView(const ApiCallInfo&        call_info,
-                                                                        format::HandleId          object_id,
-                                                                        UINT                      RootParameterIndex,
-                                                                        D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-    {}
-
-    virtual void
-    Process_ID3D12GraphicsCommandList_SetGraphicsRootUnorderedAccessView(const ApiCallInfo&        call_info,
-                                                                         format::HandleId          object_id,
-                                                                         UINT                      RootParameterIndex,
-                                                                         D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-    {}
-
 
     virtual void
     Process_ID3D12GraphicsCommandList_IASetVertexBuffers(const ApiCallInfo& call_info,
@@ -419,8 +367,6 @@ class Dx12BrowseConsumer : public Dx12Consumer
                 {
                     it->second.current_descriptor_heap_ids[i] = heap_ids[i];
                 }
-                it->second.current_captured_compute_root_descriptor_tables.clear();
-                it->second.current_captured_graphics_root_descriptor_tables.clear();
             }
         }
     }
@@ -436,8 +382,10 @@ class Dx12BrowseConsumer : public Dx12Consumer
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
-                it->second.current_captured_compute_root_descriptor_tables[RootParameterIndex] =
-                    (*BaseDescriptor.decoded_value);
+                TrackRootParameter param                = {};
+                param.cmd_bind_type                     = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+                param.cmd_bind_captured_base_descriptor = (*BaseDescriptor.decoded_value);
+                it->second.current_compute_root_parameters[RootParameterIndex] = param;
             }
         }
     }
@@ -453,10 +401,200 @@ class Dx12BrowseConsumer : public Dx12Consumer
             auto it = track_commandlist_infos_.find(object_id);
             if (it != track_commandlist_infos_.end())
             {
-                it->second.current_captured_graphics_root_descriptor_tables[RootParameterIndex] =
-                    (*BaseDescriptor.decoded_value);
+                TrackRootParameter param                = {};
+                param.cmd_bind_type                     = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+                param.cmd_bind_captured_base_descriptor = (*BaseDescriptor.decoded_value);
+                it->second.current_graphics_root_parameters[RootParameterIndex] = param;
             }
         }
+    }
+
+    virtual void Process_ID3D12GraphicsCommandList_SetComputeRoot32BitConstant(const ApiCallInfo& call_info,
+                                                                               format::HandleId   object_id,
+                                                                               UINT               RootParameterIndex,
+                                                                               UINT               SrcData,
+                                                                               UINT DestOffsetIn32BitValues)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                TrackRootParameter param = {};
+                param.cmd_bind_type      = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+                it->second.current_compute_root_parameters[RootParameterIndex] = param;
+            }
+        }
+    }
+
+    virtual void Process_ID3D12GraphicsCommandList_SetGraphicsRoot32BitConstant(const ApiCallInfo& call_info,
+                                                                                format::HandleId   object_id,
+                                                                                UINT               RootParameterIndex,
+                                                                                UINT               SrcData,
+                                                                                UINT DestOffsetIn32BitValues)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                TrackRootParameter param = {};
+                param.cmd_bind_type      = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+                it->second.current_graphics_root_parameters[RootParameterIndex] = param;
+            }
+        }  
+    }
+
+    virtual void Process_ID3D12GraphicsCommandList_SetComputeRoot32BitConstants(const ApiCallInfo& call_info,
+                                                                                format::HandleId   object_id,
+                                                                                UINT               RootParameterIndex,
+                                                                                UINT               Num32BitValuesToSet,
+                                                                                PointerDecoder<uint8_t>* pSrcData,
+                                                                                UINT DestOffsetIn32BitValues)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                TrackRootParameter param = {};
+                param.cmd_bind_type      = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+                it->second.current_compute_root_parameters[RootParameterIndex] = param;
+            }
+        }
+    }
+
+    virtual void Process_ID3D12GraphicsCommandList_SetGraphicsRoot32BitConstants(const ApiCallInfo& call_info,
+                                                                                 format::HandleId   object_id,
+                                                                                 UINT               RootParameterIndex,
+                                                                                 UINT               Num32BitValuesToSet,
+                                                                                 PointerDecoder<uint8_t>* pSrcData,
+                                                                                 UINT DestOffsetIn32BitValues)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                TrackRootParameter param = {};
+                param.cmd_bind_type      = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+                it->second.current_graphics_root_parameters[RootParameterIndex] = param;
+            }
+        }  
+    }
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetComputeRootConstantBufferView(const ApiCallInfo&        call_info,
+                                                                       format::HandleId          object_id,
+                                                                       UINT                      RootParameterIndex,
+                                                                       D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                TrackRootParameter param                                       = {};
+                param.cmd_bind_type                                            = D3D12_ROOT_PARAMETER_TYPE_CBV;
+                param.cmd_bind_captured_buffer_location                        = BufferLocation;
+                it->second.current_compute_root_parameters[RootParameterIndex] = param;
+            }
+        }  
+    }
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetGraphicsRootConstantBufferView(const ApiCallInfo&        call_info,
+                                                                        format::HandleId          object_id,
+                                                                        UINT                      RootParameterIndex,
+                                                                        D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                TrackRootParameter param                                        = {};
+                param.cmd_bind_type                                             = D3D12_ROOT_PARAMETER_TYPE_CBV;
+                param.cmd_bind_captured_buffer_location                         = BufferLocation;
+                it->second.current_graphics_root_parameters[RootParameterIndex] = param;
+            }
+        }  
+    }
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetComputeRootShaderResourceView(const ApiCallInfo&        call_info,
+                                                                       format::HandleId          object_id,
+                                                                       UINT                      RootParameterIndex,
+                                                                       D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                TrackRootParameter param                                       = {};
+                param.cmd_bind_type                                            = D3D12_ROOT_PARAMETER_TYPE_SRV;
+                param.cmd_bind_captured_buffer_location                        = BufferLocation;
+                it->second.current_compute_root_parameters[RootParameterIndex] = param;
+            }
+        } 
+    }
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetGraphicsRootShaderResourceView(const ApiCallInfo&        call_info,
+                                                                        format::HandleId          object_id,
+                                                                        UINT                      RootParameterIndex,
+                                                                        D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                TrackRootParameter param                                        = {};
+                param.cmd_bind_type                                             = D3D12_ROOT_PARAMETER_TYPE_SRV;
+                param.cmd_bind_captured_buffer_location                         = BufferLocation;
+                it->second.current_graphics_root_parameters[RootParameterIndex] = param;
+            }
+        }  
+    }
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetComputeRootUnorderedAccessView(const ApiCallInfo&        call_info,
+                                                                        format::HandleId          object_id,
+                                                                        UINT                      RootParameterIndex,
+                                                                        D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                TrackRootParameter param                                        = {};
+                param.cmd_bind_type                                             = D3D12_ROOT_PARAMETER_TYPE_UAV;
+                param.cmd_bind_captured_buffer_location                         = BufferLocation;
+                it->second.current_compute_root_parameters[RootParameterIndex]  = param;
+            }
+        } 
+    }
+
+    virtual void
+    Process_ID3D12GraphicsCommandList_SetGraphicsRootUnorderedAccessView(const ApiCallInfo&        call_info,
+                                                                         format::HandleId          object_id,
+                                                                         UINT                      RootParameterIndex,
+                                                                         D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+    {
+        if (target_command_list_ == format::kNullHandleId)
+        {
+            auto it = track_commandlist_infos_.find(object_id);
+            if (it != track_commandlist_infos_.end())
+            {
+                TrackRootParameter param                                        = {};
+                param.cmd_bind_type                                             = D3D12_ROOT_PARAMETER_TYPE_UAV;
+                param.cmd_bind_captured_buffer_location                         = BufferLocation;
+                it->second.current_graphics_root_parameters[RootParameterIndex] = param;
+            }
+        } 
     }
 
     virtual void Process_ID3D12GraphicsCommandList_DrawInstanced(const ApiCallInfo& call_info,
@@ -721,19 +859,25 @@ class Dx12BrowseConsumer : public Dx12Consumer
                 track_draw_call.begin_block_index                 = it->second.begin_block_index;
                 track_draw_call.begin_renderpass_block_index      = it->second.current_begin_renderpass_block_index;
                 track_draw_call.set_render_targets_block_index    = it->second.current_set_render_targets_block_index;
-                track_draw_call.root_signature_handle_id          = it->second.current_root_signature_handle_id;
                 track_draw_call.captured_vertex_buffer_views      = it->second.current_captured_vertex_buffer_views;
                 track_draw_call.captured_index_buffer_view        = it->second.current_captured_index_buffer_view;
                 track_draw_call.descriptor_heap_ids               = it->second.current_descriptor_heap_ids;
-                track_draw_call.captured_graphics_root_descriptor_tables =
-                    it->second.current_captured_graphics_root_descriptor_tables;
-                track_draw_call.captured_compute_root_descriptor_tables =
-                    it->second.current_captured_compute_root_descriptor_tables;
                 track_draw_call.execute_indirect_info.argument_id = exe_indirect_argument_id;
                 track_draw_call.execute_indirect_info.argument_offset = exe_indirect_argument_offset;
                 track_draw_call.execute_indirect_info.count_id        = exe_indirect_count_id;
                 track_draw_call.execute_indirect_info.count_offset    = exe_indirect_count_offset;
                 track_draw_call.bundle_commandlist_id                 = bundle_commandlist_id;
+
+                if (is_draw)
+                {
+                    track_draw_call.root_signature_handle_id = it->second.current_graphics_root_signature_handle_id;
+                    track_draw_call.root_parameters          = it->second.current_graphics_root_parameters;
+                }
+                else
+                {
+                    track_draw_call.root_signature_handle_id = it->second.current_compute_root_signature_handle_id;
+                    track_draw_call.root_parameters          = it->second.current_compute_root_parameters;
+                }
 
                 it->second.track_dump_draw_calls.emplace_back(
                     std::make_shared<TrackDumpDrawCall>(std::move(track_draw_call)));
