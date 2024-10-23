@@ -267,6 +267,12 @@ class Dx12DumpResources
     void FinishDump(DxObjectInfo* queue_object_info);
     void CloseDump();
 
+    void WriteDescripotTable(std::vector<std::pair<std::string, int32_t>> json_path,
+                             const D3D12DescriptorHeapInfo*               heap_info,
+                             format::HandleId                             heap_id,
+                             uint32_t                                     heap_index,
+                             const D3D12_DESCRIPTOR_RANGE1*               range);
+
     void CopyDrawCallResources(DxObjectInfo*                        queue_object_info,
                                const std::vector<format::HandleId>& front_command_list_ids,
                                graphics::dx12::Dx12DumpResourcePos  pos);

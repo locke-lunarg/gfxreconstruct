@@ -47,6 +47,9 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 constexpr bool TEST_READABLE   = false;
 constexpr bool TEST_SHADER_RES = true;
 
+// root parameter's descriptor range type's index mightn't have a view in heap.
+constexpr bool TEST_WRITE_NOT_FOUND_VIEWS = true;
+
 // resource id or BufferLocation could be 0 in view of heap.
 constexpr bool TEST_WRITE_NULL_RESOURCE_VIEWS = true;
 
@@ -594,11 +597,177 @@ bool ReplayCPUAddrMatchDescriptorHeap(const D3D12_CPU_DESCRIPTOR_HANDLE replay_c
     return is_match;
 }
 
-void WriteDescripotTable(std::vector<std::pair<std::string, int32_t>> json_path,
-                         const D3D12DescriptorHeapInfo*               heap_info,
-                         uint32_t                                     heap_index,
-                         uint32_t                                     num_descriptors)
-{}
+// If range is null, it means not D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE, so it dumps only one descriptor.
+void Dx12DumpResources::WriteDescripotTable(std::vector<std::pair<std::string, int32_t>> json_path,
+                                            const D3D12DescriptorHeapInfo*               heap_info,
+                                            format::HandleId                             heap_id,
+                                            uint32_t                                     root_heap_index,
+                                            const D3D12_DESCRIPTOR_RANGE1*               range)
+{
+    const std::vector<uint32_t> sub_indices_emptry{ 0 };
+
+    uint32_t num_descriptors = 1;
+    if (range != nullptr)
+    {
+        num_descriptors = range->NumDescriptors;
+    }
+
+    uint32_t heap_index = root_heap_index;
+    for (uint32_t i = 0; i < num_descriptors; ++i)
+    {
+        heap_index      = root_heap_index + i;
+        auto info_entry = heap_info->cbv_srv_uav_infos.find(heap_index);
+        if (info_entry == heap_info->cbv_srv_uav_infos.end())
+        {
+            if (TEST_WRITE_NOT_FOUND_VIEWS)
+            {
+                active_delegate_->WriteSingleData(json_path, "heap_id", heap_id);
+                active_delegate_->WriteSingleData(json_path, "heap_index", heap_index);
+                active_delegate_->WriteSingleData(
+                    json_path, "note", "This heap_index can't be found a view in this heap_id");
+            }
+            continue;
+        }
+
+        switch (info_entry->second.type)
+        {
+            case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
+            {
+                const auto& desc = info_entry->second.info.cbv.captured_desc;
+                active_delegate_->WriteSingleData(json_path, "buffer_location", desc.BufferLocation);
+
+                if (info_entry->second.info.cbv.captured_desc.BufferLocation == kNullGpuAddress)
+                {
+                    if (TEST_WRITE_NULL_RESOURCE_VIEWS)
+                    {
+                        active_delegate_->WriteSingleData(json_path, "heap_id", heap_id);
+                        active_delegate_->WriteSingleData(json_path, "heap_index", heap_index);
+                    }
+                    continue;
+                }
+                CopyDrawCallResourceByGPUVA(queue_object_info,
+                                            front_command_list_ids,
+                                            desc.BufferLocation,
+                                            desc.SizeInBytes,
+                                            json_path_sub1,
+                                            Dx12DumpResourceType::kCbv,
+                                            pos,
+                                            heap_id,
+                                            heap_index);
+                break;
+            }
+            case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
+            {
+                if (info_entry->second.info.srv.resource_id == format::kNullHandleId)
+                {
+                    if (TEST_WRITE_NULL_RESOURCE_VIEWS)
+                    {
+                        active_delegate_->WriteSingleData(json_path, "heap_id", heap_id);
+                        active_delegate_->WriteSingleData(json_path, "heap_index", heap_index);
+                        active_delegate_->WriteSingleData(json_path, "res_id", format::kNullHandleId);
+                    }
+                    continue;
+                }
+                const auto& desc   = info_entry->second.info.srv.desc;
+                uint64_t    offset = 0;
+                uint64_t    size   = 0;
+                switch (desc.ViewDimension)
+                {
+                    case D3D12_SRV_DIMENSION_BUFFER:
+                    {
+                        auto size = desc.Buffer.StructureByteStride;
+                        if (size == 0)
+                        {
+                            size = graphics::dx12::GetSubresourcePixelByteSize(desc.Format);
+                        }
+                        offset = desc.Buffer.FirstElement * size;
+                        size   = desc.Buffer.NumElements * size;
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                CopyDrawCallResourceBySubresource(queue_object_info,
+                                                  front_command_list_ids,
+                                                  info_entry->second.info.srv.resource_id,
+                                                  offset,
+                                                  size,
+                                                  info_entry->second.info.srv.subresource_indices,
+                                                  json_path_sub1,
+                                                  Dx12DumpResourceType::kSrv,
+                                                  pos,
+                                                  heap_id,
+                                                  heap_index);
+                break;
+            }
+            case D3D12_DESCRIPTOR_RANGE_TYPE_UAV:
+            {
+                if (info_entry->second.info.uav.resource_id == format::kNullHandleId)
+                {
+                    if (TEST_WRITE_NULL_RESOURCE_VIEWS)
+                    {
+                        active_delegate_->WriteSingleData(json_path, "heap_id", heap_id);
+                        active_delegate_->WriteSingleData(json_path, "heap_index", heap_index);
+                        active_delegate_->WriteSingleData(json_path, "res_id", format::kNullHandleId);
+                    }
+                    continue;
+                }
+                const auto& desc   = info_entry->second.info.uav.desc;
+                uint64_t    offset = 0;
+                uint64_t    size   = 0;
+                switch (desc.ViewDimension)
+                {
+                    case D3D12_UAV_DIMENSION_BUFFER:
+                    {
+                        auto size = desc.Buffer.StructureByteStride;
+                        if (size == 0)
+                        {
+                            size = graphics::dx12::GetSubresourcePixelByteSize(desc.Format);
+                        }
+                        offset = desc.Buffer.FirstElement * size;
+                        size   = desc.Buffer.NumElements * size;
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                auto json_path_sub2 = json_path_sub1;
+                json_path_sub2.emplace_back("resource", format::kNoneIndex);
+
+                CopyDrawCallResourceBySubresource(queue_object_info,
+                                                  front_command_list_ids,
+                                                  info_entry->second.info.uav.resource_id,
+                                                  offset,
+                                                  size,
+                                                  info_entry->second.info.uav.subresource_indices,
+                                                  json_path_sub2,
+                                                  Dx12DumpResourceType::kUav,
+                                                  pos,
+                                                  heap_id,
+                                                  heap_index);
+
+                json_path_sub2 = json_path_sub1;
+                json_path_sub2.emplace_back("counter_resource", format::kNoneIndex);
+                active_delegate_->WriteSingleData(json_path_sub2, "res_id", info_entry->second.info.uav.counter_resource_id);
+
+                CopyDrawCallResourceBySubresource(queue_object_info,
+                                                  front_command_list_ids,
+                                                  info_entry->second.info.uav.counter_resource_id,
+                                                  desc.Buffer.CounterOffsetInBytes,
+                                                  0,
+                                                  sub_indices_emptry,
+                                                  json_path_sub2,
+                                                  Dx12DumpResourceType::kUavCounter,
+                                                  pos,
+                                                  heap_id,
+                                                  heap_index);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+}
 
 void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                        queue_object_info,
                                               const std::vector<format::HandleId>& front_command_list_ids,
@@ -755,23 +924,48 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                         continue;
                     }
 
-                    if (param.second.signature_type != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+                    active_delegate_->WriteSingleData(
+                        json_path, "descriptor_heap_type", heap_extra_info->descriptor_type);
+                    switch (heap_extra_info->descriptor_type)
                     {
-                        active_delegate_->WriteSingleData(
-                            json_path, "note", "ERROR: signature_type isn't DESCRIPTOR_TABLE and no NumDescriptors, so dump only one descriptor.");
-                        WriteDescripotTable(json_path, heap_extra_info, table_heap_index, 1);
-                        break;
-                    }
-
-                    uint32_t table_index     = 0;
-                    uint32_t root_heap_index = table_heap_index;
-                    for (const auto& table : param.second.signature_descriptor_tables)
-                    {
-                        if (table_index > 0)
+                        case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
                         {
-                            root_heap_index += param.second.signature_descriptor_tables[table_index - 1].NumDescriptors;
+                            if (param.second.signature_type != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+                            {
+                                active_delegate_->WriteSingleData(json_path,
+                                                                  "note",
+                                                                  "ERROR: signature_type isn't DESCRIPTOR_TABLE and no "
+                                                                  "NumDescriptors, so dump only one descriptor.");
+                                WriteDescripotTable(json_path, heap_extra_info, heap_id, table_heap_index, nullptr);
+                                break;
+                            }
+
+                            uint32_t table_index     = 0;
+                            uint32_t root_heap_index = table_heap_index;
+                            for (const auto& table : param.second.signature_descriptor_tables)
+                            {
+                                if (table_index > 0)
+                                {
+                                    root_heap_index +=
+                                        param.second.signature_descriptor_tables[table_index - 1].NumDescriptors;
+                                }
+                                WriteDescripotTable(json_path, heap_extra_info, heap_id, root_heap_index, &table);
+                            }
+                            break;
                         }
-                        WriteDescripotTable(json_path, heap_extra_info, root_heap_index, table.NumDescriptors);
+                        case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+                        {
+                            break;
+                        }
+                        default:
+                        {
+                            // D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_TYPE_DSV
+                            active_delegate_->WriteSingleData(
+                                json_path,
+                                "note",
+                                "ERROR: This descriptor_heap_type shouldn't be used in root parameter.");
+                            break;
+                        }
                     }
                 }
                 break;
