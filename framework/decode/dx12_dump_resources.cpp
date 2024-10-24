@@ -44,7 +44,7 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 // TEST_READABLE is only for test because data type could be various.
 // But here uses fixed type.
 // According to the resource's desc.Dimension, float is for buffer, image is for the others.
-constexpr bool TEST_READABLE   = false;
+constexpr bool TEST_READABLE   = true;
 constexpr bool TEST_SHADER_RES = true;
 
 // root parameter's descriptor range type's index mightn't have a view in heap.
@@ -631,8 +631,8 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
                 ++json_index;
                 active_delegate_->WriteSingleData(json_path_sub, "heap_id", heap_id);
                 active_delegate_->WriteSingleData(json_path_sub, "heap_index", heap_index);
-                active_delegate_->WriteSingleData(
-                    json_path_sub, "note", "This heap_index can't be found a view in this heap_id");
+                active_delegate_->WriteNote(
+                    json_path_sub, "This heap_index can't be found a view in this heap_id");
             }
             continue;
         }
@@ -914,7 +914,7 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
         json_path.clear();
         json_path.emplace_back("root_parameters", index);
         active_delegate_->WriteSingleData(json_path, "root_parameter_index", param.first);
-        active_delegate_->WriteSingleData(json_path, "signature_type", param.second.signature_type);
+        active_delegate_->WriteSingleData(json_path, "signature_type", util::ToString(param.second.signature_type));
 
         switch (param.second.signature_type)
         {
@@ -925,7 +925,7 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                 {
                     json_path_sub = json_path;
                     json_path_sub.emplace_back("tables", di);
-                    active_delegate_->WriteSingleData(json_path_sub, "range_type", table.RangeType);
+                    active_delegate_->WriteSingleData(json_path_sub, "range_type", util::ToString(table.RangeType));
                     active_delegate_->WriteSingleData(json_path_sub, "num_descriptors", table.NumDescriptors);
                     ++di;
                 }
@@ -935,7 +935,7 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                 break;
         }
 
-        active_delegate_->WriteSingleData(json_path, "cmd_bind_type", param.second.cmd_bind_type);
+        active_delegate_->WriteSingleData(json_path, "cmd_bind_type", util::ToString(param.second.cmd_bind_type));
 
         if (param.second.signature_type != param.second.cmd_bind_type)
         {
@@ -960,17 +960,16 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                     }
 
                     active_delegate_->WriteSingleData(
-                        json_path, "descriptor_heap_type", heap_extra_info->descriptor_type);
+                        json_path, "descriptor_heap_type", util::ToString(heap_extra_info->descriptor_type));
                     switch (heap_extra_info->descriptor_type)
                     {
                         case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
                         {
                             if (param.second.signature_type != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
                             {
-                                active_delegate_->WriteSingleData(json_path,
-                                                                  "note",
-                                                                  "ERROR: signature_type isn't DESCRIPTOR_TABLE and no "
-                                                                  "NumDescriptors, so dump only one descriptor.");
+                                active_delegate_->WriteNote(json_path,
+                                                            "ERROR: signature_type isn't DESCRIPTOR_TABLE and no "
+                                                            "NumDescriptors, so dump only one descriptor.");
                                 WriteDescripotTable(queue_object_info,
                                                     front_command_list_ids,
                                                     pos,
@@ -1010,10 +1009,8 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                         case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
                         {
                             // D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_TYPE_DSV
-                            active_delegate_->WriteSingleData(
-                                json_path,
-                                "note",
-                                "ERROR: This descriptor_heap_type shouldn't be used in root parameter.");
+                            active_delegate_->WriteNote(
+                                json_path, "ERROR: This descriptor_heap_type shouldn't be used in root parameter.");
                             break;
                         }
                         default:
