@@ -608,6 +608,7 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
                                             const D3D12_DESCRIPTOR_RANGE1*               range)
 {
     const std::vector<uint32_t> sub_indices_emptry{ 0 };
+    std::vector<std::pair<std::string, int32_t>> json_path_sub;
 
     uint32_t num_descriptors = 1;
     if (range != nullptr)
@@ -616,6 +617,7 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
     }
 
     uint32_t heap_index = root_heap_index;
+    uint32_t json_index = 0;
     for (uint32_t i = 0; i < num_descriptors; ++i)
     {
         heap_index      = root_heap_index + i;
@@ -624,10 +626,13 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
         {
             if (TEST_WRITE_NOT_FOUND_VIEWS)
             {
-                active_delegate_->WriteSingleData(json_path, "heap_id", heap_id);
-                active_delegate_->WriteSingleData(json_path, "heap_index", heap_index);
+                json_path_sub = json_path;
+                json_path_sub.emplace_back("descs", json_index);
+                ++json_index;
+                active_delegate_->WriteSingleData(json_path_sub, "heap_id", heap_id);
+                active_delegate_->WriteSingleData(json_path_sub, "heap_index", heap_index);
                 active_delegate_->WriteSingleData(
-                    json_path, "note", "This heap_index can't be found a view in this heap_id");
+                    json_path_sub, "note", "This heap_index can't be found a view in this heap_id");
             }
             continue;
         }
@@ -637,22 +642,30 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
             case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
             {
                 const auto& desc = info_entry->second.info.cbv.captured_desc;
-                active_delegate_->WriteSingleData(json_path, "buffer_location", desc.BufferLocation);
 
-                if (info_entry->second.info.cbv.captured_desc.BufferLocation == kNullGpuAddress)
+                if (desc.BufferLocation == kNullGpuAddress)
                 {
                     if (TEST_WRITE_NULL_RESOURCE_VIEWS)
                     {
-                        active_delegate_->WriteSingleData(json_path, "heap_id", heap_id);
-                        active_delegate_->WriteSingleData(json_path, "heap_index", heap_index);
+                        json_path_sub = json_path;
+                        json_path_sub.emplace_back("descs", json_index);
+                        ++json_index;
+                        active_delegate_->WriteSingleData(json_path_sub, "heap_id", heap_id);
+                        active_delegate_->WriteSingleData(json_path_sub, "heap_index", heap_index);
+                        active_delegate_->WriteSingleData(json_path_sub, "buffer_location", kNullGpuAddress);
                     }
                     continue;
                 }
+                json_path_sub = json_path;
+                json_path_sub.emplace_back("descs", json_index);
+                ++json_index;
+
+                active_delegate_->WriteSingleData(json_path_sub, "buffer_location", desc.BufferLocation);
                 CopyDrawCallResourceByGPUVA(queue_object_info,
                                             front_command_list_ids,
                                             desc.BufferLocation,
                                             desc.SizeInBytes,
-                                            json_path,
+                                            json_path_sub,
                                             Dx12DumpResourceType::kCbv,
                                             pos,
                                             heap_id,
@@ -665,12 +678,19 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
                 {
                     if (TEST_WRITE_NULL_RESOURCE_VIEWS)
                     {
-                        active_delegate_->WriteSingleData(json_path, "heap_id", heap_id);
-                        active_delegate_->WriteSingleData(json_path, "heap_index", heap_index);
-                        active_delegate_->WriteSingleData(json_path, "res_id", format::kNullHandleId);
+                        json_path_sub = json_path;
+                        json_path_sub.emplace_back("descs", json_index);
+                        ++json_index;
+                        active_delegate_->WriteSingleData(json_path_sub, "heap_id", heap_id);
+                        active_delegate_->WriteSingleData(json_path_sub, "heap_index", heap_index);
+                        active_delegate_->WriteSingleData(json_path_sub, "res_id", format::kNullHandleId);
                     }
                     continue;
                 }
+                json_path_sub = json_path;
+                json_path_sub.emplace_back("descs", json_index);
+                ++json_index;
+
                 const auto& desc   = info_entry->second.info.srv.desc;
                 uint64_t    offset = 0;
                 uint64_t    size   = 0;
@@ -696,7 +716,7 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
                                                   offset,
                                                   size,
                                                   info_entry->second.info.srv.subresource_indices,
-                                                  json_path,
+                                                  json_path_sub,
                                                   Dx12DumpResourceType::kSrv,
                                                   pos,
                                                   heap_id,
@@ -709,12 +729,19 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
                 {
                     if (TEST_WRITE_NULL_RESOURCE_VIEWS)
                     {
-                        active_delegate_->WriteSingleData(json_path, "heap_id", heap_id);
-                        active_delegate_->WriteSingleData(json_path, "heap_index", heap_index);
-                        active_delegate_->WriteSingleData(json_path, "res_id", format::kNullHandleId);
+                        json_path_sub = json_path;
+                        json_path_sub.emplace_back("descs", json_index);
+                        ++json_index;
+                        active_delegate_->WriteSingleData(json_path_sub, "heap_id", heap_id);
+                        active_delegate_->WriteSingleData(json_path_sub, "heap_index", heap_index);
+                        active_delegate_->WriteSingleData(json_path_sub, "res_id", format::kNullHandleId);
                     }
                     continue;
                 }
+                json_path_sub = json_path;
+                json_path_sub.emplace_back("descs", json_index);
+                ++json_index;
+
                 const auto& desc   = info_entry->second.info.uav.desc;
                 uint64_t    offset = 0;
                 uint64_t    size   = 0;
@@ -734,7 +761,7 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
                     default:
                         break;
                 }
-                json_path.emplace_back("resource", format::kNoneIndex);
+                json_path_sub.emplace_back("resource", format::kNoneIndex);
 
                 CopyDrawCallResourceBySubresource(queue_object_info,
                                                   front_command_list_ids,
@@ -742,14 +769,15 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
                                                   offset,
                                                   size,
                                                   info_entry->second.info.uav.subresource_indices,
-                                                  json_path,
+                                                  json_path_sub,
                                                   Dx12DumpResourceType::kUav,
                                                   pos,
                                                   heap_id,
                                                   heap_index);
 
-                json_path.emplace_back("counter_resource", format::kNoneIndex);
-                active_delegate_->WriteSingleData(json_path, "res_id", info_entry->second.info.uav.counter_resource_id);
+                json_path_sub.emplace_back("counter_resource", format::kNoneIndex);
+                active_delegate_->WriteSingleData(
+                    json_path_sub, "res_id", info_entry->second.info.uav.counter_resource_id);
 
                 CopyDrawCallResourceBySubresource(queue_object_info,
                                                   front_command_list_ids,
@@ -757,7 +785,7 @@ void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                       
                                                   desc.Buffer.CounterOffsetInBytes,
                                                   0,
                                                   sub_indices_emptry,
-                                                  json_path,
+                                                  json_path_sub,
                                                   Dx12DumpResourceType::kUavCounter,
                                                   pos,
                                                   heap_id,
@@ -896,7 +924,7 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                 for (const auto& table : param.second.signature_descriptor_tables)
                 {
                     json_path_sub = json_path;
-                    json_path_sub.emplace_back("descs", di);
+                    json_path_sub.emplace_back("tables", di);
                     active_delegate_->WriteSingleData(json_path_sub, "range_type", table.RangeType);
                     active_delegate_->WriteSingleData(json_path_sub, "num_descriptors", table.NumDescriptors);
                     ++di;
@@ -950,6 +978,7 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
 
                             uint32_t table_index     = 0;
                             uint32_t root_heap_index = table_heap_index;
+                            uint32_t di              = 0;
                             for (const auto& table : param.second.signature_descriptor_tables)
                             {
                                 if (table_index > 0)
@@ -957,14 +986,17 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                                     root_heap_index +=
                                         param.second.signature_descriptor_tables[table_index - 1].NumDescriptors;
                                 }
+                                json_path_sub = json_path;
+                                json_path_sub.emplace_back("tables", di);
                                 WriteDescripotTable(queue_object_info,
                                                     front_command_list_ids,
                                                     pos,
-                                                    json_path,
+                                                    json_path_sub,
                                                     heap_extra_info,
                                                     heap_id,
                                                     root_heap_index,
                                                     &table);
+                                ++di;
                             }
                             break;
                         }
