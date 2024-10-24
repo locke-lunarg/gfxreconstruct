@@ -937,6 +937,12 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
 
         active_delegate_->WriteSingleData(json_path, "cmd_bind_type", param.second.cmd_bind_type);
 
+        if (param.second.signature_type != param.second.cmd_bind_type)
+        {
+            active_delegate_->WriteSingleData(
+                json_path, "note", "ERROR: signature_type and cmd_bind_type are different.");
+        }
+
         switch (param.second.cmd_bind_type)
         {
             case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
@@ -1000,11 +1006,8 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                             }
                             break;
                         }
-                        case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
-                        {
-                            break;
-                        }
-                        default:
+                        case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+                        case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
                         {
                             // D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_TYPE_DSV
                             active_delegate_->WriteSingleData(
@@ -1013,35 +1016,54 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                                 "ERROR: This descriptor_heap_type shouldn't be used in root parameter.");
                             break;
                         }
+                        default:
+                            // D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER
+                            break;
                     }
                 }
                 break;
             }
-            case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
-            {
-                json_path.emplace_back("root_32_bit_constants", format::kNoneIndex);
-                active_delegate_->WriteEmptyNode(json_path);
-                break;
-            }
             case D3D12_ROOT_PARAMETER_TYPE_CBV:
             {
-                json_path.emplace_back("root_constant_buffer_view", format::kNoneIndex);
-                active_delegate_->WriteEmptyNode(json_path);
+                CopyDrawCallResourceByGPUVA(queue_object_info,
+                                            front_command_list_ids,
+                                            param.second.cmd_bind_captured_buffer_location,
+                                            0,
+                                            json_path,
+                                            Dx12DumpResourceType::kCbv,
+                                            pos,
+                                            format::kNullHandleId,
+                                            0);
                 break;
             }
             case D3D12_ROOT_PARAMETER_TYPE_SRV:
             {
-                json_path.emplace_back("root_shader_resource_view", format::kNoneIndex);
-                active_delegate_->WriteEmptyNode(json_path);
+                CopyDrawCallResourceByGPUVA(queue_object_info,
+                                            front_command_list_ids,
+                                            param.second.cmd_bind_captured_buffer_location,
+                                            0,
+                                            json_path,
+                                            Dx12DumpResourceType::kSrv,
+                                            pos,
+                                            format::kNullHandleId,
+                                            0);
                 break;
             }
             case D3D12_ROOT_PARAMETER_TYPE_UAV:
             {
-                json_path.emplace_back("root_unordered_access_view", format::kNoneIndex);
-                active_delegate_->WriteEmptyNode(json_path);
+                CopyDrawCallResourceByGPUVA(queue_object_info,
+                                            front_command_list_ids,
+                                            param.second.cmd_bind_captured_buffer_location,
+                                            0,
+                                            json_path,
+                                            Dx12DumpResourceType::kUav,
+                                            pos,
+                                            format::kNullHandleId,
+                                            0);
                 break;
             }
             default:
+                // D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS
                 break;
         }
         ++index;
