@@ -598,7 +598,10 @@ bool ReplayCPUAddrMatchDescriptorHeap(const D3D12_CPU_DESCRIPTOR_HANDLE replay_c
 }
 
 // If range is null, it means not D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE, so it dumps only one descriptor.
-void Dx12DumpResources::WriteDescripotTable(std::vector<std::pair<std::string, int32_t>> json_path,
+void Dx12DumpResources::WriteDescripotTable(DxObjectInfo*                                queue_object_info,
+                                            const std::vector<format::HandleId>&         front_command_list_ids,
+                                            graphics::dx12::Dx12DumpResourcePos          pos,
+                                            std::vector<std::pair<std::string, int32_t>> json_path,
                                             const D3D12DescriptorHeapInfo*               heap_info,
                                             format::HandleId                             heap_id,
                                             uint32_t                                     root_heap_index,
@@ -649,7 +652,7 @@ void Dx12DumpResources::WriteDescripotTable(std::vector<std::pair<std::string, i
                                             front_command_list_ids,
                                             desc.BufferLocation,
                                             desc.SizeInBytes,
-                                            json_path_sub1,
+                                            json_path,
                                             Dx12DumpResourceType::kCbv,
                                             pos,
                                             heap_id,
@@ -693,7 +696,7 @@ void Dx12DumpResources::WriteDescripotTable(std::vector<std::pair<std::string, i
                                                   offset,
                                                   size,
                                                   info_entry->second.info.srv.subresource_indices,
-                                                  json_path_sub1,
+                                                  json_path,
                                                   Dx12DumpResourceType::kSrv,
                                                   pos,
                                                   heap_id,
@@ -731,8 +734,7 @@ void Dx12DumpResources::WriteDescripotTable(std::vector<std::pair<std::string, i
                     default:
                         break;
                 }
-                auto json_path_sub2 = json_path_sub1;
-                json_path_sub2.emplace_back("resource", format::kNoneIndex);
+                json_path.emplace_back("resource", format::kNoneIndex);
 
                 CopyDrawCallResourceBySubresource(queue_object_info,
                                                   front_command_list_ids,
@@ -740,15 +742,14 @@ void Dx12DumpResources::WriteDescripotTable(std::vector<std::pair<std::string, i
                                                   offset,
                                                   size,
                                                   info_entry->second.info.uav.subresource_indices,
-                                                  json_path_sub2,
+                                                  json_path,
                                                   Dx12DumpResourceType::kUav,
                                                   pos,
                                                   heap_id,
                                                   heap_index);
 
-                json_path_sub2 = json_path_sub1;
-                json_path_sub2.emplace_back("counter_resource", format::kNoneIndex);
-                active_delegate_->WriteSingleData(json_path_sub2, "res_id", info_entry->second.info.uav.counter_resource_id);
+                json_path.emplace_back("counter_resource", format::kNoneIndex);
+                active_delegate_->WriteSingleData(json_path, "res_id", info_entry->second.info.uav.counter_resource_id);
 
                 CopyDrawCallResourceBySubresource(queue_object_info,
                                                   front_command_list_ids,
@@ -756,7 +757,7 @@ void Dx12DumpResources::WriteDescripotTable(std::vector<std::pair<std::string, i
                                                   desc.Buffer.CounterOffsetInBytes,
                                                   0,
                                                   sub_indices_emptry,
-                                                  json_path_sub2,
+                                                  json_path,
                                                   Dx12DumpResourceType::kUavCounter,
                                                   pos,
                                                   heap_id,
@@ -936,7 +937,14 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                                                                   "note",
                                                                   "ERROR: signature_type isn't DESCRIPTOR_TABLE and no "
                                                                   "NumDescriptors, so dump only one descriptor.");
-                                WriteDescripotTable(json_path, heap_extra_info, heap_id, table_heap_index, nullptr);
+                                WriteDescripotTable(queue_object_info,
+                                                    front_command_list_ids,
+                                                    pos,
+                                                    json_path,
+                                                    heap_extra_info,
+                                                    heap_id,
+                                                    table_heap_index,
+                                                    nullptr);
                                 break;
                             }
 
@@ -949,7 +957,14 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                                     root_heap_index +=
                                         param.second.signature_descriptor_tables[table_index - 1].NumDescriptors;
                                 }
-                                WriteDescripotTable(json_path, heap_extra_info, heap_id, root_heap_index, &table);
+                                WriteDescripotTable(queue_object_info,
+                                                    front_command_list_ids,
+                                                    pos,
+                                                    json_path,
+                                                    heap_extra_info,
+                                                    heap_id,
+                                                    root_heap_index,
+                                                    &table);
                             }
                             break;
                         }
