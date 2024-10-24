@@ -1024,39 +1024,38 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
                 break;
             }
             case D3D12_ROOT_PARAMETER_TYPE_CBV:
-            {
-                CopyDrawCallResourceByGPUVA(queue_object_info,
-                                            front_command_list_ids,
-                                            param.second.cmd_bind_captured_buffer_location,
-                                            0,
-                                            json_path,
-                                            Dx12DumpResourceType::kCbv,
-                                            pos,
-                                            format::kNullHandleId,
-                                            0);
-                break;
-            }
             case D3D12_ROOT_PARAMETER_TYPE_SRV:
-            {
-                CopyDrawCallResourceByGPUVA(queue_object_info,
-                                            front_command_list_ids,
-                                            param.second.cmd_bind_captured_buffer_location,
-                                            0,
-                                            json_path,
-                                            Dx12DumpResourceType::kSrv,
-                                            pos,
-                                            format::kNullHandleId,
-                                            0);
-                break;
-            }
             case D3D12_ROOT_PARAMETER_TYPE_UAV:
             {
+                if (param.second.cmd_bind_captured_buffer_location == kNullGpuAddress)
+                {
+                    if (TEST_WRITE_NULL_RESOURCE_VIEWS)
+                    {
+                        active_delegate_->WriteSingleData(json_path, "buffer_location", kNullGpuAddress);
+                    }
+                    break;
+                }
+                Dx12DumpResourceType type = Dx12DumpResourceType::kUnknown;
+                switch (param.second.cmd_bind_type)
+                {
+                    case D3D12_ROOT_PARAMETER_TYPE_CBV:
+                        type = Dx12DumpResourceType::kCbv;
+                        break;
+                    case D3D12_ROOT_PARAMETER_TYPE_SRV:
+                        type = Dx12DumpResourceType::kSrv;
+                        break;
+                    case D3D12_ROOT_PARAMETER_TYPE_UAV:
+                        type = Dx12DumpResourceType::kUav;
+                        break;
+                    default:
+                        break;
+                }
                 CopyDrawCallResourceByGPUVA(queue_object_info,
                                             front_command_list_ids,
                                             param.second.cmd_bind_captured_buffer_location,
                                             0,
                                             json_path,
-                                            Dx12DumpResourceType::kUav,
+                                            type,
                                             pos,
                                             format::kNullHandleId,
                                             0);
@@ -1811,9 +1810,8 @@ void DefaultDx12DumpResourcesDelegate::EndDumpResources()
     EndFile();
 }
 
-void DefaultDx12DumpResourcesDelegate::WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
-                                                       const std::string&                           key,
-                                                       uint64_t                                     value)
+nlohmann::ordered_json*
+DefaultDx12DumpResourcesDelegate::FindDrawCallJsonPath(const std::vector<std::pair<std::string, int32_t>>& json_path)
 {
     auto* jdata_sub = &draw_call_;
     for (const auto& path : json_path)
@@ -1827,61 +1825,43 @@ void DefaultDx12DumpResourcesDelegate::WriteSingleData(std::vector<std::pair<std
             jdata_sub = &(*jdata_sub)[path.first][path.second];
         }
     }
+    return jdata_sub;
+}
+
+void DefaultDx12DumpResourcesDelegate::WriteSingleData(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                                       const std::string&                                  key,
+                                                       uint64_t                                            value)
+{
+    auto* jdata_sub = FindDrawCallJsonPath(json_path);
     util::FieldToJson((*jdata_sub)[key], value, json_options_);
 }
 
-void DefaultDx12DumpResourcesDelegate::WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
-                                                       const uint32_t                               index,
-                                                       uint64_t                                     value)
+void DefaultDx12DumpResourcesDelegate::WriteSingleData(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                                       const uint32_t                                      index,
+                                                       uint64_t                                            value)
 {
-    auto* jdata_sub = &draw_call_;
-    for (const auto& path : json_path)
-    {
-        if (path.second == format::kNoneIndex)
-        {
-            jdata_sub = &(*jdata_sub)[path.first];
-        }
-        else
-        {
-            jdata_sub = &(*jdata_sub)[path.first][path.second];
-        }
-    }
+    auto* jdata_sub = FindDrawCallJsonPath(json_path);
     util::FieldToJson((*jdata_sub)[index], value, json_options_);
 }
 
-void DefaultDx12DumpResourcesDelegate::WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
-                                                       const std::string&                           key,
-                                                       const std::string&                           value)
+void DefaultDx12DumpResourcesDelegate::WriteSingleData(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                                       const std::string&                                  key,
+                                                       const std::string&                                  value)
 {
-    auto* jdata_sub = &draw_call_;
-    for (const auto& path : json_path)
-    {
-        if (path.second == format::kNoneIndex)
-        {
-            jdata_sub = &(*jdata_sub)[path.first];
-        }
-        else
-        {
-            jdata_sub = &(*jdata_sub)[path.first][path.second];
-        }
-    }
+    auto* jdata_sub = FindDrawCallJsonPath(json_path);
     util::FieldToJson((*jdata_sub)[key], value, json_options_);
 }
 
-void DefaultDx12DumpResourcesDelegate::WriteEmptyNode(std::vector<std::pair<std::string, int32_t>> json_path)
+void DefaultDx12DumpResourcesDelegate::WriteEmptyNode(const std::vector<std::pair<std::string, int32_t>>& json_path)
 {
-    auto* jdata_sub = &draw_call_;
-    for (const auto& path : json_path)
-    {
-        if (path.second == format::kNoneIndex)
-        {
-            jdata_sub = &(*jdata_sub)[path.first];
-        }
-        else
-        {
-            jdata_sub = &(*jdata_sub)[path.first][path.second];
-        }
-    }
+    FindDrawCallJsonPath(json_path);
+}
+
+void DefaultDx12DumpResourcesDelegate::WriteNote(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                                 const std::string&                                  value)
+{
+    auto* jdata_sub     = FindDrawCallJsonPath(json_path);
+    util::FieldToJson((*jdata_sub)[NameNotes()][jdata_sub->size()], value, json_options_);
 }
 
 void DefaultDx12DumpResourcesDelegate::WriteResource(const CopyResourceDataPtr resource_data)
@@ -1890,19 +1870,8 @@ void DefaultDx12DumpResourcesDelegate::WriteResource(const CopyResourceDataPtr r
     {
         return;
     }
+    auto* jdata_sub = FindDrawCallJsonPath(resource_data->json_path);
 
-    auto* jdata_sub = &draw_call_;
-    for (const auto& path : resource_data->json_path)
-    {
-        if (path.second == format::kNoneIndex)
-        {
-            jdata_sub = &(*jdata_sub)[path.first];
-        }
-        else
-        {
-            jdata_sub = &(*jdata_sub)[path.first][path.second];
-        }
-    }
     std::string prefix_file_name =
         json_options_.data_sub_dir + "_" + Dx12ResourceTypeToString(resource_data->resource_type);
     WriteResource(*jdata_sub, prefix_file_name, resource_data);

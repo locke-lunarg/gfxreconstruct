@@ -152,14 +152,17 @@ class Dx12DumpResourcesDelegate
     virtual void BeginDumpResources(const std::string& filename, const TrackDumpResources& track_dump_resources) = 0;
     virtual void DumpResource(CopyResourceDataPtr resource_data)                                                 = 0;
     virtual void EndDumpResources()                                                                              = 0;
-    virtual void
-    WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path, const std::string& key, uint64_t value) = 0;
-    virtual void
-    WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path, const uint32_t index, uint64_t value) = 0;
-    virtual void WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
-                                 const std::string&                           key,
-                                 const std::string&                           value)                              = 0;
-    virtual void WriteEmptyNode(std::vector<std::pair<std::string, int32_t>> json_path)                           = 0;
+    virtual void WriteSingleData(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                 const std::string&                                  key,
+                                 uint64_t                                            value)                                                                    = 0;
+    virtual void WriteSingleData(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                 const uint32_t                                      index,
+                                 uint64_t                                            value)                                                                    = 0;
+    virtual void WriteSingleData(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                 const std::string&                                  key,
+                                 const std::string&                                  value)                                                          = 0;
+    virtual void WriteEmptyNode(const std::vector<std::pair<std::string, int32_t>>& json_path)                      = 0;
+    virtual void WriteNote(const std::vector<std::pair<std::string, int32_t>>& json_path, const std::string& value) = 0;
 };
 
 class DefaultDx12DumpResourcesDelegate : public Dx12DumpResourcesDelegate
@@ -172,17 +175,19 @@ class DefaultDx12DumpResourcesDelegate : public Dx12DumpResourcesDelegate
     virtual void DumpResource(CopyResourceDataPtr resource_data) override;
     virtual void EndDumpResources() override;
 
-    virtual void WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
-                                 const std::string&                           key,
-                                 uint64_t                                     value) override;
+    virtual void WriteSingleData(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                 const std::string&                                  key,
+                                 uint64_t                                            value) override;
 
-    virtual void WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
-                                 const uint32_t                               index,
-                                 uint64_t                                     value) override;
-    virtual void WriteSingleData(std::vector<std::pair<std::string, int32_t>> json_path,
-                                 const std::string&                           key,
-                                 const std::string&                           value) override;
-    virtual void WriteEmptyNode(std::vector<std::pair<std::string, int32_t>> json_path) override;
+    virtual void WriteSingleData(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                 const uint32_t                                      index,
+                                 uint64_t                                            value) override;
+    virtual void WriteSingleData(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                                 const std::string&                                  key,
+                                 const std::string&                                  value) override;
+    virtual void WriteEmptyNode(const std::vector<std::pair<std::string, int32_t>>& json_path) override;
+    virtual void WriteNote(const std::vector<std::pair<std::string, int32_t>>& json_path,
+                           const std::string&                                  value) override;
 
   private:
     void WriteResource(const CopyResourceDataPtr resource_data);
@@ -195,7 +200,10 @@ class DefaultDx12DumpResourcesDelegate : public Dx12DumpResourcesDelegate
     void WriteBlockStart();
     void WriteBlockEnd();
 
+    nlohmann::ordered_json* FindDrawCallJsonPath(const std::vector<std::pair<std::string, int32_t>>& json_path);
+
     constexpr const char* NameDrawCall() const { return "draw_call"; }
+    constexpr const char* NameNotes() const { return "notes"; }
 
     bool WriteBinaryFile(const std::string& filename, const std::vector<uint8_t>& data, uint64_t offset, uint64_t size);
 
