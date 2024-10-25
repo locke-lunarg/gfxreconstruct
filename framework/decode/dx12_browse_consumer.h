@@ -67,6 +67,15 @@ struct TrackRootParameter
     // The other parameter types have no resources or descriptors info, so no track.
 };
 
+enum DumpDrawCallType
+{
+    kUnknown,
+    kDraw,
+    kDispatch,
+    kIndirect,
+    kBundle
+};
+
 struct TrackDumpDrawCall
 {
     DumpResourcesTarget dump_resources_target{};
@@ -76,8 +85,9 @@ struct TrackDumpDrawCall
     uint64_t            begin_renderpass_block_index{ 0 };
     uint64_t            end_renderpass_block_index{ 0 };
     uint64_t            set_render_targets_block_index{ 0 };
-    format::HandleId    root_signature_handle_id{ format::kNullHandleId };
-    bool is_draw{ false }; // true: DrawInstanced, DrawIndexedInstanced, false: Dispatch, ExecuteIndirect, ExecuteBundle
+    format::HandleId    compute_root_signature_handle_id{ format::kNullHandleId };
+    format::HandleId    graphics_root_signature_handle_id{ format::kNullHandleId };
+    DumpDrawCallType    drawcall_type{ DumpDrawCallType::kUnknown };
 
     // vertex
     std::vector<D3D12_VERTEX_BUFFER_VIEW> captured_vertex_buffer_views;
@@ -87,7 +97,8 @@ struct TrackDumpDrawCall
 
     // descriptor
     std::vector<format::HandleId>                    descriptor_heap_ids;
-    std::unordered_map<uint32_t, TrackRootParameter> root_parameters;
+    std::unordered_map<uint32_t, TrackRootParameter> compute_root_parameters;
+    std::unordered_map<uint32_t, TrackRootParameter> graphics_root_parameters;
 
     // ExecuteIndirect
     ExecuteIndirectInfo execute_indirect_info{};
@@ -104,10 +115,13 @@ struct TrackDumpDrawCall
     {
         captured_vertex_buffer_views.clear();
         descriptor_heap_ids.clear();
-        root_parameters.clear();
-        bundle_commandlist_id   = format::kNullHandleId;
-        bundle_target_draw_call = nullptr;
-        is_draw                 = false;
+        compute_root_parameters.clear();
+        graphics_root_parameters.clear();
+        compute_root_signature_handle_id  = format::kNullHandleId;
+        graphics_root_signature_handle_id = format::kNullHandleId;
+        bundle_commandlist_id             = format::kNullHandleId;
+        bundle_target_draw_call           = nullptr;
+        drawcall_type                     = DumpDrawCallType::kUnknown;
     }
 };
 
@@ -604,7 +618,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                                  UINT               StartVertexLocation,
                                                                  UINT               StartInstanceLocation)
     {
-        TrackTargetDrawCall(call_info, object_id, true);
+        TrackTargetDrawCall(call_info, object_id, DumpDrawCallType::kDraw);
     }
 
     virtual void Process_ID3D12GraphicsCommandList_DrawIndexedInstanced(const ApiCallInfo& call_info,
@@ -615,7 +629,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                                         INT                BaseVertexLocation,
                                                                         UINT               StartInstanceLocation)
     {
-        TrackTargetDrawCall(call_info, object_id, true);
+        TrackTargetDrawCall(call_info, object_id, DumpDrawCallType::kDraw);
     }
 
     virtual void Process_ID3D12GraphicsCommandList_Dispatch(const ApiCallInfo& call_info,
@@ -624,7 +638,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                             UINT               ThreadGroupCountY,
                                                             UINT               ThreadGroupCountZ)
     {
-        TrackTargetDrawCall(call_info, object_id, false);
+        TrackTargetDrawCall(call_info, object_id, DumpDrawCallType::kDispatch);
     }
 
     virtual void Process_ID3D12GraphicsCommandList_ExecuteIndirect(const ApiCallInfo& call_info,
@@ -636,16 +650,27 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                                                    format::HandleId   pCountBuffer,
                                                                    UINT64             CountBufferOffset)
     {
-        TrackTargetDrawCall(
-            call_info, object_id, false, pArgumentBuffer, ArgumentBufferOffset, pCountBuffer, CountBufferOffset);
+        TrackTargetDrawCall(call_info,
+                            object_id,
+                            DumpDrawCallType::kIndirect,
+                            pArgumentBuffer,
+                            ArgumentBufferOffset,
+                            pCountBuffer,
+                            CountBufferOffset);
     }
 
     virtual void Process_ID3D12GraphicsCommandList_ExecuteBundle(const ApiCallInfo& call_info,
                                                                  format::HandleId   object_id,
                                                                  format::HandleId   pCommandList)
     {
-        TrackTargetDrawCall(
-            call_info, object_id, false, format::kNullHandleId, 0, format::kNullHandleId, 0, pCommandList);
+        TrackTargetDrawCall(call_info,
+                            object_id,
+                            DumpDrawCallType::kBundle,
+                            format::kNullHandleId,
+                            0,
+                            format::kNullHandleId,
+                            0,
+                            pCommandList);
     }
 
     virtual void Process_ID3D12GraphicsCommandList_Close(const ApiCallInfo& call_info,
@@ -717,7 +742,8 @@ class Dx12BrowseConsumer : public Dx12Consumer
                                     ++all_draw_call_count;
                                     if (all_draw_call_count > dump_resources_target_.draw_call_index)
                                     {
-                                        if (TEST_AVAILABLE_ARGS == 2 && !bundle_draw_call->is_draw)
+                                        if (TEST_AVAILABLE_ARGS == 2 &&
+                                            bundle_draw_call->drawcall_type != DumpDrawCallType::kDraw)
                                         {
                                             // Finding the target in the following draw call.
                                             is_modified_args = true;
@@ -748,7 +774,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                             ++all_draw_call_count;
                             if (all_draw_call_count > dump_resources_target_.draw_call_index)
                             {
-                                if (TEST_AVAILABLE_ARGS == 2 && !draw_call->is_draw)
+                                if (TEST_AVAILABLE_ARGS == 2 && draw_call->drawcall_type != DumpDrawCallType::kDraw)
                                 {
                                     // Finding the target in the following draw call.
                                     is_modified_args = true;
@@ -840,7 +866,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
 
     void TrackTargetDrawCall(const ApiCallInfo& call_info,
                              format::HandleId   object_id,
-                             bool               is_draw,
+                             DumpDrawCallType   drawcall_type,
                              format::HandleId   exe_indirect_argument_id     = format::kNullHandleId,
                              uint64_t           exe_indirect_argument_offset = 0,
                              format::HandleId   exe_indirect_count_id        = format::kNullHandleId,
@@ -855,7 +881,7 @@ class Dx12BrowseConsumer : public Dx12Consumer
                 TrackDumpDrawCall track_draw_call                 = {};
                 track_draw_call.command_list_id                   = object_id;
                 track_draw_call.draw_call_block_index             = call_info.index;
-                track_draw_call.is_draw                           = is_draw;
+                track_draw_call.drawcall_type                     = drawcall_type;
                 track_draw_call.begin_block_index                 = it->second.begin_block_index;
                 track_draw_call.begin_renderpass_block_index      = it->second.current_begin_renderpass_block_index;
                 track_draw_call.set_render_targets_block_index    = it->second.current_set_render_targets_block_index;
@@ -867,17 +893,12 @@ class Dx12BrowseConsumer : public Dx12Consumer
                 track_draw_call.execute_indirect_info.count_id        = exe_indirect_count_id;
                 track_draw_call.execute_indirect_info.count_offset    = exe_indirect_count_offset;
                 track_draw_call.bundle_commandlist_id                 = bundle_commandlist_id;
-
-                if (is_draw)
-                {
-                    track_draw_call.root_signature_handle_id = it->second.current_graphics_root_signature_handle_id;
-                    track_draw_call.root_parameters          = it->second.current_graphics_root_parameters;
-                }
-                else
-                {
-                    track_draw_call.root_signature_handle_id = it->second.current_compute_root_signature_handle_id;
-                    track_draw_call.root_parameters          = it->second.current_compute_root_parameters;
-                }
+                track_draw_call.graphics_root_signature_handle_id =
+                    it->second.current_graphics_root_signature_handle_id;
+                track_draw_call.graphics_root_parameters         = it->second.current_graphics_root_parameters;
+                track_draw_call.compute_root_signature_handle_id = it->second.current_compute_root_signature_handle_id;
+                track_draw_call.compute_root_parameters          = it->second.current_compute_root_parameters;
+ 
 
                 it->second.track_dump_draw_calls.emplace_back(
                     std::make_shared<TrackDumpDrawCall>(std::move(track_draw_call)));

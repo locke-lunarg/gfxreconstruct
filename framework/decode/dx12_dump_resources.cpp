@@ -268,7 +268,33 @@ bool Dx12DumpResources::CreateRootSignature(DxObjectInfo*                device_
 {
     bool is_complete = false;
     auto handld_id   = *root_signature_decoder->GetPointer();
-    if (track_dump_resources_.target.root_signature_handle_id == handld_id)
+    std::unordered_map<uint32_t, TrackRootParameter>* track_root_parameters = nullptr;
+
+    if (track_dump_resources_.target.bundle_target_draw_call != nullptr)
+    {
+        if (track_dump_resources_.target.bundle_target_draw_call->graphics_root_signature_handle_id == handld_id)
+        {
+            track_root_parameters = &track_dump_resources_.target.bundle_target_draw_call->graphics_root_parameters;
+        }
+        else if (track_dump_resources_.target.bundle_target_draw_call->compute_root_signature_handle_id == handld_id)
+        {
+            track_root_parameters = &track_dump_resources_.target.bundle_target_draw_call->compute_root_parameters;
+        }
+    }
+
+    if (track_root_parameters == nullptr)
+    {
+        if (track_dump_resources_.target.graphics_root_signature_handle_id == handld_id)
+        {
+            track_root_parameters = &track_dump_resources_.target.graphics_root_parameters;
+        }
+        else if (track_dump_resources_.target.compute_root_signature_handle_id == handld_id)
+        {
+            track_root_parameters = &track_dump_resources_.target.compute_root_parameters;
+        }
+    }
+
+    if (track_root_parameters)
     {
         auto device = static_cast<ID3D12Device*>(device_object_info->object);
 
@@ -291,13 +317,11 @@ bool Dx12DumpResources::CreateRootSignature(DxObjectInfo*                device_
         std::memcpy(params.data(), modified_root_sig.Desc_1_2.pParameters, param_size * sizeof(D3D12_ROOT_PARAMETER1));
         ranges.resize(param_size);
 
-        auto& track_root_parameters = track_dump_resources_.target.root_parameters;
-        
         for (uint32_t pi = 0; pi < param_size; ++pi)
         {
             TrackRootParameter root_param;
-            auto param_entry = track_root_parameters.find(pi);
-            if (param_entry != track_root_parameters.end())
+            auto param_entry = track_root_parameters->find(pi);
+            if (param_entry != track_root_parameters->end())
             {
                 root_param = param_entry->second;
             }
@@ -338,7 +362,7 @@ bool Dx12DumpResources::CreateRootSignature(DxObjectInfo*                device_
                 default:
                     break;
             }
-            track_dump_resources_.target.root_parameters[pi] = root_param;
+            (*track_root_parameters)[pi] = root_param;
         }
         if (is_modified)
         {
@@ -810,17 +834,33 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
     uint32_t                                     index = 0;
     const std::vector<uint32_t>                  sub_indices_emptry{ 0 };
 
-    bool is_draw = true;
+    auto        drawcall_type      = track_dump_resources_.target.drawcall_type;
+    std::string drawcall_type_name = "";
+
     if (bundle_target_draw_call)
     {
-        is_draw = bundle_target_draw_call->is_draw;
-    }
-    else
-    {
-        is_draw = track_dump_resources_.target.is_draw;
+        drawcall_type      = bundle_target_draw_call->drawcall_type;
+        drawcall_type_name = "bundle_";
     }
 
-    if (is_draw)
+    switch (drawcall_type)
+    {
+        case DumpDrawCallType::kDraw:
+            drawcall_type_name += "draw";
+            break;
+        case DumpDrawCallType::kDispatch:
+            drawcall_type_name += "dispatch";
+            break;
+        case DumpDrawCallType::kIndirect:
+            drawcall_type_name += "indirect";
+            break;
+        default:
+            // It shouldn't be kBundle or kUnknown
+            break;
+    }
+    active_delegate_->WriteSingleData(json_path, "drawcall_type", drawcall_type_name);
+
+    if (drawcall_type != DumpDrawCallType::kDraw)
     {
         // vertex
         const std::vector<D3D12_VERTEX_BUFFER_VIEW>* vertex_buffer_views = nullptr;
@@ -892,9 +932,13 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
         {
             descriptor_heap_ids = &bundle_target_draw_call->descriptor_heap_ids;
         }
-        if (!bundle_target_draw_call->root_parameters.empty())
+        if (bundle_target_draw_call->drawcall_type == DumpDrawCallType::kDraw)
         {
-            root_parameters = &bundle_target_draw_call->root_parameters;
+            root_parameters = &bundle_target_draw_call->graphics_root_parameters;
+        }
+        else if (bundle_target_draw_call->drawcall_type == DumpDrawCallType::kDispatch)
+        {
+            root_parameters = &bundle_target_draw_call->compute_root_parameters;
         }
     }
 
@@ -905,7 +949,14 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
 
     if (!root_parameters)
     {
-        root_parameters = &track_dump_resources_.target.root_parameters;
+        if (track_dump_resources_.target.drawcall_type == DumpDrawCallType::kDraw)
+        {
+            root_parameters = &track_dump_resources_.target.graphics_root_parameters;
+        }
+        else if (track_dump_resources_.target.drawcall_type == DumpDrawCallType::kDispatch)
+        {
+            root_parameters = &track_dump_resources_.target.compute_root_parameters;
+        }
     }
 
     index = 0;
@@ -915,6 +966,12 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
         json_path.emplace_back("root_parameters", index);
         active_delegate_->WriteSingleData(json_path, "root_parameter_index", param.first);
         active_delegate_->WriteSingleData(json_path, "signature_type", util::ToString(param.second.signature_type));
+        active_delegate_->WriteSingleData(json_path, "cmd_bind_type", util::ToString(param.second.cmd_bind_type));
+
+        if (param.second.signature_type != param.second.cmd_bind_type)
+        {
+            active_delegate_->WriteNote(json_path, "ERROR: signature_type and cmd_bind_type are different.");
+        }
 
         switch (param.second.signature_type)
         {
@@ -933,14 +990,6 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
             }
             default:
                 break;
-        }
-
-        active_delegate_->WriteSingleData(json_path, "cmd_bind_type", util::ToString(param.second.cmd_bind_type));
-
-        if (param.second.signature_type != param.second.cmd_bind_type)
-        {
-            active_delegate_->WriteSingleData(
-                json_path, "note", "ERROR: signature_type and cmd_bind_type are different.");
         }
 
         switch (param.second.cmd_bind_type)
@@ -1065,7 +1114,7 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
         ++index;
     }
 
-    if (is_draw)
+    if (drawcall_type != DumpDrawCallType::kDraw)
     {
         // render target
         // render target isn't available in Bundle.
