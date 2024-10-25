@@ -932,13 +932,28 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
         {
             descriptor_heap_ids = &bundle_target_draw_call->descriptor_heap_ids;
         }
-        if (bundle_target_draw_call->drawcall_type == DumpDrawCallType::kDraw)
+
+        switch (bundle_target_draw_call->drawcall_type)
         {
-            root_parameters = &bundle_target_draw_call->graphics_root_parameters;
-        }
-        else if (bundle_target_draw_call->drawcall_type == DumpDrawCallType::kDispatch)
-        {
-            root_parameters = &bundle_target_draw_call->compute_root_parameters;
+            case DumpDrawCallType::kDraw:
+                root_parameters = &bundle_target_draw_call->graphics_root_parameters;
+                break;
+            case DumpDrawCallType::kDispatch:
+                root_parameters = &bundle_target_draw_call->compute_root_parameters;
+                break;
+            case DumpDrawCallType::kIndirect:
+                if (bundle_target_draw_call->compute_root_signature_handle_id != format::kNullHandleId)
+                {
+                    root_parameters = &bundle_target_draw_call->compute_root_parameters;
+                }
+                else
+                {
+                    root_parameters = &bundle_target_draw_call->graphics_root_parameters;
+                }
+                break;
+            default:
+                // It shouldn't be kBundle or kUnknown
+                break;
         }
     }
 
@@ -949,13 +964,27 @@ void Dx12DumpResources::CopyDrawCallResources(DxObjectInfo*                     
 
     if (!root_parameters)
     {
-        if (track_dump_resources_.target.drawcall_type == DumpDrawCallType::kDraw)
+        switch (track_dump_resources_.target.drawcall_type)
         {
-            root_parameters = &track_dump_resources_.target.graphics_root_parameters;
-        }
-        else if (track_dump_resources_.target.drawcall_type == DumpDrawCallType::kDispatch)
-        {
-            root_parameters = &track_dump_resources_.target.compute_root_parameters;
+            case DumpDrawCallType::kDraw:
+                root_parameters = &track_dump_resources_.target.graphics_root_parameters;
+                break;
+            case DumpDrawCallType::kDispatch:
+                root_parameters = &track_dump_resources_.target.compute_root_parameters;
+                break;
+            case DumpDrawCallType::kIndirect:
+                if (track_dump_resources_.target.compute_root_signature_handle_id != format::kNullHandleId)
+                {
+                    root_parameters = &track_dump_resources_.target.compute_root_parameters;
+                }
+                else
+                {
+                    root_parameters = &track_dump_resources_.target.graphics_root_parameters;
+                }
+                break;
+            default:
+                // It shouldn't be kBundle or kUnknown
+                break;
         }
     }
 
