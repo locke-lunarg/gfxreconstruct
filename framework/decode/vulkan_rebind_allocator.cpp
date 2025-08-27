@@ -596,6 +596,25 @@ VkResult VulkanRebindAllocator::AllocateMemory(const VkMemoryAllocateInfo*  allo
         memory_alloc_info->capture_id      = capture_id;
         memory_alloc_info->allocation_size = allocate_info->allocationSize;
         memory_alloc_info->original_index  = allocate_info->memoryTypeIndex;
+        memory_alloc_info->flags           = 0;
+
+        auto* pnext = reinterpret_cast<const VkBaseInStructure*>(allocate_info->pNext);
+        while (pnext != nullptr)
+        {
+            switch (pnext->sType)
+            {
+                case VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO:
+                {
+                    memory_alloc_info->flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            pnext = pnext->pNext;
+        }
 
         (*memory)         = format::FromHandleId<VkDeviceMemory>(kPlaceholderHandleId);
         (*allocator_data) = reinterpret_cast<uintptr_t>(memory_alloc_info);
@@ -657,7 +676,7 @@ VulkanRebindAllocator::AllocateMemoryForBuffer(VkBuffer                         
     requirements.alignment = std::max<VkDeviceSize>(requirements.alignment, min_buffer_alignment_);
 
     VmaAllocationCreateInfo create_info;
-    create_info.flags = 0;
+    create_info.flags = memory_alloc_info.flags;
     create_info.usage =
         GetBufferMemoryUsage(resource_alloc_info.usage,
                              device_memory_properties.memoryTypes[memory_alloc_info.original_index].propertyFlags,
@@ -901,7 +920,7 @@ VkResult VulkanRebindAllocator::AllocateMemoryForImage(VkImage                  
     functions_.get_image_memory_requirements(device_, image, &requirements);
 
     VmaAllocationCreateInfo create_info;
-    create_info.flags = 0;
+    create_info.flags = memory_alloc_info.flags;
     create_info.usage =
         GetImageMemoryUsage(resource_alloc_info.usage,
                             resource_alloc_info.tiling,
@@ -1101,7 +1120,7 @@ VkResult VulkanRebindAllocator::BindVideoSessionMemory(VkVideoSessionKHR        
                 capture_memory_properties_.memoryTypes[memory_alloc_info->original_index].propertyFlags, requirements);
 
             VmaAllocation allocation = VK_NULL_HANDLE;
-            auto          result     = VmaAllocateMemory(requirements, usage, allocation);
+            auto          result     = VmaAllocateMemory(requirements, memory_alloc_info->flags, usage, allocation);
             if (result >= 0)
             {
                 VmaAllocationInfo allocation_info{};
@@ -2320,12 +2339,13 @@ void VulkanRebindAllocator::SetBindingDebugUtilsNameAndTag(const MemoryAllocInfo
     }
 }
 
-VkResult VulkanRebindAllocator::VmaAllocateMemory(const VkMemoryRequirements& mem_req,
-                                                  const VmaMemoryUsage        usage,
-                                                  VmaAllocation&              allocation)
+VkResult VulkanRebindAllocator::VmaAllocateMemory(const VkMemoryRequirements&    mem_req,
+                                                  const VmaAllocationCreateFlags flags,
+                                                  const VmaMemoryUsage           usage,
+                                                  VmaAllocation&                 allocation)
 {
     VmaAllocationCreateInfo create_info;
-    create_info.flags          = 0;
+    create_info.flags          = flags;
     create_info.usage          = usage;
     create_info.requiredFlags  = 0;
     create_info.preferredFlags = 0;
@@ -2867,7 +2887,7 @@ VkResult VulkanRebindAllocator::QueueBindSparse(VkQueue                 queue,
                             capture_memory_properties_.memoryTypes[mem_alloc_info->original_index].propertyFlags,
                             requirements);
 
-                        result = VmaAllocateMemory(requirements, usage, allocation);
+                        result = VmaAllocateMemory(requirements, mem_alloc_info->flags, usage, allocation);
 
                         if (result >= 0)
                         {
@@ -2946,7 +2966,7 @@ VkResult VulkanRebindAllocator::QueueBindSparse(VkQueue                 queue,
                             capture_memory_properties_.memoryTypes[mem_alloc_info->original_index].propertyFlags,
                             requirements);
 
-                        result = VmaAllocateMemory(requirements, usage, allocation);
+                        result = VmaAllocateMemory(requirements, mem_alloc_info->flags, usage, allocation);
 
                         if (result >= 0)
                         {
@@ -3024,7 +3044,7 @@ VkResult VulkanRebindAllocator::QueueBindSparse(VkQueue                 queue,
                             capture_memory_properties_.memoryTypes[mem_alloc_info->original_index].propertyFlags,
                             requirements);
 
-                        result = VmaAllocateMemory(requirements, usage, allocation);
+                        result = VmaAllocateMemory(requirements, mem_alloc_info->flags, usage, allocation);
 
                         if (result >= 0)
                         {

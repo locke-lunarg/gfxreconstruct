@@ -459,6 +459,7 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
     struct MemoryAllocInfo
     {
         format::HandleId                                 capture_id{ format::kNullHandleId };
+        VmaAllocationCreateFlags                         flags;
         VkDeviceSize                                     allocation_size{ 0 };
         uint32_t                                         original_index{ std::numeric_limits<uint32_t>::max() };
         bool                                             is_mapped{ false };
@@ -577,8 +578,10 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
                                     VmaAllocation&                          allocation,
                                     VmaAllocationInfo&                      allocation_info);
 
-    VkResult
-    VmaAllocateMemory(const VkMemoryRequirements& mem_req, const VmaMemoryUsage usage, VmaAllocation& allocation);
+    VkResult VmaAllocateMemory(const VkMemoryRequirements&    mem_req,
+                               const VmaAllocationCreateFlags flags,
+                               const VmaMemoryUsage           usage,
+                               VmaAllocation&                 allocation);
 
     // The allocation for the same memory and offset could be re-used.
     bool FindBoundMemory(const ResourceAllocInfo* resource_alloc_info,
