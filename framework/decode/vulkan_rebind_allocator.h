@@ -635,6 +635,9 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
 
     //! define a general minimum alignment for buffers
     uint32_t min_buffer_alignment_ = 128;
+
+    uint64_t suppose_mem_size = 0;
+    uint64_t real_mem_size    = 0;
 };
 
 GFXRECON_END_NAMESPACE(decode)

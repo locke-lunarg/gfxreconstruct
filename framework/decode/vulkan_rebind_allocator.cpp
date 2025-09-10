@@ -598,6 +598,8 @@ VkResult VulkanRebindAllocator::AllocateMemory(const VkMemoryAllocateInfo*  allo
         memory_alloc_info->original_index  = allocate_info->memoryTypeIndex;
         memory_alloc_info->flags           = 0;
 
+        suppose_mem_size += allocate_info->allocationSize;
+        
         auto* pnext = reinterpret_cast<const VkBaseInStructure*>(allocate_info->pNext);
         while (pnext != nullptr)
         {
@@ -686,6 +688,8 @@ VulkanRebindAllocator::AllocateMemoryForBuffer(VkBuffer                         
     create_info.memoryTypeBits = 0;
     create_info.pool           = VK_NULL_HANDLE;
     create_info.pUserData      = nullptr;
+    
+    real_mem_size += requirements.size;
 
     return vmaAllocateMemoryForBuffer(allocator_, buffer, &create_info, &allocation, &allocation_info);
 }
@@ -931,6 +935,8 @@ VkResult VulkanRebindAllocator::AllocateMemoryForImage(VkImage                  
     create_info.memoryTypeBits = 0;
     create_info.pool           = VK_NULL_HANDLE;
     create_info.pUserData      = nullptr;
+
+    real_mem_size += requirements.size;
 
     return vmaAllocateMemoryForImage(allocator_, image, &create_info, &allocation, &allocation_info);
 }
@@ -2353,6 +2359,8 @@ VkResult VulkanRebindAllocator::VmaAllocateMemory(const VkMemoryRequirements&   
     create_info.pool           = VK_NULL_HANDLE;
     create_info.pUserData      = nullptr;
 
+    real_mem_size += mem_req.size;
+
     return allocator_->AllocateMemory(mem_req,
                                       false,
                                       false,
@@ -2827,6 +2835,8 @@ VkResult VulkanRebindAllocator::QueueBindSparse(VkQueue                 queue,
                                                 const MemoryData*       allocator_img_mem_datas,
                                                 VkMemoryPropertyFlags*  bind_img_mem_properties)
 {
+    suppose_mem_size;
+    real_mem_size; 
     VkResult result = VK_ERROR_INITIALIZATION_FAILED;
 
     if ((bind_infos != nullptr) && (bind_infos != nullptr))
