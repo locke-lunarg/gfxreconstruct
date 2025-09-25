@@ -569,7 +569,7 @@ class VulkanReplayConsumerBase : public VulkanConsumer
             // When the array parameter is not null, start with array count set equal to the capture count and then
             // adjust if the replay count is different.
             replay_count = (*original_count->GetPointer());
-
+            ++replay_count;
             // Only adjust the replay array count if the call succeeded on capture so that errors generated at capture,
             // such as VK_INCOMPLETE, continue to be generated at replay.
             if (original_result == VK_SUCCESS)
