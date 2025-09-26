@@ -424,6 +424,8 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
     // Create a new allocation for a binding memory case.
     struct VmaMemoryInfo
     {
+        std::vector<format::HandleId> capture_ids;
+
         MemoryAllocInfo*        memory_info{ nullptr };
         VkMemoryRequirements    mem_req{};
 

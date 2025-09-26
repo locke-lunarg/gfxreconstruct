@@ -693,6 +693,7 @@ void VulkanRebindAllocator::UpdateAllocInfo(ResourceAllocInfo&     resource_allo
                                             VkMemoryPropertyFlags& bind_memory_property)
 {
     resource_alloc_info.memory_info_type = memory_info_type;
+    vma_mem_info.capture_ids.push_back(resource_alloc_info.capture_id);
 
     switch (memory_info_type)
     {
@@ -951,6 +952,10 @@ VkResult VulkanRebindAllocator::AllocateMemoryForImage(VkImage                  
                           vma_mem_info))
     {
         GFXRECON_LOG_WARNING("FindVmaMemoryInfo VK_SUCCESS image: %" PRIu64 "", resource_alloc_info.capture_id);
+        for ( auto id : (*vma_mem_info)->capture_ids)
+        {
+            GFXRECON_LOG_WARNING("              id: %" PRIu64 "", id);
+        }
         return VK_SUCCESS;
     }
 
