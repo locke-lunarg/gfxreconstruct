@@ -424,6 +424,8 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
     // Create a new allocation for a binding memory case.
     struct VmaMemoryInfo
     {
+        std::vector<format::HandleId> capture_ids;
+
         MemoryAllocInfo*        memory_info{ nullptr };
         VkMemoryRequirements    mem_req{};
 
@@ -471,6 +473,7 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
 
     struct ResourceAllocInfo
     {
+        format::HandleId capture_id{ format::kNullHandleId };
         MemoryInfoType              memory_info_type;
         std::vector<VmaMemoryInfo*> bound_memory_infos; // VideoSeesion and sparse could be multiple bindings.
         VkObjectType                object_type{ VK_OBJECT_TYPE_UNKNOWN };
