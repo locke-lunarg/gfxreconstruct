@@ -427,6 +427,7 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
         MemoryAllocInfo*     memory_info{ nullptr };
         VkMemoryRequirements capture_mem_req{};
         VkMemoryRequirements replay_mem_req{};
+        std::vector<format::HandleId> capture_ids;
 
         // If requires_dedicated_allocation or prefers_dedicated_allocation is true, the object should have an its own
         // memory, not shared.
@@ -483,6 +484,8 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
 
     struct ResourceAllocInfo
     {
+        format::HandleId capture_id{ format::kNullHandleId };
+
         MemoryInfoType                    memory_info_type;
         std::vector<VmaMemoryInfo*>       bound_memory_infos; // VideoSeesion and sparse could be multiple bindings.
         std::vector<VkMemoryRequirements> capture_mem_reqs{};
