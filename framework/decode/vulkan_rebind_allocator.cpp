@@ -1032,6 +1032,12 @@ VkResult VulkanRebindAllocator::BindImageMemory(VkImage                         
             {
                 GFXRECON_ASSERT(vma_mem_info);
 
+                if (resource_alloc_info->capture_id == 99)
+                {
+                    int i = 0;
+                    ++i;
+                }
+
                 auto offset = GetRebindOffsetFromVMA(memory_offset, *vma_mem_info);
 
                 result = vmaBindImageMemory2(allocator_, vma_mem_info->allocation, offset, image, nullptr);
