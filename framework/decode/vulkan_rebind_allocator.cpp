@@ -264,6 +264,7 @@ VkResult VulkanRebindAllocator::CreateBuffer(const VkBufferCreateInfo*    create
         if (result >= 0)
         {
             auto resource_alloc_info         = new ResourceAllocInfo;
+            resource_alloc_info->capture_id  = capture_id;
             resource_alloc_info->usage       = create_info->usage;
             resource_alloc_info->object_type = VK_OBJECT_TYPE_BUFFER;
             (*allocator_data)                = reinterpret_cast<uintptr_t>(resource_alloc_info);
@@ -343,6 +344,7 @@ VkResult VulkanRebindAllocator::CreateImage(const VkImageCreateInfo*     create_
         if (result >= 0)
         {
             auto resource_alloc_info         = new ResourceAllocInfo;
+            resource_alloc_info->capture_id  = capture_id;
             resource_alloc_info->usage       = create_info->usage;
             resource_alloc_info->tiling      = create_info->tiling;
             resource_alloc_info->height      = create_info->extent.height;
@@ -660,6 +662,7 @@ VulkanRebindAllocator::AllocateMemoryForBuffer(VkBuffer                         
                           create_info,
                           vma_mem_info))
     {
+        GFXRECON_LOG_WARNING("      FindVmaMemoryInfo VK_SUCCESS buffer: %" PRIu64 "", resource_alloc_info.capture_id);
         return VK_SUCCESS;
     }
 
@@ -947,6 +950,7 @@ VkResult VulkanRebindAllocator::AllocateMemoryForImage(VkImage                  
                           create_info,
                           vma_mem_info))
     {
+        GFXRECON_LOG_WARNING("FindVmaMemoryInfo VK_SUCCESS image: %" PRIu64 "", resource_alloc_info.capture_id);
         return VK_SUCCESS;
     }
 

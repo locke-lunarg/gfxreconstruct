@@ -471,6 +471,7 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
 
     struct ResourceAllocInfo
     {
+        format::HandleId capture_id{ format::kNullHandleId };
         MemoryInfoType              memory_info_type;
         std::vector<VmaMemoryInfo*> bound_memory_infos; // VideoSeesion and sparse could be multiple bindings.
         VkObjectType                object_type{ VK_OBJECT_TYPE_UNKNOWN };
