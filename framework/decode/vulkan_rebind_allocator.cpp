@@ -794,7 +794,15 @@ VkResult VulkanRebindAllocator::BindBufferMemory(VkBuffer                       
 
             auto offset = GetRebindOffsetFromVMA(memory_offset, *vma_mem_info);
 
-            result = vmaBindBufferMemory2(allocator_, vma_mem_info->allocation, offset, buffer, nullptr);
+    VkMemoryRequirements mem_reqs                      = {};
+    bool                 requires_dedicated_allocation = false;
+    bool                 prefers_dedicated_allocation  = false;
+    allocator_->GetBufferMemoryRequirements(
+        buffer, mem_reqs, requires_dedicated_allocation, prefers_dedicated_allocation);
+
+                auto new_aligned_offset = (offset + mem_reqs.alignment -1) & ~(mem_reqs.alignment-1);
+
+            result = vmaBindBufferMemory2(allocator_, vma_mem_info->allocation, new_aligned_offset, buffer, nullptr);
 
             if (result >= 0)
             {
@@ -853,8 +861,16 @@ VkResult VulkanRebindAllocator::BindBufferMemory2(uint32_t                      
                     auto bind_info = &bind_infos[i];
                     auto offset    = GetRebindOffsetFromVMA(bind_info->memoryOffset, *vma_mem_info);
 
+    VkMemoryRequirements mem_reqs                      = {};
+    bool                 requires_dedicated_allocation = false;
+    bool                 prefers_dedicated_allocation  = false;
+    allocator_->GetBufferMemoryRequirements(
+        buffer, mem_reqs, requires_dedicated_allocation, prefers_dedicated_allocation);
+
+                auto new_aligned_offset = (offset + mem_reqs.alignment -1) & ~(mem_reqs.alignment-1);
+
                     result =
-                        vmaBindBufferMemory2(allocator_, vma_mem_info->allocation, offset, buffer, bind_info->pNext);
+                        vmaBindBufferMemory2(allocator_, vma_mem_info->allocation, new_aligned_offset, buffer, bind_info->pNext);
 
                     if (result >= 0)
                     {
@@ -956,7 +972,7 @@ VkResult VulkanRebindAllocator::AllocateMemoryForImage(VkImage                  
         {
             GFXRECON_LOG_WARNING("              id: %" PRIu64 "", id);
         }
-        if (resource_alloc_info.capture_id != 99)
+        // if (resource_alloc_info.capture_id != 99)
         {
             return VK_SUCCESS;
         }
@@ -1037,13 +1053,20 @@ VkResult VulkanRebindAllocator::BindImageMemory(VkImage                         
 
                 auto offset = GetRebindOffsetFromVMA(memory_offset, *vma_mem_info);
 
+    VkMemoryRequirements mem_reqs                      = {};
+    bool                 requires_dedicated_allocation = false;
+    bool                 prefers_dedicated_allocation  = false;
+    allocator_->GetImageMemoryRequirements(
+        image, mem_reqs, requires_dedicated_allocation, prefers_dedicated_allocation);
+
+                auto new_aligned_offset = (offset + mem_reqs.alignment -1) & ~(mem_reqs.alignment-1);
                 if (resource_alloc_info->capture_id == 99)
                 {
-                    GFXRECON_LOG_WARNING("offset:  %" PRIu64 ",  %" PRIu64 ",  %" PRIu64 ",  %" PRIu64 "", offset, memory_offset, 
-                        vma_mem_info->offset_from_original_device_memory, vma_mem_info->allocation_info.offset);
+                    GFXRECON_LOG_WARNING("offset:  %" PRIu64 ",  %" PRIu64 ",  %" PRIu64 ",  %" PRIu64 ",  %" PRIu64 "", offset, memory_offset, 
+                        vma_mem_info->offset_from_original_device_memory, vma_mem_info->allocation_info.offset, new_aligned_offset);
                 }
 
-                result = vmaBindImageMemory2(allocator_, vma_mem_info->allocation, offset, image, nullptr);
+                result = vmaBindImageMemory2(allocator_, vma_mem_info->allocation, new_aligned_offset, image, nullptr);
 
                 if (result >= 0)
                 {
@@ -1123,8 +1146,16 @@ VkResult VulkanRebindAllocator::BindImageMemory2(uint32_t                     bi
 
                         auto offset = GetRebindOffsetFromVMA(memory_offset, *vma_mem_info);
 
+    VkMemoryRequirements mem_reqs                      = {};
+    bool                 requires_dedicated_allocation = false;
+    bool                 prefers_dedicated_allocation  = false;
+    allocator_->GetImageMemoryRequirements(
+        image, mem_reqs, requires_dedicated_allocation, prefers_dedicated_allocation);
+
+                auto new_aligned_offset = (offset + mem_reqs.alignment -1) & ~(mem_reqs.alignment-1);
+
                         result =
-                            vmaBindImageMemory2(allocator_, vma_mem_info->allocation, offset, image, bind_info->pNext);
+                            vmaBindImageMemory2(allocator_, vma_mem_info->allocation, new_aligned_offset, image, bind_info->pNext);
 
                         if (result >= 0)
                         {
