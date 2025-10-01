@@ -290,37 +290,7 @@ void VulkanRebindAllocator::DestroyBuffer(VkBuffer                     buffer,
     if (allocator_data != 0)
     {
         auto resource_alloc_info = reinterpret_cast<ResourceAllocInfo*>(allocator_data);
-
-        // It could bind sparse memories. It could have plural memories.
-        for (auto& mem_info : resource_alloc_info->bound_memory_infos)
-        {
-            --mem_info->reference_count;
-            if ((mem_info->reference_count == 0) && (mem_info->allocation != VK_NULL_HANDLE))
-            {
-                if (mem_info->mapped_pointer != nullptr)
-                {
-                    vmaUnmapMemory(allocator_, mem_info->allocation);
-                }
-                vmaFreeMemory(allocator_, mem_info->allocation);
-            }
-
-            auto mem_alc_info = mem_info->memory_info;
-            GFXRECON_ASSERT(mem_alc_info != VK_NULL_HANDLE);
-            mem_alc_info->original_objects.erase(VK_HANDLE_TO_UINT64(buffer));
-
-            for (auto entry = mem_alc_info->vma_mem_infos.begin(); entry != mem_alc_info->vma_mem_infos.end();)
-            {
-                if (entry->get() == mem_info)
-                {
-                    mem_alc_info->vma_mem_infos.erase(entry);
-                    break;
-                }
-                else
-                {
-                    ++entry;
-                }
-            }
-        }
+        RemoveVmaMemoryInfo(*resource_alloc_info, VK_HANDLE_TO_UINT64(buffer));
         delete resource_alloc_info;
     }
 
@@ -373,37 +343,7 @@ void VulkanRebindAllocator::DestroyImage(VkImage                      image,
     if (allocator_data != 0)
     {
         auto resource_alloc_info = reinterpret_cast<ResourceAllocInfo*>(allocator_data);
-
-        // It could bind sparse memories. It could have plural memories.
-        for (auto& mem_info : resource_alloc_info->bound_memory_infos)
-        {
-            --mem_info->reference_count;
-            if ((mem_info->reference_count == 0) && (mem_info->allocation != VK_NULL_HANDLE))
-            {
-                if (mem_info->mapped_pointer != nullptr)
-                {
-                    vmaUnmapMemory(allocator_, mem_info->allocation);
-                }
-                vmaFreeMemory(allocator_, mem_info->allocation);
-            }
-
-            auto mem_alc_info = mem_info->memory_info;
-            GFXRECON_ASSERT(mem_alc_info != VK_NULL_HANDLE);
-            mem_alc_info->original_objects.erase(VK_HANDLE_TO_UINT64(image));
-
-            for (auto entry = mem_alc_info->vma_mem_infos.begin(); entry != mem_alc_info->vma_mem_infos.end();)
-            {
-                if (entry->get() == mem_info)
-                {
-                    mem_alc_info->vma_mem_infos.erase(entry);
-                    break;
-                }
-                else
-                {
-                    ++entry;
-                }
-            }
-        }
+        RemoveVmaMemoryInfo(*resource_alloc_info, VK_HANDLE_TO_UINT64(image));
         delete resource_alloc_info;
     }
 
@@ -451,36 +391,7 @@ void VulkanRebindAllocator::DestroyVideoSession(VkVideoSessionKHR            ses
     if (allocator_data != 0)
     {
         auto* resource_alloc_info = reinterpret_cast<ResourceAllocInfo*>(allocator_data);
-
-        for (auto& mem_info : resource_alloc_info->bound_memory_infos)
-        {
-            --mem_info->reference_count;
-            if ((mem_info->reference_count == 0) && (mem_info->allocation != VK_NULL_HANDLE))
-            {
-                if (mem_info->mapped_pointer != nullptr)
-                {
-                    vmaUnmapMemory(allocator_, mem_info->allocation);
-                }
-                vmaFreeMemory(allocator_, mem_info->allocation);
-            }
-
-            auto mem_alc_info = mem_info->memory_info;
-            GFXRECON_ASSERT(mem_alc_info != VK_NULL_HANDLE);
-            mem_alc_info->original_objects.erase(VK_HANDLE_TO_UINT64(session));
-
-            for (auto entry = mem_alc_info->vma_mem_infos.begin(); entry != mem_alc_info->vma_mem_infos.end();)
-            {
-                if (entry->get() == mem_info)
-                {
-                    mem_alc_info->vma_mem_infos.erase(entry);
-                    break;
-                }
-                else
-                {
-                    ++entry;
-                }
-            }
-        }
+        RemoveVmaMemoryInfo(*resource_alloc_info, VK_HANDLE_TO_UINT64(session));
         delete resource_alloc_info;
     }
 
@@ -630,6 +541,7 @@ VkResult VulkanRebindAllocator::AllocateMemory(const VkMemoryAllocateInfo*  allo
         memory_alloc_info->capture_id      = capture_id;
         memory_alloc_info->allocation_size = allocate_info->allocationSize;
         memory_alloc_info->original_index  = allocate_info->memoryTypeIndex;
+        memory_alloc_info->is_free         = false;
 
         (*memory)         = format::FromHandleId<VkDeviceMemory>(kPlaceholderHandleId);
         (*allocator_data) = reinterpret_cast<uintptr_t>(memory_alloc_info);
@@ -662,19 +574,12 @@ void VulkanRebindAllocator::FreeMemory(VkDeviceMemory               memory,
         {
             functions_.free_memory(device_, memory_alloc_info->ahb_memory, allocator_->GetAllocationCallbacks());
         }
+        memory_alloc_info->is_free = true;
 
-        for (const auto& entry : memory_alloc_info->original_objects)
+        if (memory_alloc_info->original_objects.empty())
         {
-            for (auto& entry_bound : entry.second->bound_memory_infos)
-            {
-                if (entry_bound->memory_info == memory_alloc_info)
-                {
-                    entry_bound->memory_info = nullptr;
-                }
-            }
+            delete memory_alloc_info;
         }
-
-        delete memory_alloc_info;
     }
 }
 
@@ -3115,6 +3020,48 @@ bool VulkanRebindAllocator::FindVmaMemoryInfo(MemoryAllocInfo&               mem
         }
     }
     return false;
+}
+
+void VulkanRebindAllocator::RemoveVmaMemoryInfo(ResourceAllocInfo& resource_alloc_info, uint64_t object_hanlde)
+{
+    // It could bind sparse memories. It could have plural memories.
+    for (auto& mem_info : resource_alloc_info.bound_memory_infos)
+    {
+        auto mem_alc_info = mem_info->memory_info;
+        GFXRECON_ASSERT(mem_alc_info != VK_NULL_HANDLE);
+
+        --mem_info->reference_count;
+        if (mem_info->reference_count == 0)
+        {
+            if (mem_info->allocation != VK_NULL_HANDLE)
+            {
+                if (mem_info->mapped_pointer != nullptr)
+                {
+                    vmaUnmapMemory(allocator_, mem_info->allocation);
+                }
+                vmaFreeMemory(allocator_, mem_info->allocation);
+            }
+
+            for (auto entry = mem_alc_info->vma_mem_infos.begin(); entry != mem_alc_info->vma_mem_infos.end();)
+            {
+                if (entry->get() == mem_info)
+                {
+                    mem_alc_info->vma_mem_infos.erase(entry);
+                    break;
+                }
+                else
+                {
+                    ++entry;
+                }
+            }
+        }
+
+        mem_alc_info->original_objects.erase(object_hanlde);
+        if (mem_alc_info->is_free && mem_alc_info->original_objects.empty())
+        {
+            delete mem_alc_info;
+        }
+    }
 }
 
 VkResult VulkanRebindAllocator::QueueBindSparse(VkQueue                 queue,

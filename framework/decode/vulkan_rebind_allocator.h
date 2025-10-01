@@ -523,6 +523,7 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
         std::string          debug_utils_name;
         std::vector<uint8_t> debug_utils_tag;
         uint64_t             debug_utils_tag_name;
+        bool                 is_free{ false };
     };
 
   private:
@@ -653,6 +654,8 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
                                   bool                           prefers_dedicated_allocation,
                                   const VmaAllocationCreateInfo& alc_create_info,
                                   VmaMemoryInfo**                vma_mem_info);
+
+    void RemoveVmaMemoryInfo(ResourceAllocInfo& resource_alloc_info, uint64_t object_handle);
 
     void UpdateAllocInfo(ResourceAllocInfo&     resource_alloc_info,
                          uint64_t               object_handle,
