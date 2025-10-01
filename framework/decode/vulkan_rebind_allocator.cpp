@@ -956,7 +956,10 @@ VkResult VulkanRebindAllocator::AllocateMemoryForImage(VkImage                  
         {
             GFXRECON_LOG_WARNING("              id: %" PRIu64 "", id);
         }
-        return VK_SUCCESS;
+        if (resource_alloc_info.capture_id != 99)
+        {
+            return VK_SUCCESS;
+        }
     }
 
     VmaMemoryInfo mem_info                      = {};
