@@ -4256,6 +4256,9 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit2(PFN_vkQueueSubmit2      
             }
         }
     }
+    std::vector<VkSemaphoreSubmitInfo> wait_semaphore_infos;
+    std::vector<VkSemaphoreSubmitInfo> signal_semaphore_infos;
+
     // Only attempt to filter imported semaphores if we know at least one has been imported.
     // If rendering is restricted to a specific surface, shadow semaphore and forward progress state will need to be
     // tracked.
@@ -4302,9 +4305,6 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit2(PFN_vkQueueSubmit2      
             // original semaphore array with the imported semaphores omitted.
             std::vector<VkSubmitInfo2> modified_submit_infos(submit_infos, std::next(submit_infos, submitCount));
             std::vector<std::vector<VkSemaphore>> semaphore_memory(altered_submits.size());
-
-            std::vector<VkSemaphoreSubmitInfo> wait_semaphore_infos;
-            std::vector<VkSemaphoreSubmitInfo> signal_semaphore_infos;
 
             for (const auto& submit_iter : altered_submits)
             {
@@ -4365,6 +4365,29 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit2(PFN_vkQueueSubmit2      
 
     if ((options_.sync_queue_submissions) && (result == VK_SUCCESS))
     {
+        std::vector<uint64_t> value_1;
+        std::vector<VkResult> result_1;
+
+        std::vector<uint64_t> value_2;
+        std::vector<VkResult> result_2;
+
+        for (const auto & sema_info: wait_semaphore_infos)
+        {
+            uint64_t value  = 0;
+            auto     result = GetDeviceTable(queue_info->handle)
+                              ->GetSemaphoreCounterValue(device_info->handle, sema_info.semaphore, &value);
+            value_1.emplace_back(value);
+            result_1.emplace_back(result);
+        }
+        for (const auto& sema_info : signal_semaphore_infos)
+        {
+            uint64_t value  = 0;
+            auto     result = GetDeviceTable(queue_info->handle)
+                              ->GetSemaphoreCounterValue(device_info->handle, sema_info.semaphore, &value);
+            value_2.emplace_back(value);
+            result_2.emplace_back(result);
+        }
+
         GetDeviceTable(queue_info->handle)->QueueWaitIdle(queue_info->handle);
     }
 
