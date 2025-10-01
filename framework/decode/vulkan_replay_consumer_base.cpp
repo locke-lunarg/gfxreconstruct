@@ -4370,24 +4370,29 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit2(PFN_vkQueueSubmit2      
 
         std::vector<uint64_t> value_2;
         std::vector<VkResult> result_2;
-
-        for (const auto & sema_info: wait_semaphore_infos)
+        if (submit_infos)
         {
-            uint64_t value  = 0;
-            auto     result = GetDeviceTable(queue_info->handle)
-                              ->GetSemaphoreCounterValue(device_info->handle, sema_info.semaphore, &value);
-            value_1.emplace_back(value);
-            result_1.emplace_back(result);
-        }
-        for (const auto& sema_info : signal_semaphore_infos)
-        {
-            uint64_t value  = 0;
-            auto     result = GetDeviceTable(queue_info->handle)
-                              ->GetSemaphoreCounterValue(device_info->handle, sema_info.semaphore, &value);
-            value_2.emplace_back(value);
-            result_2.emplace_back(result);
-        }
+            for (uint32_t i = 0 ; i < submit_infos->waitSemaphoreInfoCount; ++i)
+            {
+                VkSemaphoreSubmitInfo info = submit_infos->pWaitSemaphoreInfos[i];
 
+                uint64_t value  = 0;
+                auto     result = GetDeviceTable(queue_info->handle)
+                                  ->GetSemaphoreCounterValue(device_info->handle, info.semaphore, &value);
+                value_1.emplace_back(value);
+                result_1.emplace_back(result);
+            }
+            for (uint32_t i = 0; i < submit_infos->signalSemaphoreInfoCount; ++i)
+            {
+                VkSemaphoreSubmitInfo info = submit_infos->pSignalSemaphoreInfos[i];
+
+                uint64_t value  = 0;
+                auto     result = GetDeviceTable(queue_info->handle)
+                                  ->GetSemaphoreCounterValue(device_info->handle, info.semaphore, &value);
+                value_2.emplace_back(value);
+                result_2.emplace_back(result);
+            }
+        }
         GetDeviceTable(queue_info->handle)->QueueWaitIdle(queue_info->handle);
     }
 
