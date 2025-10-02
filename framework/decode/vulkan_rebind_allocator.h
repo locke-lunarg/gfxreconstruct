@@ -458,7 +458,7 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
 
             // memory offset and size is in the range. mem_req and create_info are the same.
             if ((offset >= offset_from_original_device_memory) &&
-                ((offset + caputre_req.size) <= (offset_from_original_device_memory + capture_mem_req.size)) &&
+                // ((offset + caputre_req.size) <= (offset_from_original_device_memory + capture_mem_req.size)) &&
                 ((offset + replay_req.size) <= (offset_from_original_device_memory + replay_mem_req.size)) &&
                 (replay_req.alignment == replay_mem_req.alignment) &&
                 (replay_req.memoryTypeBits == replay_mem_req.memoryTypeBits) &&
