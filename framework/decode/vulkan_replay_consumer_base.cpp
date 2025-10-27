@@ -4081,6 +4081,19 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit(PFN_vkQueueSubmit        
         }
     }
 
+    for (int i = 0; i < submitCount; ++i)
+    {
+        auto* cmd_buf_handles = submit_info_data[i].pCommandBuffers.GetPointer();
+        for (int j = 0; j < submit_infos[i].commandBufferCount; ++j)
+        {
+            auto* command_buffer_info = GetObjectInfoTable().GetVkCommandBufferInfo(cmd_buf_handles[j]);
+            if (command_buffer_info->has_build_as)
+            {
+                GFXRECON_LOG_ERROR("queue submit cmd_buffer %llu", command_buffer_info->capture_id);
+            }
+        }
+    }
+
     // Only attempt to filter imported semaphores if we know at least one has been imported.
     // If rendering is restricted to a specific surface, shadow semaphore and forward progress state will need to be
     // tracked.
@@ -9092,7 +9105,7 @@ void VulkanReplayConsumerBase::OverrideDestroyAccelerationStructureKHR(
         // free potential shadow-resources
         GetDeviceAddressReplacer(device_info).DestroyShadowResources(acceleration_structure);
     }
-    func(device_info->handle, acceleration_structure, GetAllocationCallbacks(pAllocator));
+    //func(device_info->handle, acceleration_structure, GetAllocationCallbacks(pAllocator));
 }
 
 void VulkanReplayConsumerBase::OverrideCmdBuildAccelerationStructuresKHR(
@@ -9116,7 +9129,23 @@ void VulkanReplayConsumerBase::OverrideCmdBuildAccelerationStructuresKHR(
             command_buffer_info, infoCount, build_geometry_infos, build_range_infos, address_tracker);
     }
 
-    func(command_buffer, infoCount, build_geometry_infos, build_range_infos);
+    static int count                 = 0;
+    const int  crashing_as_build_idx = 6; // 6th index is the first call to build that causes a crash
+
+    if (count <= crashing_as_build_idx)
+    {
+        command_buffer_info->has_build_as = true;
+        GFXRECON_LOG_ERROR("as build idx %d, count %d, type %d, cmd_buffer %llu",
+                           count,
+                           infoCount,
+                           build_geometry_infos->type,
+                           command_buffer_info->capture_id);
+        if (count != crashing_as_build_idx)
+        {
+            func(command_buffer, infoCount, build_geometry_infos, build_range_infos);
+        }
+    }
+    ++count;
 }
 
 void VulkanReplayConsumerBase::OverrideCmdCopyAccelerationStructureKHR(
@@ -9136,7 +9165,7 @@ void VulkanReplayConsumerBase::OverrideCmdCopyAccelerationStructureKHR(
         auto&       address_replacer = GetDeviceAddressReplacer(device_info);
         address_replacer.ProcessCmdCopyAccelerationStructuresKHR(info, address_tracker);
     }
-    func(command_buffer, info);
+    //func(command_buffer, info);
 }
 
 void VulkanReplayConsumerBase::OverrideCmdWriteAccelerationStructuresPropertiesKHR(
@@ -9161,7 +9190,7 @@ void VulkanReplayConsumerBase::OverrideCmdWriteAccelerationStructuresPropertiesK
         address_replacer.ProcessCmdWriteAccelerationStructuresPropertiesKHR(
             count, acceleration_structs, queryType, query_pool, firstQuery, GetDeviceAddressTracker(device_info));
     }
-    func(command_buffer, count, acceleration_structs, queryType, query_pool, firstQuery);
+    //func(command_buffer, count, acceleration_structs, queryType, query_pool, firstQuery);
 }
 
 VkResult VulkanReplayConsumerBase::OverrideCreateRayTracingPipelinesKHR(
@@ -9711,6 +9740,8 @@ void VulkanReplayConsumerBase::ClearCommandBufferInfo(VulkanCommandBufferInfo* c
     command_buffer_info->addresses_to_replace.clear();
     command_buffer_info->inside_renderpass = false;
 
+    command_buffer_info->has_build_as = false;
+
     // free potential shadow-resources associated with this command-buffer
     auto* device_info = GetObjectInfoTable().GetVkDeviceInfo(command_buffer_info->parent_id);
     GFXRECON_ASSERT(device_info != nullptr);
@@ -10039,14 +10070,14 @@ void VulkanReplayConsumerBase::OverrideCmdTraceRaysKHR(
                                                  bound_pipeline->shader_group_handle_map);
         }
 
-        func(commandBuffer,
-             in_pRaygenShaderBindingTable,
-             in_pMissShaderBindingTable,
-             in_pHitShaderBindingTable,
-             in_pCallableShaderBindingTable,
-             width,
-             height,
-             depth);
+        //func(commandBuffer,
+        //     in_pRaygenShaderBindingTable,
+        //     in_pMissShaderBindingTable,
+        //     in_pHitShaderBindingTable,
+        //     in_pCallableShaderBindingTable,
+        //     width,
+        //     height,
+        //     depth);
     }
 }
 
@@ -10098,12 +10129,12 @@ void VulkanReplayConsumerBase::OverrideCmdTraceRaysIndirectKHR(
             }
         }
 
-        func(commandBuffer,
-             in_pRaygenShaderBindingTable,
-             in_pMissShaderBindingTable,
-             in_pHitShaderBindingTable,
-             in_pCallableShaderBindingTable,
-             indirectDeviceAddress);
+        //func(commandBuffer,
+        //     in_pRaygenShaderBindingTable,
+        //     in_pMissShaderBindingTable,
+        //     in_pHitShaderBindingTable,
+        //     in_pCallableShaderBindingTable,
+        //     indirectDeviceAddress);
     }
 }
 
