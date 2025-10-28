@@ -9144,6 +9144,17 @@ void VulkanReplayConsumerBase::OverrideCmdBuildAccelerationStructuresKHR(
         {
             func(command_buffer, infoCount, build_geometry_infos, build_range_infos);
         }
+        else
+        {
+            for (int i = 0; i < infoCount; ++i)
+            {
+                if (build_geometry_infos[i].mode == VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR)
+                {
+                    build_geometry_infos[i].mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+                }
+            }
+            func(command_buffer, infoCount, build_geometry_infos, build_range_infos);
+        }
     }
     ++count;
 }
