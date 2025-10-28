@@ -10070,14 +10070,14 @@ void VulkanReplayConsumerBase::OverrideCmdTraceRaysKHR(
                                                  bound_pipeline->shader_group_handle_map);
         }
 
-        //func(commandBuffer,
-        //     in_pRaygenShaderBindingTable,
-        //     in_pMissShaderBindingTable,
-        //     in_pHitShaderBindingTable,
-        //     in_pCallableShaderBindingTable,
-        //     width,
-        //     height,
-        //     depth);
+        func(commandBuffer,
+             in_pRaygenShaderBindingTable,
+             in_pMissShaderBindingTable,
+             in_pHitShaderBindingTable,
+             in_pCallableShaderBindingTable,
+             width,
+             height,
+             depth);
     }
 }
 
@@ -10129,12 +10129,12 @@ void VulkanReplayConsumerBase::OverrideCmdTraceRaysIndirectKHR(
             }
         }
 
-        //func(commandBuffer,
-        //     in_pRaygenShaderBindingTable,
-        //     in_pMissShaderBindingTable,
-        //     in_pHitShaderBindingTable,
-        //     in_pCallableShaderBindingTable,
-        //     indirectDeviceAddress);
+        func(commandBuffer,
+             in_pRaygenShaderBindingTable,
+             in_pMissShaderBindingTable,
+             in_pHitShaderBindingTable,
+             in_pCallableShaderBindingTable,
+             indirectDeviceAddress);
     }
 }
 
