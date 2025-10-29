@@ -9128,33 +9128,45 @@ void VulkanReplayConsumerBase::OverrideCmdBuildAccelerationStructuresKHR(
         address_replacer.ProcessCmdBuildAccelerationStructuresKHR(
             command_buffer_info, infoCount, build_geometry_infos, build_range_infos, address_tracker);
     }
-
-    static int count                 = 0;
-    const int  crashing_as_build_idx = 6; // 6th index is the first call to build that causes a crash
-
+    for (int i = 0; i < infoCount; ++i)
+    {
+        if (build_geometry_infos[i].mode == VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR)
+        {
+            build_geometry_infos[i].mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+        }
+    }
     if (count <= crashing_as_build_idx)
     {
         command_buffer_info->has_build_as = true;
-        GFXRECON_LOG_ERROR("as build idx %d, count %d, type %d, cmd_buffer %llu",
-                           count,
-                           infoCount,
-                           build_geometry_infos->type,
-                           command_buffer_info->capture_id);
         if (count != crashing_as_build_idx)
         {
+            GFXRECON_LOG_ERROR("Run OverrideCmdBuildAccelerationStructuresKHR, as build idx %d, count %d, type "
+                               "%d, cmd_buffer %llu",
+                               count,
+                               infoCount,
+                               build_geometry_infos->type,
+                               command_buffer_info->capture_id);
             func(command_buffer, infoCount, build_geometry_infos, build_range_infos);
         }
         else
         {
-            for (int i = 0; i < infoCount; ++i)
-            {
-                if (build_geometry_infos[i].mode == VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR)
-                {
-                    build_geometry_infos[i].mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-                }
-            }
+            GFXRECON_LOG_ERROR("Run crashing OverrideCmdBuildAccelerationStructuresKHR, as build idx %d, count %d, type "
+                               "%d, cmd_buffer %llu",
+                               count,
+                               infoCount,
+                               build_geometry_infos->type,
+                               command_buffer_info->capture_id);
             func(command_buffer, infoCount, build_geometry_infos, build_range_infos);
         }
+    }
+    else
+    {
+        GFXRECON_LOG_ERROR("Run OverrideCmdBuildAccelerationStructuresKHR, as build idx %d, count %d, type %d, cmd_buffer %llu",
+                           count,
+                           infoCount,
+                           build_geometry_infos->type,
+                           command_buffer_info->capture_id);
+        func(command_buffer, infoCount, build_geometry_infos, build_range_infos);
     }
     ++count;
 }
@@ -9176,7 +9188,15 @@ void VulkanReplayConsumerBase::OverrideCmdCopyAccelerationStructureKHR(
         auto&       address_replacer = GetDeviceAddressReplacer(device_info);
         address_replacer.ProcessCmdCopyAccelerationStructuresKHR(info, address_tracker);
     }
-    //func(command_buffer, info);
+    if (count <= crashing_as_build_idx)
+    {
+        GFXRECON_LOG_ERROR("Run OverrideCmdCopyAccelerationStructureKHR");
+        func(command_buffer, info);
+    }
+    else
+    {
+        GFXRECON_LOG_ERROR("Didn't Run OverrideCmdCopyAccelerationStructureKHR");
+    }
 }
 
 void VulkanReplayConsumerBase::OverrideCmdWriteAccelerationStructuresPropertiesKHR(
@@ -9201,7 +9221,15 @@ void VulkanReplayConsumerBase::OverrideCmdWriteAccelerationStructuresPropertiesK
         address_replacer.ProcessCmdWriteAccelerationStructuresPropertiesKHR(
             count, acceleration_structs, queryType, query_pool, firstQuery, GetDeviceAddressTracker(device_info));
     }
-    //func(command_buffer, count, acceleration_structs, queryType, query_pool, firstQuery);
+    if (count <= crashing_as_build_idx)
+    {
+        GFXRECON_LOG_ERROR("Run OverrideCmdWriteAccelerationStructuresPropertiesKHR");
+        func(command_buffer, count, acceleration_structs, queryType, query_pool, firstQuery);
+    }
+    else
+    {
+        GFXRECON_LOG_ERROR("Didn't Run OverrideCmdWriteAccelerationStructuresPropertiesKHR");
+    }
 }
 
 VkResult VulkanReplayConsumerBase::OverrideCreateRayTracingPipelinesKHR(

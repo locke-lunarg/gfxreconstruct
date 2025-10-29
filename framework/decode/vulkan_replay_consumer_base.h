@@ -1850,6 +1850,9 @@ class VulkanReplayConsumerBase : public VulkanConsumer
     typedef std::unordered_map<format::HandleId, HardwareBufferMemoryInfo> HardwareBufferMemoryMap;
 
   private:
+    int       count                 = 0;
+    const int crashing_as_build_idx = 6; // 6th index is the first call to build that causes a crash
+
     util::platform::LibraryHandle                                                  loader_handle_;
     PFN_vkGetInstanceProcAddr                                                      get_instance_proc_addr_;
     PFN_vkCreateInstance                                                           create_instance_proc_;
