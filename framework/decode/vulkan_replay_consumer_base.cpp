@@ -9435,6 +9435,7 @@ VulkanReplayConsumerBase::OverrideDeferredOperationJoinKHR(PFN_vkDeferredOperati
     {
         j.get();
     }
+    GetDeviceTable(device)->GetDeferredOperationResultKHR(device, deferred_operation);
 
     AddHandles<VulkanPipelineInfo>(device_info->capture_id,
                                    deferred_operation_info->capturePipelines.data(),
