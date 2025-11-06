@@ -11094,10 +11094,13 @@ void VulkanReplayConsumerBase::ProcessCopyVulkanAccelerationStructuresMetaComman
 
         MapStructArrayHandles(copy_infos->GetMetaStructPointer(), copy_infos->GetLength(), GetObjectInfoTable());
 
-        const auto& address_tracker  = GetDeviceAddressTracker(device_info);
-        auto&       address_replacer = GetDeviceAddressReplacer(device_info);
-        address_replacer.ProcessCopyVulkanAccelerationStructuresMetaCommand(
-            copy_infos->GetLength(), copy_infos->GetPointer(), address_tracker);
+        if (UseAddressReplacement(device_info))
+        {
+            const auto& address_tracker  = GetDeviceAddressTracker(device_info);
+            auto&       address_replacer = GetDeviceAddressReplacer(device_info);
+            address_replacer.ProcessCopyVulkanAccelerationStructuresMetaCommand(
+                copy_infos->GetLength(), copy_infos->GetPointer(), address_tracker);
+        }
     }
 }
 
@@ -11117,9 +11120,12 @@ void VulkanReplayConsumerBase::ProcessBuildVulkanAccelerationStructuresMetaComma
         VkAccelerationStructureBuildGeometryInfoKHR* build_geometry_infos = pInfos->GetPointer();
         VkAccelerationStructureBuildRangeInfoKHR**   range_infos          = ppRangeInfos->GetPointer();
 
-        GetDeviceAddressReplacer(device_info)
-            .ProcessBuildVulkanAccelerationStructuresMetaCommand(
-                info_count, pInfos->GetPointer(), ppRangeInfos->GetPointer(), GetDeviceAddressTracker(device_info));
+        if (UseAddressReplacement(device_info))
+        {
+            GetDeviceAddressReplacer(device_info)
+                .ProcessBuildVulkanAccelerationStructuresMetaCommand(
+                    info_count, pInfos->GetPointer(), ppRangeInfos->GetPointer(), GetDeviceAddressTracker(device_info));
+        }
     }
 }
 
