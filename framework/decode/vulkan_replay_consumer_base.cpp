@@ -3993,9 +3993,12 @@ VkResult VulkanReplayConsumerBase::OverrideGetQueryPoolResults(PFN_vkGetQueryPoo
     } while (((original_result == VK_SUCCESS) && (result == VK_NOT_READY)) &&
              (++retries <= kMaxQueryPoolResultsRetries));
 
-    auto& address_replacer = GetDeviceAddressReplacer(device_info);
-    address_replacer.ProcessGetQueryPoolResults(
-        device, query_pool, firstQuery, queryCount, dataSize, pData->GetOutputPointer(), stride, flags);
+    if (UseAddressReplacement(device_info))
+    {
+        auto& address_replacer = GetDeviceAddressReplacer(device_info);
+        address_replacer.ProcessGetQueryPoolResults(
+            device, query_pool, firstQuery, queryCount, dataSize, pData->GetOutputPointer(), stride, flags);
+    }
     return result;
 }
 
@@ -5219,7 +5222,7 @@ void VulkanReplayConsumerBase::OverrideFreeCommandBuffers(PFN_vkFreeCommandBuffe
 
             // free potential shadow-resources associated with this command-buffer
             VulkanCommandBufferInfo* cb_info = object_info_table_->GetVkCommandBufferInfo(cmd_buf_handles[i]);
-            if (cb_info != nullptr)
+            if (cb_info != nullptr && UseAddressReplacement(device_info))
             {
                 GetDeviceAddressReplacer(device_info).DestroyShadowResources(cb_info->handle);
             }
@@ -5999,7 +6002,11 @@ VulkanReplayConsumerBase::OverrideCreateBuffer(PFN_vkCreateBuffer               
         // track buffer-handle
         buffer_info->capture_id = capture_id;
         buffer_info->handle     = *replay_buffer;
-        GetDeviceAddressTracker(device_info).TrackBuffer(buffer_info);
+
+        if (UseAddressReplacement(device_info))
+        {
+            GetDeviceAddressTracker(device_info).TrackBuffer(buffer_info);
+        }
     }
     return result;
 }
@@ -6055,11 +6062,14 @@ void VulkanReplayConsumerBase::OverrideDestroyBuffer(
 
     allocator->DestroyBuffer(buffer, GetAllocationCallbacks(pAllocator), allocator_data);
 
-    // free potential shadow-resources associated with this buffer
-    GetDeviceAddressReplacer(device_info).DestroyShadowResources(buffer_info);
+    if (UseAddressReplacement(device_info))
+    {
+        // free potential shadow-resources associated with this buffer
+        GetDeviceAddressReplacer(device_info).DestroyShadowResources(buffer_info);
 
-    // remove from device-address tracking
-    GetDeviceAddressTracker(device_info).RemoveBuffer(buffer_info);
+        // remove from device-address tracking
+        GetDeviceAddressTracker(device_info).RemoveBuffer(buffer_info);
+    }
 }
 
 VkResult
@@ -9020,14 +9030,17 @@ VkResult VulkanReplayConsumerBase::OverrideCreateAccelerationStructureKHR(
     acceleration_structure_info->offset     = replay_create_info->offset;
     acceleration_structure_info->size       = replay_create_info->size;
 
-    auto& address_tracker = GetDeviceAddressTracker(device_info);
-    auto* buffer_info     = address_tracker.GetBufferByHandle(acceleration_structure_info->buffer);
-
-    // associated buffer has already queried a device-address, meaning we also got the AS device-address
-    if (buffer_info != nullptr && buffer_info->replay_address != 0)
+    if (UseAddressReplacement(device_info))
     {
-        acceleration_structure_info->capture_address = buffer_info->capture_address + replay_create_info->offset;
-        acceleration_structure_info->replay_address  = buffer_info->replay_address + replay_create_info->offset;
+        auto& address_tracker = GetDeviceAddressTracker(device_info);
+        auto* buffer_info     = address_tracker.GetBufferByHandle(acceleration_structure_info->buffer);
+
+        // associated buffer has already queried a device-address, meaning we also got the AS device-address
+        if (buffer_info != nullptr && buffer_info->replay_address != 0)
+        {
+            acceleration_structure_info->capture_address = buffer_info->capture_address + replay_create_info->offset;
+            acceleration_structure_info->replay_address  = buffer_info->replay_address + replay_create_info->offset;
+        }
     }
 
     // even when available, the feature also requires allocator-support
@@ -9064,7 +9077,11 @@ VkResult VulkanReplayConsumerBase::OverrideCreateAccelerationStructureKHR(
 
     // track newly created acceleration-structure
     acceleration_structure_info->handle = replay_accel_struct ? *replay_accel_struct : VK_NULL_HANDLE;
-    GetDeviceAddressTracker(device_info).TrackAccelerationStructure(acceleration_structure_info);
+
+    if (UseAddressReplacement(device_info))
+    {
+        GetDeviceAddressTracker(device_info).TrackAccelerationStructure(acceleration_structure_info);
+    }
     return result;
 }
 
@@ -9082,7 +9099,7 @@ void VulkanReplayConsumerBase::OverrideDestroyAccelerationStructureKHR(
     VkAccelerationStructureKHR            acceleration_structure = VK_NULL_HANDLE;
     VulkanResourceAllocator::ResourceData allocator_data         = 0;
 
-    if (acceleration_structure_info != nullptr)
+    if (acceleration_structure_info != nullptr && UseAddressReplacement(device_info))
     {
         acceleration_structure = acceleration_structure_info->handle;
 
@@ -9131,6 +9148,7 @@ void VulkanReplayConsumerBase::OverrideCmdCopyAccelerationStructureKHR(
     VkCommandBuffer                     command_buffer = command_buffer_info->handle;
     VkCopyAccelerationStructureInfoKHR* info           = pInfo->GetPointer();
 
+    if (UseAddressReplacement(device_info))
     {
         const auto& address_tracker  = GetDeviceAddressTracker(device_info);
         auto&       address_replacer = GetDeviceAddressReplacer(device_info);
@@ -9156,6 +9174,7 @@ void VulkanReplayConsumerBase::OverrideCmdWriteAccelerationStructuresPropertiesK
     VkAccelerationStructureKHR* acceleration_structs = pAccelerationStructures->GetHandlePointer();
     VkQueryPool                 query_pool           = query_pool_info->handle;
 
+    if (UseAddressReplacement(device_info))
     {
         auto& address_replacer = GetDeviceAddressReplacer(device_info);
         address_replacer.ProcessCmdWriteAccelerationStructuresPropertiesKHR(
@@ -9484,8 +9503,11 @@ VkDeviceAddress VulkanReplayConsumerBase::OverrideGetBufferDeviceAddress(
     buffer_info->capture_address = original_result;
     buffer_info->replay_address  = replay_device_address;
 
-    // track device-addresses
-    GetDeviceAddressTracker(device_info).TrackBuffer(buffer_info);
+    if (UseAddressReplacement(device_info))
+    { 
+        // track device-addresses
+        GetDeviceAddressTracker(device_info).TrackBuffer(buffer_info);
+    }
     return replay_device_address;
 }
 
@@ -9515,28 +9537,32 @@ void VulkanReplayConsumerBase::OverrideGetAccelerationStructureDeviceAddressKHR(
     acceleration_structure_info->capture_address = original_result;
     acceleration_structure_info->replay_address  = replay_address;
 
-    auto& address_tracker = GetDeviceAddressTracker(device_info);
-    auto* buffer_info     = address_tracker.GetBufferByHandle(acceleration_structure_info->buffer);
-    GFXRECON_ASSERT(buffer_info != nullptr);
-
-    if (buffer_info != nullptr)
+    if (UseAddressReplacement(device_info))
     {
-        // buffer has not queried its address (yet), so we start tracking it here
-        if (buffer_info->capture_address == 0)
+        auto& address_tracker = GetDeviceAddressTracker(device_info);
+        auto* buffer_info     = address_tracker.GetBufferByHandle(acceleration_structure_info->buffer);
+
+        GFXRECON_ASSERT(buffer_info != nullptr);
+
+        if (buffer_info != nullptr)
         {
-            buffer_info->capture_address =
-                acceleration_structure_info->capture_address - acceleration_structure_info->offset;
-            buffer_info->replay_address =
-                acceleration_structure_info->replay_address - acceleration_structure_info->offset;
-            address_tracker.TrackBuffer(buffer_info);
+            // buffer has not queried its address (yet), so we start tracking it here
+            if (buffer_info->capture_address == 0)
+            {
+                buffer_info->capture_address =
+                    acceleration_structure_info->capture_address - acceleration_structure_info->offset;
+                buffer_info->replay_address =
+                    acceleration_structure_info->replay_address - acceleration_structure_info->offset;
+                address_tracker.TrackBuffer(buffer_info);
+            }
         }
+
+        // we expect to know the corresponding buffer-device-address
+        GFXRECON_ASSERT(replay_address == buffer_info->replay_address + acceleration_structure_info->offset);
+
+        // track device-address
+        address_tracker.TrackAccelerationStructure(acceleration_structure_info);
     }
-
-    // we expect to know the corresponding buffer-device-address
-    GFXRECON_ASSERT(replay_address == buffer_info->replay_address + acceleration_structure_info->offset);
-
-    // track device-address
-    address_tracker.TrackAccelerationStructure(acceleration_structure_info);
 
     if (device_info->allocator->SupportsOpaqueDeviceAddresses())
     {
@@ -9696,7 +9722,11 @@ void VulkanReplayConsumerBase::ClearCommandBufferInfo(VulkanCommandBufferInfo* c
     // free potential shadow-resources associated with this command-buffer
     auto* device_info = GetObjectInfoTable().GetVkDeviceInfo(command_buffer_info->parent_id);
     GFXRECON_ASSERT(device_info != nullptr);
-    GetDeviceAddressReplacer(device_info).DestroyShadowResources(command_buffer_info->handle);
+
+    if (UseAddressReplacement(device_info))
+    {
+        GetDeviceAddressReplacer(device_info).DestroyShadowResources(command_buffer_info->handle);
+    }
 }
 
 VkResult VulkanReplayConsumerBase::OverrideBeginCommandBuffer(
