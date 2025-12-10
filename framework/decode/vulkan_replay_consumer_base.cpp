@@ -9119,7 +9119,7 @@ void VulkanReplayConsumerBase::OverrideCmdBuildAccelerationStructuresKHR(
             command_buffer_info, infoCount, build_geometry_infos, build_range_infos, address_tracker);
     }
 
-    func(command_buffer, infoCount, build_geometry_infos, build_range_infos);
+    //func(command_buffer, infoCount, build_geometry_infos, build_range_infos);
 }
 
 void VulkanReplayConsumerBase::OverrideCmdCopyAccelerationStructureKHR(
@@ -9148,7 +9148,7 @@ void VulkanReplayConsumerBase::OverrideCmdCopyAccelerationStructureKHR(
         auto&       address_replacer = GetDeviceAddressReplacer(device_info);
         address_replacer.ProcessCmdCopyAccelerationStructuresKHR(info, address_tracker);
     }
-    func(command_buffer, info);
+    //func(command_buffer, info);
 }
 
 void VulkanReplayConsumerBase::OverrideCmdWriteAccelerationStructuresPropertiesKHR(
@@ -9173,7 +9173,7 @@ void VulkanReplayConsumerBase::OverrideCmdWriteAccelerationStructuresPropertiesK
         address_replacer.ProcessCmdWriteAccelerationStructuresPropertiesKHR(
             count, acceleration_structs, queryType, query_pool, firstQuery, GetDeviceAddressTracker(device_info));
     }
-    func(command_buffer, count, acceleration_structs, queryType, query_pool, firstQuery);
+    //func(command_buffer, count, acceleration_structs, queryType, query_pool, firstQuery);
 }
 
 VkResult VulkanReplayConsumerBase::OverrideCreateRayTracingPipelinesKHR(
