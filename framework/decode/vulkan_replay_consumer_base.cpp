@@ -4016,7 +4016,7 @@ VkResult VulkanReplayConsumerBase::OverrideGetQueryPoolResults(PFN_vkGetQueryPoo
         flags |= VK_QUERY_RESULT_WAIT_BIT;
     }
 
-    VkResult result =
+    /* VkResult result =
         func(device, query_pool, firstQuery, queryCount, dataSize, pData->GetOutputPointer(), stride, flags);
 
     if (result == VK_SUCCESS)
@@ -4025,7 +4025,8 @@ VkResult VulkanReplayConsumerBase::OverrideGetQueryPoolResults(PFN_vkGetQueryPoo
         address_replacer.ProcessGetQueryPoolResults(
             device, query_pool, firstQuery, queryCount, dataSize, pData->GetOutputPointer(), stride, flags);
     }
-    return result;
+    return result; */
+    return VK_SUCCESS;
 }
 
 VkResult VulkanReplayConsumerBase::OverrideQueueSubmit(PFN_vkQueueSubmit                           func,
