@@ -69,6 +69,7 @@ void FreeChildObjects(CommonObjectInfoTable* table,
                       void (CommonObjectInfoTable::*RemoveFunc)(format::HandleId),
                       std::function<void(const S*, const T*)> destroy_func)
 {
+    GFXRECON_LOG_ERROR("@@FreeChildObjects enter");
     assert(table != nullptr);
 
     // Visit all table entries and sort them by parent ID.  Using unordered_map to filter duplicate handles.
@@ -93,6 +94,7 @@ void FreeChildObjects(CommonObjectInfoTable* table,
             {
                 if (object_info.second != nullptr)
                 {
+                    GFXRECON_LOG_ERROR("@@FreeChildObjects calling destroy_func");
                     destroy_func(parent_info, object_info.second);
                     if (remove_entries)
                     {
@@ -110,6 +112,7 @@ void FreeChildObjects(CommonObjectInfoTable* table,
                                  entry.first);
         }
     }
+    GFXRECON_LOG_ERROR("@@FreeChildObjects exit");
 }
 
 template <typename T>
@@ -641,6 +644,7 @@ void FreeAllLiveObjects(CommonObjectInfoTable*                                  
 
     // VkSwapchainKHR objects have a special destroy function to ignore the object when it has a null surface handle.
     // A valid swapchain object was not created in this case.
+    GFXRECON_LOG_ERROR("@@FreeAllLiveObjects free VulkanSwapchainKHRInfo");
     FreeChildObjects<VulkanDeviceInfo, VulkanSwapchainKHRInfo>(
         table,
         GFXRECON_STR(VkDevice),
@@ -670,6 +674,7 @@ void FreeAllLiveObjects(CommonObjectInfoTable*                                  
                 }
             }
         });
+    GFXRECON_LOG_ERROR("@@FreeAllLiveObjects VulkanSwapchainKHRInfo done");
 
     // VkSurfaceKHR objects have a special destroy function to destroy the object through the Window object that
     // initially created it.

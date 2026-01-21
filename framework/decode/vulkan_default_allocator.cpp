@@ -29,8 +29,13 @@
 
 #include <cassert>
 
+// KLUDGE!!
+#include <unordered_set>
+std::unordered_set<VkImage> iset;
+
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
+
 
 VulkanDefaultAllocator::VulkanDefaultAllocator() : device_(VK_NULL_HANDLE), memory_properties_{} {}
 
@@ -112,6 +117,7 @@ VkResult VulkanDefaultAllocator::CreateImage(const VkImageCreateInfo*     create
                                              VkImage*                     image,
                                              ResourceData*                allocator_data)
 {
+    GFXRECON_LOG_ERROR("@@VulkanDefaultAllocator::CreateImage entered, allocator_data = %p", allocator_data);
     VkResult result = VK_ERROR_INITIALIZATION_FAILED;
 
     if (allocator_data != nullptr)
@@ -122,22 +128,41 @@ VkResult VulkanDefaultAllocator::CreateImage(const VkImageCreateInfo*     create
         (*allocator_data)                = reinterpret_cast<ResourceData>(resource_alloc_info);
 
         result = functions_.create_image(device_, create_info, allocation_callbacks, image);
+        if (result == VK_SUCCESS) {
+            GFXRECON_LOG_ERROR("@@VulkanDefaultAllocator::CreateImage created image: image=%p", (void*)(*image));
+            iset.insert(*image);
+        } else
+            GFXRECON_LOG_ERROR("@@VulkanDefaultAllocator::CreateImage image create failed, result = %d", result);
+    } else {
+        GFXRECON_LOG_ERROR("@@VulkanDefaultAllocator::CreateImage -- no image created, allocator_data is nullptr");
     }
 
     return result;
 }
 
+
 void VulkanDefaultAllocator::DestroyImage(VkImage                      image,
                                           const VkAllocationCallbacks* allocation_callbacks,
                                           ResourceData                 allocator_data)
 {
+    GFXRECON_LOG_ERROR("@@VulkanDefaultAllocator::DestroyImage entered, allocator_data=%p", allocator_data)
+    GFXRECON_LOG_ERROR("@@VulkanDefaultAllocator::DestroyImage image=%p", (void*)image)
     if (allocator_data != 0)
     {
         auto resource_alloc_info = reinterpret_cast<ResourceAllocInfo*>(allocator_data);
         delete resource_alloc_info;
     }
 
-    functions_.destroy_image(device_, image, allocation_callbacks);
+    // Only destroy the image if we successfully created it and we haven't destroyed it
+    if (iset.find(image) != iset.end())
+    {
+        functions_.destroy_image(device_, image, allocation_callbacks);
+        iset.erase(image);
+        GFXRECON_LOG_ERROR("@@VulkanDefaultAllocator::DestroyImage destroyed image %p", image)
+    } else
+    {
+        GFXRECON_LOG_ERROR("@@VulkanDefaultAllocator::DestroyImage skipped destroy of image %p", image)
+    }
 }
 
 VkResult VulkanDefaultAllocator::CreateVideoSession(const VkVideoSessionCreateInfoKHR* create_info,

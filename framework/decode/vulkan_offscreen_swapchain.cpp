@@ -130,8 +130,12 @@ void VulkanOffscreenSwapchain::DestroySwapchainKHR(PFN_vkDestroySwapchainKHR    
                                                    const VulkanSwapchainKHRInfo* swapchain_info,
                                                    const VkAllocationCallbacks*  allocator)
 {
+    GFXRECON_LOG_ERROR("@@VulkanOffscreenSwapchain::DestroySwapchainKHR entered");
     if ((device_info != nullptr) && (swapchain_info != nullptr))
     {
+        GFXRECON_LOG_ERROR("@@VulkanOffscreenSwapchain::DestroySwapchainKHR calling CleanSwapchainResourceData, swapchain_info = %p", swapchain_info);
+        GFXRECON_LOG_ERROR("@@VulkanOffscreenSwapchain::DestroySwapchainKHR swapchain_info->surface = %p", swapchain_info->surface);
+        GFXRECON_LOG_ERROR("@@VulkanOffscreenSwapchain::DestroySwapchainKHR swapchain_info->surface_id = %p", (void*) swapchain_info->surface_id);
         CleanSwapchainResourceData(device_info, swapchain_info);
     }
 }

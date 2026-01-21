@@ -97,6 +97,10 @@ VkResult VulkanVirtualSwapchain::CreateSwapchainKHR(VkResult                    
 void VulkanVirtualSwapchain::CleanSwapchainResourceData(const VulkanDeviceInfo*       device_info,
                                                         const VulkanSwapchainKHRInfo* swapchain_info)
 {
+    GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData entered, swapchain_info = %p", swapchain_info);
+    GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData swapchain_info->surface = %p", swapchain_info->surface);
+    GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData swapchain_info->surface_id = %p", (void*) swapchain_info->surface_id);
+    GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData swapchain_info->handle = %p", (void*) swapchain_info->handle);
     VkDevice       device    = VK_NULL_HANDLE;
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
@@ -104,6 +108,8 @@ void VulkanVirtualSwapchain::CleanSwapchainResourceData(const VulkanDeviceInfo* 
     {
         device    = device_info->handle;
         swapchain = swapchain_info->handle;
+        
+        GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData swapchain = %p", (void*) swapchain);
 
         auto allocator = device_info->allocator.get();
         assert(allocator != nullptr);
@@ -116,16 +122,23 @@ void VulkanVirtualSwapchain::CleanSwapchainResourceData(const VulkanDeviceInfo* 
             {
                 for (const auto& fence : copy_cmd_data.second.fences)
                 {
+                    GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData WaitForFences")
                     device_table_->WaitForFences(device, 1, &fence, VK_TRUE, ~0UL);
                 }
             }
 
             for (const VirtualImage& image_info : swapchain_resources->virtual_swapchain_images)
             {
+                GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData calling DestroyImageIndirect")
+                GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData allocator=%p", allocator)
+                GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData image_info.image=%p", (void*)image_info.image)
+                GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData image_info.resource_allocator_data=%p", (void*)image_info.resource_allocator_data)
                 allocator->DestroyImageDirect(image_info.image, nullptr, image_info.resource_allocator_data);
+                GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData free memory")
                 allocator->FreeMemoryDirect(image_info.memory, nullptr, image_info.memory_allocator_data);
             }
 
+            GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData freeing other resources")
             for (const auto& copy_cmd_data : swapchain_resources->copy_cmd_data)
             {
                 if (copy_cmd_data.second.command_pool != VK_NULL_HANDLE)
@@ -148,14 +161,20 @@ void VulkanVirtualSwapchain::CleanSwapchainResourceData(const VulkanDeviceInfo* 
             }
 
             swapchain_resources_.erase(swapchain);
+            GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData freeing other resources done")
         }
 
+        GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData freeing images")
         for (const VulkanImageInfo& image_info : swapchain_info->image_infos)
         {
+            GFXRECON_LOG_ERROR("@@VVS:CSRD Destroy ImageDirect")
             allocator->DestroyImageDirect(image_info.handle, nullptr, image_info.allocator_data);
+            GFXRECON_LOG_ERROR("@@VVS:CSRD Free MemDirect")
             allocator->FreeMemoryDirect(image_info.memory, nullptr, image_info.memory_allocator_data);
         }
+        GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData freeing images done")
     }
+    GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::CleanSwapchainResourceData exit")
 }
 
 void VulkanVirtualSwapchain::DestroySwapchainKHR(PFN_vkDestroySwapchainKHR     func,
@@ -163,11 +182,14 @@ void VulkanVirtualSwapchain::DestroySwapchainKHR(PFN_vkDestroySwapchainKHR     f
                                                  const VulkanSwapchainKHRInfo* swapchain_info,
                                                  const VkAllocationCallbacks*  allocator)
 {
+    GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::DestroySwapchainKHR entered");
     if ((device_info != nullptr) && (swapchain_info != nullptr))
     {
         // CleanSwapchainResourceData() makes Vulkan API calls that are not in the capture file.
         // Notify any layers by calling the provided pointer to their ReportReplayGeneratedVulkanCommands
         decode::BeginInjectedCommands();
+
+         GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::DestroySwapchainKHR calling CleanSwapchainResourceData, swapchain_info = %p", swapchain_info);
 
         CleanSwapchainResourceData(device_info, swapchain_info);
 
@@ -177,6 +199,7 @@ void VulkanVirtualSwapchain::DestroySwapchainKHR(PFN_vkDestroySwapchainKHR     f
         VkSwapchainKHR swapchain = swapchain_info->handle;
         func(device, swapchain, allocator);
     }
+    GFXRECON_LOG_ERROR("@@VulkanVirtualSwapchain::DestroySwapchainKHR done");
 }
 
 // Offscreen only need virtual_swapchain_images. Skip ther other tasks for offscreen.
@@ -330,81 +353,86 @@ VkResult VulkanVirtualSwapchain::CreateSwapchainResourceData(const VulkanDeviceI
             // Command Buffers, Semaphores, etc) as many queue families that are available.
             // This is because at any point, the application may get a Device queue from that family and
             // use it during the present.
-            // Create one command buffer per queue per swapchain image so that we don't reset a command buffer that
-            // may be in active use.
-            uint32_t command_buffer_count = static_cast<uint32_t>(copy_cmd_data.command_buffers.size());
-            if (command_buffer_count < capture_image_count)
+            uint32_t start_size = static_cast<uint32_t>(copy_cmd_data.command_buffers.size());
+            uint32_t new_count  = property_count;
+            if (start_size < new_count)
             {
-                copy_cmd_data.command_buffers.resize(capture_image_count);
-
-                uint32_t                    new_count     = capture_image_count - command_buffer_count;
-                VkCommandBufferAllocateInfo allocate_info = {
-                    VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, // sType
-                    nullptr,                                        // pNext
-                    copy_cmd_data.command_pool,                     // commandPool
-                    VK_COMMAND_BUFFER_LEVEL_PRIMARY,                // level
-                    new_count                                       // commandBufferCount
-                };
-
-                result = device_table_->AllocateCommandBuffers(
-                    device, &allocate_info, &copy_cmd_data.command_buffers[command_buffer_count]);
-                if (result != VK_SUCCESS)
+                // Create one command buffer per queue per swapchain image so that we don't reset a command buffer that
+                // may be in active use.
+                uint32_t command_buffer_count = static_cast<uint32_t>(copy_cmd_data.command_buffers.size());
+                if (command_buffer_count < capture_image_count)
                 {
-                    GFXRECON_LOG_ERROR("Virtual swapchain failed allocating internal command buffer %d for "
-                                       "swapchain (ID = %" PRIu64 ")",
-                                       queue_family_index,
-                                       swapchain_info->capture_id);
-                    return result;
-                }
-            }
-            uint32_t semaphore_count = static_cast<uint32_t>(copy_cmd_data.semaphores.size());
-            if (semaphore_count < capture_image_count)
-            {
-                copy_cmd_data.semaphores.resize(capture_image_count);
+                    copy_cmd_data.command_buffers.resize(capture_image_count);
 
-                for (uint32_t ii = semaphore_count; ii < capture_image_count; ++ii)
-                {
-                    VkSemaphoreCreateInfo semaphore_create_info = {
-                        VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, // sType
-                        nullptr,                                 // pNext
-                        0                                        // flags
+                    uint32_t                    new_count     = capture_image_count - command_buffer_count;
+                    VkCommandBufferAllocateInfo allocate_info = {
+                        VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, // sType
+                        nullptr,                                        // pNext
+                        copy_cmd_data.command_pool,                     // commandPool
+                        VK_COMMAND_BUFFER_LEVEL_PRIMARY,                // level
+                        new_count                                       // commandBufferCount
                     };
 
-                    VkSemaphore semaphore = 0;
-                    result = device_table_->CreateSemaphore(device, &semaphore_create_info, nullptr, &semaphore);
+                    result = device_table_->AllocateCommandBuffers(
+                        device, &allocate_info, &copy_cmd_data.command_buffers[command_buffer_count]);
                     if (result != VK_SUCCESS)
                     {
-                        GFXRECON_LOG_ERROR("Virtual swapchain failed creating internal copy semaphore for "
+                        GFXRECON_LOG_ERROR("Virtual swapchain failed allocating internal command buffer %d for "
                                            "swapchain (ID = %" PRIu64 ")",
+                                           queue_family_index,
                                            swapchain_info->capture_id);
                         return result;
                     }
-                    copy_cmd_data.semaphores[ii] = semaphore;
                 }
-            }
-            uint32_t fence_count = static_cast<uint32_t>(copy_cmd_data.fences.size());
-            if (fence_count < capture_image_count)
-            {
-                copy_cmd_data.fences.resize(capture_image_count);
-
-                for (uint32_t ii = fence_count; ii < capture_image_count; ++ii)
+                uint32_t semaphore_count = static_cast<uint32_t>(copy_cmd_data.semaphores.size());
+                if (semaphore_count < capture_image_count)
                 {
-                    VkFenceCreateInfo fence_create_info = {
-                        VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, // sType
-                        nullptr,                             // pNext
-                        VK_FENCE_CREATE_SIGNALED_BIT         // flags
-                    };
+                    copy_cmd_data.semaphores.resize(capture_image_count);
 
-                    VkFence fence = VK_NULL_HANDLE;
-                    result        = device_table_->CreateFence(device, &fence_create_info, nullptr, &fence);
-                    if (result != VK_SUCCESS)
+                    for (uint32_t ii = semaphore_count; ii < capture_image_count; ++ii)
                     {
-                        GFXRECON_LOG_ERROR("Virtual swapchain failed creating internal copy fence for "
-                                           "swapchain (ID = %" PRIu64 ")",
-                                           swapchain_info->capture_id);
-                        return result;
+                        VkSemaphoreCreateInfo semaphore_create_info = {
+                            VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, // sType
+                            nullptr,                                 // pNext
+                            0                                        // flags
+                        };
+
+                        VkSemaphore semaphore = 0;
+                        result = device_table_->CreateSemaphore(device, &semaphore_create_info, nullptr, &semaphore);
+                        if (result != VK_SUCCESS)
+                        {
+                            GFXRECON_LOG_ERROR("Virtual swapchain failed creating internal copy semaphore for "
+                                               "swapchain (ID = %" PRIu64 ")",
+                                               swapchain_info->capture_id);
+                            return result;
+                        }
+                        copy_cmd_data.semaphores[ii] = semaphore;
                     }
-                    copy_cmd_data.fences[ii] = fence;
+                }
+                uint32_t fence_count = static_cast<uint32_t>(copy_cmd_data.fences.size());
+                if (fence_count < capture_image_count)
+                {
+                    copy_cmd_data.fences.resize(capture_image_count);
+
+                    for (uint32_t ii = fence_count; ii < capture_image_count; ++ii)
+                    {
+                        VkFenceCreateInfo fence_create_info = {
+                            VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, // sType
+                            nullptr,                             // pNext
+                            VK_FENCE_CREATE_SIGNALED_BIT         // flags
+                        };
+
+                        VkFence fence = VK_NULL_HANDLE;
+                        result        = device_table_->CreateFence(device, &fence_create_info, nullptr, &fence);
+                        if (result != VK_SUCCESS)
+                        {
+                            GFXRECON_LOG_ERROR("Virtual swapchain failed creating internal copy fence for "
+                                               "swapchain (ID = %" PRIu64 ")",
+                                               swapchain_info->capture_id);
+                            return result;
+                        }
+                        copy_cmd_data.fences[ii] = fence;
+                    }
                 }
             }
         }
