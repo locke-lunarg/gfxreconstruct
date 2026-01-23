@@ -296,6 +296,7 @@ void FreeAllLiveObjects(CommonObjectInfoTable*                                  
             get_device_table(parent_info->handle)->DestroyImageView(parent_info->handle, object_info->handle, nullptr);
         });
 
+    GFXRECON_LOG_ERROR("@@FreeAllLiveObjects free VulkanImageInfo");
     FreeChildObjects<VulkanDeviceInfo, VulkanImageInfo>(
         table,
         GFXRECON_STR(VkDevice),
@@ -311,7 +312,12 @@ void FreeAllLiveObjects(CommonObjectInfoTable*                                  
             auto allocator = parent_info->allocator.get();
             assert(allocator != nullptr);
 
-            allocator->DestroyImage(object_info->handle, nullptr, object_info->allocator_data);
+            if (!object_info->is_swapchain_image) {
+                GFXRECON_LOG_ERROR("@@Calling DestroyImage(%p, ...)", object_info->handle);
+                allocator->DestroyImage(object_info->handle, nullptr, object_info->allocator_data);
+            } else {
+                GFXRECON_LOG_ERROR("@@Skipped DestroyImage(%p, ...)", object_info->handle);
+            }
         });
 
     FreeChildObjects<VulkanDeviceInfo, VulkanBufferViewInfo>(
