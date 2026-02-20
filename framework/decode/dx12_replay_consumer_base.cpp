@@ -1098,6 +1098,20 @@ HRESULT Dx12ReplayConsumerBase::OverridePresent(DxObjectInfo* replay_object_info
     auto result = replay_object->Present(sync_interval, flags);
     PostPresent();
 
+    if (result == DXGI_ERROR_DEVICE_REMOVED)
+    {
+        graphics::dx12::ID3D12DeviceComPtr device = nullptr;
+        HRESULT                            ret    = replay_object->GetDevice(IID_PPV_ARGS(&device));
+        HRESULT                            reason = device->GetDeviceRemovedReason();
+        _com_error err(reason);
+        LPCTSTR    errMsg = err.ErrorMessage();
+
+         GFXRECON_LOG_FATAL("Present failed with DXGI_ERROR_DEVICE_REMOVED. GetDeviceRemovedReason returned 0x%08X: %s. "
+                           "Replay cannot continue.",
+                           reason,
+                           errMsg);
+    }
+
     return result;
 }
 
