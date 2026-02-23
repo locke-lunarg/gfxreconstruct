@@ -912,6 +912,22 @@ void Dx12ReplayConsumerBase::CheckReplayResult(const char* call_name, HRESULT ca
                 call_name,
                 enumutil::GetResultValueString(replay_result).c_str(),
                 enumutil::GetResultValueString(capture_result).c_str());
+
+            if (options_.enable_debug_device_lost && replay_result == DXGI_ERROR_DEVICE_REMOVED)
+            {
+                graphics::dx12::ID3D12DeviceComPtr device = nullptr;
+                HRESULT                            ret    = replay_object->GetDevice(IID_PPV_ARGS(&device));
+                HRESULT                            reason = device->GetDeviceRemovedReason();
+                _com_error                         err(reason);
+                LPCTSTR                            errMsg = err.ErrorMessage();
+
+                GFXRECON_LOG_FATAL(
+                    "Present failed with DXGI_ERROR_DEVICE_REMOVED. GetDeviceRemovedReason returned 0x%08X: %s. "
+                    "Replay cannot continue.",
+                    reason,
+                    errMsg);
+            }
+
             RaiseFatalError(enumutil::GetResultDescription(replay_result));
         }
         else
@@ -1097,20 +1113,6 @@ HRESULT Dx12ReplayConsumerBase::OverridePresent(DxObjectInfo* replay_object_info
     PrePresent(replay_object_info, flags);
     auto result = replay_object->Present(sync_interval, flags);
     PostPresent();
-
-    if (result == DXGI_ERROR_DEVICE_REMOVED)
-    {
-        graphics::dx12::ID3D12DeviceComPtr device = nullptr;
-        HRESULT                            ret    = replay_object->GetDevice(IID_PPV_ARGS(&device));
-        HRESULT                            reason = device->GetDeviceRemovedReason();
-        _com_error err(reason);
-        LPCTSTR    errMsg = err.ErrorMessage();
-
-         GFXRECON_LOG_FATAL("Present failed with DXGI_ERROR_DEVICE_REMOVED. GetDeviceRemovedReason returned 0x%08X: %s. "
-                           "Replay cannot continue.",
-                           reason,
-                           errMsg);
-    }
 
     return result;
 }
