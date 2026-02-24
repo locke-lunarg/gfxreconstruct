@@ -436,7 +436,12 @@ class Dx12ReplayConsumerBase : public Dx12Consumer
         }
     }
 
-    void CheckReplayResult(const char* call_name, HRESULT capture_result, HRESULT replay_result);
+    graphics::dx12::ID3D12DeviceComPtr GetDevice(DxObjectInfo* replay_object_info);
+
+    void CheckReplayResult(const char*   call_name,
+                           DxObjectInfo* replay_object_info,
+                           HRESULT       capture_result,
+                           HRESULT       replay_result);
 
     FARPROC GetReplayCallback(uint64_t callback_id, format::ApiCallId call_id, const char* call_name);
 

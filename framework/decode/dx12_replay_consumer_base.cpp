@@ -901,7 +901,90 @@ void Dx12ReplayConsumerBase::SetDumpTarget(TrackDumpDrawCall& track_dump_target)
     dump_resources_->SetDumpTarget(track_dump_target);
 }
 
-void Dx12ReplayConsumerBase::CheckReplayResult(const char* call_name, HRESULT capture_result, HRESULT replay_result)
+graphics::dx12::ID3D12DeviceComPtr Dx12ReplayConsumerBase::GetDevice(DxObjectInfo* replay_object_info)
+{
+    graphics::dx12::ID3D12DeviceComPtr device = nullptr;
+    if (replay_object_info == nullptr)
+    {
+        return device;
+    }
+    auto extra_info = replay_object_info->extra_info->extra_info_type;
+
+    switch (extra_info)
+    {
+        case DxObjectInfoType::kID3D12DeviceInfo:
+        {
+            device = static_cast<ID3D12Device*>(replay_object_info->object);
+            break;
+        }
+        case DxObjectInfoType::kIDxgiSwapchainInfo:
+        {
+            auto swapchain = static_cast<IDXGISwapChain*>(replay_object_info->object);
+            swapchain->GetDevice(IID_PPV_ARGS(&device));
+            break;
+        }
+        case DxObjectInfoType::kID3D12CommandQueueInfo:
+        {
+            auto command_queue = static_cast<ID3D12CommandQueue*>(replay_object_info->object);
+            command_queue->GetDevice(IID_PPV_ARGS(&device));
+            break;
+        }
+        case DxObjectInfoType::kID3D12DescriptorHeapInfo:
+        {
+            auto descriptor_heap = static_cast<ID3D12DescriptorHeap*>(replay_object_info->object);
+            descriptor_heap->GetDevice(IID_PPV_ARGS(&device));
+            break;
+        }
+        case DxObjectInfoType::kID3D12FenceInfo:
+        {
+            auto fence = static_cast<ID3D12Fence*>(replay_object_info->object);
+            fence->GetDevice(IID_PPV_ARGS(&device));
+            break;
+        }
+        case DxObjectInfoType::kID3D12HeapInfo:
+        {
+            auto heap = static_cast<ID3D12Heap*>(replay_object_info->object);
+            heap->GetDevice(IID_PPV_ARGS(&device));
+            break;
+        }
+        case DxObjectInfoType::kID3D12ResourceInfo:
+        {
+            auto resource = static_cast<ID3D12Resource*>(replay_object_info->object);
+            resource->GetDevice(IID_PPV_ARGS(&device));
+            break;
+        }
+        case DxObjectInfoType::kID3D12CommandSignatureInfo:
+        {
+            auto command_signature = static_cast<ID3D12CommandSignature*>(replay_object_info->object);
+            command_signature->GetDevice(IID_PPV_ARGS(&device));
+            break;
+        }
+        case DxObjectInfoType::kID3D12CommandListInfo:
+        {
+            auto command_list = static_cast<ID3D12GraphicsCommandList*>(replay_object_info->object);
+            command_list->GetDevice(IID_PPV_ARGS(&device));
+            break;
+        }
+        case DxObjectInfoType::kID3D12RootSignatureInfo:
+        {
+            auto root_signature = static_cast<ID3D12RootSignature*>(replay_object_info->object);
+            root_signature->GetDevice(IID_PPV_ARGS(&device));
+            break;
+        }
+        case DxObjectInfoType::kID3D12StateObjectInfo:
+        {
+            auto state_object = static_cast<ID3D12StateObject*>(replay_object_info->object);
+            state_object->GetDevice(IID_PPV_ARGS(&device));
+            break;
+        }
+    }
+    return device;
+}
+
+void Dx12ReplayConsumerBase::CheckReplayResult(const char*   call_name,
+                                               DxObjectInfo* replay_object_info,
+                                               HRESULT       capture_result,
+                                               HRESULT       replay_result)
 {
     if (capture_result != replay_result)
     {
@@ -913,19 +996,59 @@ void Dx12ReplayConsumerBase::CheckReplayResult(const char* call_name, HRESULT ca
                 enumutil::GetResultValueString(replay_result).c_str(),
                 enumutil::GetResultValueString(capture_result).c_str());
 
-            if (options_.enable_debug_device_lost && replay_result == DXGI_ERROR_DEVICE_REMOVED)
+            if (replay_object_info != nullptr && options_.enable_debug_device_lost &&
+                replay_result == DXGI_ERROR_DEVICE_REMOVED)
             {
-                graphics::dx12::ID3D12DeviceComPtr device = nullptr;
-                HRESULT                            ret    = replay_object->GetDevice(IID_PPV_ARGS(&device));
-                HRESULT                            reason = device->GetDeviceRemovedReason();
-                _com_error                         err(reason);
-                LPCTSTR                            errMsg = err.ErrorMessage();
+                graphics::dx12::ID3D12DeviceComPtr device = GetDevice(replay_object_info);
+                if (device == nullptr)
+                {
+                    GFXRECON_LOG_ERROR(
+                        "Unable to retrieve device from replay object info to print DXGI_ERROR_DEVICE_REMOVED info.");
+                }
+                else
+                {
+                    HRESULT    reason = device->GetDeviceRemovedReason();
+                    _com_error err(reason);
+                    LPCTSTR    errMsg = err.ErrorMessage();
 
-                GFXRECON_LOG_FATAL(
-                    "Present failed with DXGI_ERROR_DEVICE_REMOVED. GetDeviceRemovedReason returned 0x%08X: %s. "
-                    "Replay cannot continue.",
-                    reason,
-                    errMsg);
+                    GFXRECON_LOG_FATAL(
+                        "Present failed with DXGI_ERROR_DEVICE_REMOVED. GetDeviceRemovedReason returned 0x%08X: %s. "
+                        "Replay cannot continue.",
+                        reason,
+                        errMsg);
+
+
+                    ID3D12DeviceRemovedExtendedData* pDred = nullptr;
+                    if (SUCCEEDED(pDevice->QueryInterface(IID_PPV_ARGS(&pDred))))
+                    {
+                        D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT dredOutput;
+                        if (SUCCEEDED(pDred->GetAutoBreadcrumbsOutput(&dredOutput)))
+                        {
+                            auto pNode = dredOutput.pHeadAutoBreadcrumbNode;
+                            while (pNode)
+                            {
+                                uint32_t lastOp = *(pNode->pLastCompletedOp);
+
+                                printf("CommandList: %s\n",
+                                       pNode->pCommandListDebugNameA ? pNode->pCommandListDebugNameA : "Unknown");
+                                printf("%u\n", lastOp);
+                                printf("%u\n", lastOp + 1);
+                                pNode = pNode->pNext;
+                            }
+                        }
+                        D3D12_DRED_PAGE_FAULT_OUTPUT pageFaultOutput;
+                        if (SUCCEEDED(pDred->GetPageFaultOutput(&pageFaultOutput)))
+                        {
+                            printf("GPU Page Fault: 0x%llx\n", pageFaultOutput.PageFaultVA);
+                            auto pNode = pageFaultOutput.pHeadExistingAllocatedObjectNode;
+                            while (pNode)
+                            {
+                                printf("%ls\n", pNode->ObjectNameW);
+                                pNode = pNode->pNext;
+                            }
+                        }
+                    }
+                }
             }
 
             RaiseFatalError(enumutil::GetResultDescription(replay_result));

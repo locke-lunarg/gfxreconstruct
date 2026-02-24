@@ -14540,7 +14540,7 @@ void Dx12ReplayConsumer::Process_IDXGISwapChain_Present(
                                              return_value,
                                              SyncInterval,
                                              Flags);
-        CheckReplayResult("IDXGISwapChain_Present", return_value, replay_result);
+        CheckReplayResult("IDXGISwapChain_Present", replay_object, return_value, replay_result);
         CustomReplayPostCall<format::ApiCallId::ApiCall_IDXGISwapChain_Present>::Dispatch(
             this,
             call_info,
