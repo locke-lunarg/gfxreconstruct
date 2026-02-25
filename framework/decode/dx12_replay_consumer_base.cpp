@@ -1098,6 +1098,50 @@ HRESULT Dx12ReplayConsumerBase::OverridePresent(DxObjectInfo* replay_object_info
     auto result = replay_object->Present(sync_interval, flags);
     PostPresent();
 
+    if (replay_object_info != nullptr && options_.enable_debug_device_lost && result == DXGI_ERROR_DEVICE_REMOVED)
+    {
+        graphics::dx12::ID3D12DeviceComPtr device;
+        replay_object->GetDevice(IID_PPV_ARGS(&device));
+
+        HRESULT    reason = device->GetDeviceRemovedReason();
+        _com_error err(reason);
+        LPCTSTR    errMsg = err.ErrorMessage();
+
+        GFXRECON_LOG_FATAL(
+            "Present failed with DXGI_ERROR_DEVICE_REMOVED. GetDeviceRemovedReason returned 0x%08X: %s. "
+            "Replay cannot continue.",
+            reason,
+            errMsg);
+
+        ID3D12DeviceRemovedExtendedData1* pDred = nullptr;
+        if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&pDred))))
+        {
+            D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT dredOutput;
+            result = pDred->GetAutoBreadcrumbsOutput(&dredOutput);
+            if (SUCCEEDED(pDred->GetAutoBreadcrumbsOutput(&dredOutput)))
+            {
+                auto pNode = dredOutput.pHeadAutoBreadcrumbNode;
+                while (pNode)
+                {
+                    GFXRECON_LOG_ERROR("CommandList: %s\n",
+                                        pNode->pCommandListDebugNameA ? pNode->pCommandListDebugNameA : "Unknown");
+                    pNode = pNode->pNext;
+                }
+            }
+            D3D12_DRED_PAGE_FAULT_OUTPUT pageFaultOutput;
+            result = pDred->GetPageFaultAllocationOutput(&pageFaultOutput);
+            if (SUCCEEDED(pDred->GetPageFaultAllocationOutput(&pageFaultOutput)))
+            {
+                GFXRECON_LOG_ERROR("GPU Page Fault: 0x%llx\n", pageFaultOutput.PageFaultVA);
+                auto pNode = pageFaultOutput.pHeadExistingAllocationNode;
+                while (pNode)
+                {
+                    GFXRECON_LOG_ERROR("%ls\n", pNode->ObjectNameW);
+                    pNode = pNode->pNext;
+                }
+            }
+        }
+    }
     return result;
 }
 
