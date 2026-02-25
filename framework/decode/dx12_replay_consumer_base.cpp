@@ -1019,7 +1019,7 @@ void Dx12ReplayConsumerBase::CheckReplayResult(const char*   call_name,
 
 
                     ID3D12DeviceRemovedExtendedData* pDred = nullptr;
-                    if (SUCCEEDED(pDevice->QueryInterface(IID_PPV_ARGS(&pDred))))
+                    if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&pDred))))
                     {
                         D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT dredOutput;
                         if (SUCCEEDED(pDred->GetAutoBreadcrumbsOutput(&dredOutput)))
@@ -1027,12 +1027,9 @@ void Dx12ReplayConsumerBase::CheckReplayResult(const char*   call_name,
                             auto pNode = dredOutput.pHeadAutoBreadcrumbNode;
                             while (pNode)
                             {
-                                uint32_t lastOp = *(pNode->pLastCompletedOp);
-
-                                printf("CommandList: %s\n",
-                                       pNode->pCommandListDebugNameA ? pNode->pCommandListDebugNameA : "Unknown");
-                                printf("%u\n", lastOp);
-                                printf("%u\n", lastOp + 1);
+                                GFXRECON_LOG_ERROR("CommandList: %s\n",
+                                                   pNode->pCommandListDebugNameA ? pNode->pCommandListDebugNameA
+                                                                                 : "Unknown");
                                 pNode = pNode->pNext;
                             }
                         }
@@ -1040,7 +1037,7 @@ void Dx12ReplayConsumerBase::CheckReplayResult(const char*   call_name,
                         if (SUCCEEDED(pDred->GetPageFaultOutput(&pageFaultOutput)))
                         {
                             printf("GPU Page Fault: 0x%llx\n", pageFaultOutput.PageFaultVA);
-                            auto pNode = pageFaultOutput.pHeadExistingAllocatedObjectNode;
+                            auto pNode = pageFaultOutput.pHeadExistingAllocationNode;
                             while (pNode)
                             {
                                 printf("%ls\n", pNode->ObjectNameW);
