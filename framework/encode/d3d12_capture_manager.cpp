@@ -52,7 +52,12 @@ bool D3D12CaptureManager::CreateInstance()
     bool ret = CommonCaptureManager::CreateInstance<D3D12CaptureManager>();
 
     GFXRECON_ASSERT(singleton_);
-
+    static bool first = true;
+    if (first)
+    {
+        first = false;
+        MessageBox(0, "Waiting for debugger to attach.", "Waiting", MB_OK);
+    }
     if (singleton_->IsAnnotated() == true && singleton_->resource_value_annotator_ == nullptr)
     {
         singleton_->resource_value_annotator_ = std::make_unique<Dx12ResourceValueAnnotator>();
