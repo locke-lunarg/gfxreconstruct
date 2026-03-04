@@ -1828,15 +1828,9 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreatePlacedResource(
     auto replay_object = static_cast<ID3D12Device*>(replay_object_info->object);
     auto heap          = static_cast<ID3D12Heap*>(pHeap->object);
 
-    D3D12_RESOURCE_DESC modified_desc = *pDesc->GetPointer();
-    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
-    {
-        modified_desc.Alignment = 0;
-    }
-
     auto replay_result = replay_object->CreatePlacedResource(heap,
                                                              HeapOffset,
-                                                             &modified_desc,
+                                                             pDesc->GetPointer(),
                                                              InitialState,
                                                              pOptimizedClearValue->GetPointer(),
                                                              *riid.decoded_value,
