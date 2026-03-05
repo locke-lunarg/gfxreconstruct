@@ -513,6 +513,11 @@ void Dx12ExperimentalResourceValueTracker::PostProcessCopyTextureRegion(
                 const auto& placed_footprint = src_copy_location->PlacedFootprint;
                 uint64_t    copy_size        = 0;
                 auto        desc             = resource->GetDesc();
+                if ((desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) ==
+                    D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+                {
+                    desc.Alignment = 0;
+                }
                 device->GetCopyableFootprints(&desc,
                                               dst_copy_location->SubresourceIndex,
                                               1,

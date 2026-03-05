@@ -587,6 +587,10 @@ uint64_t GetOneRowSizeByDXGIFormat(ID3D12Resource*      resource,
                                    UINT                 dst_subresource,
                                    uint64_t             width)
 {
+    if ((resource_desc->Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        resource_desc->Alignment = 0;
+    }
     uint64_t data_size = GetOneRowSizeByDXGIFormat(resource_desc->Format, static_cast<UINT>(width));
 
     if (data_size == 0)
