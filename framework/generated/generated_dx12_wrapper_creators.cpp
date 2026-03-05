@@ -53,9 +53,14 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(encode)
 
+EXTERN_C const IID IID_IUnknown2 = {0x7abb6563, 0x02bc, 0x47c4, 0x8e, 0xf9, 0xac, 0xc4, 0x79, 0x5e, 0xdb, 0xcf};
+// MIDL_INTERFACE("7abb6563-02bc-47c4-8ef9-acc4795edbcf")
+
+//DEFINE_GUID(IID_IUnknown2, 0x7abb6563, 0x02bc, 0x47c4, 0x8e, 0xf9, 0xac, 0xc4, 0x79, 0x5e, 0xdb, 0xcf);
+
 void WrapObject(REFIID riid, void** object, DxWrapperResources* resources)
 {
-    if ((object != nullptr) && (*object != nullptr))
+    if ((object != nullptr) && (*object != nullptr) && !IsEqualIID(riid, IID_IUnknown) && !IsEqualIID(riid, IID_IUnknown2) )
     {
         auto it = kFunctionTable.find(riid);
         if (it != kFunctionTable.end())
