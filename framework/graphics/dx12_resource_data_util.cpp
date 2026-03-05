@@ -191,6 +191,10 @@ void Dx12ResourceDataUtil::GetResourceCopyInfo(ID3D12Resource*                  
     total_size = 0;
 
     auto resource_desc = resource->GetDesc();
+    if ((resource_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        resource_desc.Alignment = 0;
+    }
 
     if (resource_desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
