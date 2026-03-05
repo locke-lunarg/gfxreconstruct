@@ -1787,10 +1787,15 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommittedResource(
         }
     }
 
+    auto modified_desc = *desc_pointer;
+    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        modified_desc.Alignment = 0;
+    }
     // Playback will use this resource
     auto replay_result = replay_object->CreateCommittedResource(heap_properties_pointer,
                                                                 HeapFlags,
-                                                                desc_pointer,
+                                                                &modified_desc,
                                                                 InitialResourceState,
                                                                 clear_value_pointer,
                                                                 *riid.decoded_value,
@@ -1828,9 +1833,18 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreatePlacedResource(
     auto replay_object = static_cast<ID3D12Device*>(replay_object_info->object);
     auto heap          = static_cast<ID3D12Heap*>(pHeap->object);
 
+    auto aligned_offset = HeapOffset;
+    auto modified_desc  = *pDesc->GetPointer();
+    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        D3D12_RESOURCE_ALLOCATION_INFO alloc_info = replay_object->GetResourceAllocationInfo(0, 1, &modified_desc);
+
+        aligned_offset = (HeapOffset + alloc_info.Alignment - 1) & ~(alloc_info.Alignment - 1);
+    }
+
     auto replay_result = replay_object->CreatePlacedResource(heap,
-                                                             HeapOffset,
-                                                             pDesc->GetPointer(),
+                                                             aligned_offset,
+                                                             &modified_desc,
                                                              InitialState,
                                                              pOptimizedClearValue->GetPointer(),
                                                              *riid.decoded_value,
@@ -1971,11 +1985,16 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommittedResource1(
             GFXRECON_LOG_WARNING("Failed to create dummy committed resource");
         }
     }
+    auto modified_desc = *desc_pointer;
+    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        modified_desc.Alignment = 0;
+    }
 
     // Playback will use this resource
     auto replay_result = replay_object->CreateCommittedResource1(heap_properties_pointer,
                                                                  HeapFlags,
-                                                                 desc_pointer,
+                                                                 &modified_desc,
                                                                  InitialResourceState,
                                                                  clear_value_pointer,
                                                                  protected_session,
@@ -2014,8 +2033,18 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreatePlacedResource1(
     auto replay_object = static_cast<ID3D12Device8*>(replay_object_info->object);
     auto heap          = static_cast<ID3D12Heap*>(pHeap->object);
 
+    auto aligned_offset = HeapOffset;
+    auto modified_desc  = *pDesc->GetPointer();
+    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        D3D12_RESOURCE_ALLOCATION_INFO1 alloc_info = {};
+        replay_object->GetResourceAllocationInfo2(0, 1, &modified_desc, &alloc_info);
+
+        aligned_offset = (HeapOffset + alloc_info.Alignment - 1) & ~(alloc_info.Alignment - 1);
+    }
+
     auto replay_result = replay_object->CreatePlacedResource1(heap,
-                                                              HeapOffset,
+                                                              aligned_offset,
                                                               pDesc->GetPointer(),
                                                               InitialState,
                                                               pOptimizedClearValue->GetPointer(),
@@ -2076,6 +2105,11 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommittedResource2(
             GFXRECON_LOG_WARNING("Failed to create dummy committed resource");
         }
     }
+    auto modified_desc = *desc_pointer;
+    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        modified_desc.Alignment = 0;
+    }
 
     // Playback will use this resource
     auto replay_result = replay_object->CreateCommittedResource2(heap_properties_pointer,
@@ -2121,8 +2155,18 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreatePlacedResource2(
     auto replay_object = static_cast<ID3D12Device10*>(replay_object_info->object);
     auto heap          = static_cast<ID3D12Heap*>(pHeap->object);
 
+    auto aligned_offset = HeapOffset;
+    auto modified_desc  = *pDesc->GetPointer();
+    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        D3D12_RESOURCE_ALLOCATION_INFO1 alloc_info = {};
+        replay_object->GetResourceAllocationInfo2(0, 1, &modified_desc, &alloc_info);
+
+        aligned_offset = (HeapOffset + alloc_info.Alignment - 1) & ~(alloc_info.Alignment - 1);
+    }
+
     auto replay_result = replay_object->CreatePlacedResource2(heap,
-                                                              HeapOffset,
+                                                              aligned_offset,
                                                               pDesc->GetPointer(),
                                                               InitialLayout,
                                                               pOptimizedClearValue->GetPointer(),
@@ -2189,7 +2233,11 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateCommittedResource3(
             GFXRECON_LOG_WARNING("Failed to create dummy committed resource");
         }
     }
-
+    auto modified_desc = *desc_pointer;
+    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        modified_desc.Alignment = 0;
+    }
     // Playback will use this resource
     auto replay_result = replay_object->CreateCommittedResource3(heap_properties_pointer,
                                                                  HeapFlags,
@@ -3897,7 +3945,14 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateReservedResource(
     GFXRECON_ASSERT(device_object_info->object != nullptr);
 
     auto    device        = static_cast<ID3D12Device*>(device_object_info->object);
-    HRESULT replay_result = device->CreateReservedResource(desc->GetPointer(),
+
+    auto modified_desc = *desc->GetPointer();
+    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        modified_desc.Alignment = 0;
+    }
+
+    HRESULT replay_result = device->CreateReservedResource(&modified_desc,
                                                            initial_state,
                                                            optimized_clear_value->GetPointer(),
                                                            *riid.decoded_value,
@@ -3933,6 +3988,11 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateReservedResource1(
         protected_session = static_cast<ID3D12ProtectedResourceSession*>(protected_session_object_info->object);
     }
 
+    auto modified_desc = *desc->GetPointer();
+    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        modified_desc.Alignment = 0;
+    }
     HRESULT replay_result = device4->CreateReservedResource1(desc->GetPointer(),
                                                              initial_state,
                                                              optimized_clear_value->GetPointer(),
@@ -3972,6 +4032,11 @@ HRESULT Dx12ReplayConsumerBase::OverrideCreateReservedResource2(
         protected_session = static_cast<ID3D12ProtectedResourceSession*>(protected_session_object_info->object);
     }
 
+    auto modified_desc = *desc->GetPointer();
+    if ((modified_desc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT)
+    {
+        modified_desc.Alignment = 0;
+    }
     HRESULT replay_result = device10->CreateReservedResource2(desc->GetPointer(),
                                                               initial_layout,
                                                               optimized_clear_value->GetPointer(),
