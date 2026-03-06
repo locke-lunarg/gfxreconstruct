@@ -2391,7 +2391,12 @@ Dx12ReplayConsumerBase::OverrideGetGpuVirtualAddress(DxObjectInfo*             r
 
     auto replay_result = replay_object->GetGPUVirtualAddress();
 
-    if ((original_result != 0) && (replay_result != 0))
+    if (replay_result == 0)
+    {
+        GFXRECON_LOG_ERROR("CreateCommittedResource returned resource "
+                           "with zero GPUVA (tight alignment resource)");
+    }
+    else if ((original_result != 0) && (replay_result != 0))
     {
         if (replay_object_info->extra_info == nullptr)
         {
