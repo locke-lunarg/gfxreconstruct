@@ -2364,6 +2364,14 @@ HRESULT D3D12CaptureManager::OverrideID3D12Device_CheckFeatureSupport(ID3D12Devi
 {
     auto device = device_wrapper->GetWrappedObjectAs<ID3D12Device>();
 
+    /* if (feature == D3D12_FEATURE_D3D12_TIGHT_ALIGNMENT)
+    {
+        auto    features      = reinterpret_cast<D3D12_FEATURE_DATA_TIGHT_ALIGNMENT*>(feature_support_data);
+        HRESULT result        = device->CheckFeatureSupport(feature, features, feature_support_data_size);
+        features->SupportTier = D3D12_TIGHT_ALIGNMENT_TIER_NOT_SUPPORTED;
+        return result;
+    }*/
+
     if (GetDisableDxrSetting() && (feature == D3D12_FEATURE_D3D12_OPTIONS5))
     {
         auto    features         = reinterpret_cast<D3D12_FEATURE_DATA_D3D12_OPTIONS5*>(feature_support_data);
