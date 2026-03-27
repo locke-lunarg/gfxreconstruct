@@ -9062,11 +9062,16 @@ D3D12_RESOURCE_ALLOCATION_INFO STDMETHODCALLTYPE ID3D12Device_Wrapper::GetResour
             numResourceDescs,
             pResourceDescs);
 
-        if(pResourceDescs[0].Dimension == D3D12_RESOURCE_DIMENSION_BUFFER && 
+        /* if(pResourceDescs[0].Dimension == D3D12_RESOURCE_DIMENSION_BUFFER && 
             ((pResourceDescs[0].Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT) == D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT))
         {
             // result.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
             result.Alignment = util::platform::GetSystemPageSize();
+        }*/
+
+        if(result.Alignment % util::platform::GetSystemPageSize() != 0)
+        {
+            result.Alignment = util::platform::GetSystemPageSize() * (result.Alignment / util::platform::GetSystemPageSize() + 1);
         }
 
         Encode_ID3D12Device_GetResourceAllocationInfo(
