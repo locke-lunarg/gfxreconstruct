@@ -1221,6 +1221,14 @@ void* PageGuardManager::AddTrackedMemory(uint64_t  memory_id,
                     shadow_memory = nullptr;
                 }
             }
+
+            for (uint32_t i = 0; i < total_pages; ++i)
+            {
+                auto page_address = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(aligned_address) +
+                                                            (static_cast<uintptr_t>(i) << system_page_pot_shift_));
+
+                page_to_memory_infos_[page_address].emplace_back(&entry.first->second);
+            }
         }
     }
 
@@ -1255,6 +1263,20 @@ void PageGuardManager::RemoveTrackedMemory(uint64_t memory_id)
     auto entry = memory_info_.find(memory_id);
     if ((entry != memory_info_.end()) && (--(entry->second.ref_count) == 0))
     {
+        auto& info = entry->second;
+        for (uint32_t i = 0; i < info.total_pages; ++i)
+        {
+            auto  page_address = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(info.aligned_address) +
+                                                        (static_cast<uintptr_t>(i) << system_page_pot_shift_));
+            auto& mem_list     = page_to_memory_infos_[page_address];
+            std::erase(mem_list, &info);
+
+            if (mem_list.empty())
+            {
+                page_to_memory_infos_.erase(page_address);
+            }
+        }
+
         ReleaseTrackedMemory(&entry->second);
 
         memory_info_.erase(entry);
@@ -1367,12 +1389,21 @@ bool PageGuardManager::HandleGuardPageViolation(void* address, bool is_write, bo
 
     std::lock_guard<std::mutex> lock(tracked_memory_lock_);
 
-    bool found = FindMemory(address, &memory_info);
-    if (found)
+    auto page_address = AlignToPageStart(address);
+    auto entry        = page_to_memory_infos_.find(page_address);
+    bool found        = false;
+
+    if (entry->second.size() > 1)
+    {
+        GFXRECON_LOG_WARNING("More than one memory infos in the page.");
+    }
+
+    for (auto& memory_info : entry->second)
     {
         assert((memory_info != nullptr) && (memory_info->aligned_address != nullptr));
         assert(reinterpret_cast<uintptr_t>(address) >= reinterpret_cast<uintptr_t>(memory_info->aligned_address));
 
+        found                    = true;
         memory_info->is_modified = true;
 
         // Get the offset from the start of the first protected memory page to the current address.
