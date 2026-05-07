@@ -1,6 +1,6 @@
 /*
-** Copyright (c) 2022 LunarG, Inc.
-** Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+** Copyright (c) 2020 LunarG, Inc.
+** Copyright (c) 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a
 ** copy of this software and associated documentation files (the "Software"),
@@ -21,41 +21,31 @@
 ** DEALINGS IN THE SOFTWARE.
 */
 
-#include "block_skipping_file_processor.h"
+#ifndef GFXRECON_ANNOTATION_EDITOR_H
+#define GFXRECON_ANNOTATION_EDITOR_H
 
-#include "decode/decode_allocator.h"
-#include "format/format_util.h"
-#include "format/format_arm.h"
-#include "util/logging.h"
+#include "decode/file_transformer.h"
 
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
-GFXRECON_BEGIN_NAMESPACE(decode)
 
-void BlockSkippingFileProcessor::SetBlocksToSkip(std::unordered_set<uint64_t> blocks_to_skip)
+class AnnotationEditor : public decode::FileTransformer
 {
-    blocks_to_skip_ = blocks_to_skip;
-    blocks_skipped_ = 0;
-}
+  public:
+    AnnotationEditor() = default;
 
-bool BlockSkippingFileProcessor::IsSkippingFinished()
-{
-    return blocks_skipped_ == blocks_to_skip_.size();
-}
+    bool Process() override;
 
-bool BlockSkippingFileProcessor::SkipBlockProcessing()
-{
-    if (ShouldSkipBlock())
-    {
-        blocks_skipped_++;
-        return true;
-    }
-    return false;
-}
+    void SetAnnotation(format::AnnotationType type, const std::string& label, const std::string& data);
 
-bool BlockSkippingFileProcessor::ShouldSkipBlock()
-{
-    return (!(blocks_to_skip_.empty())) && (blocks_to_skip_.find(block_index_) != blocks_to_skip_.end());
-}
+  protected:
+    bool ProcessAnnotation(decode::ParsedBlock& parsed_block) override;
 
-GFXRECON_END_NAMESPACE(decode)
+    bool WriteAnnotation(format::AnnotationType type, const std::string& label, const std::string& data);
+
+  private:
+    std::unordered_map<std::string, std::pair<format::AnnotationType, std::string>> annotations_to_set_;
+};
+
 GFXRECON_END_NAMESPACE(gfxrecon)
+
+#endif // GFXRECON_FILE_OPTIMIZER_H

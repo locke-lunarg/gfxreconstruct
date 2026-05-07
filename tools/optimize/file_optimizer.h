@@ -34,7 +34,8 @@ class FileOptimizer : public decode::FileTransformer
 {
   public:
     FileOptimizer(const std::unordered_set<format::HandleId>& unreferenced_ids,
-                  const std::unordered_set<uint64_t>&         unreferenced_blocks);
+                  const std::unordered_set<uint64_t>&         unreferenced_blocks,
+                  const std::unordered_set<format::ThreadId>& removed_threads_ids);
 
     [[nodiscard]] uint32_t GetNumRemovedBlocks() const { return num_removed_blocks_; }
 
@@ -44,22 +45,51 @@ class FileOptimizer : public decode::FileTransformer
     bool ProcessMetaData(decode::ParsedBlock& parsed_block) override;
     bool WriteAnnotation(std::string_view label, std::string_view message);
 
-  private:
     VisitResult FilterMetaData(const decode::InitBufferArgs& args);
     VisitResult FilterMetaData(const decode::InitImageArgs& args);
+    VisitResult FilterMetaData(const decode::InitTensorArgs& args);
 
     template <typename Args>
     VisitResult FilterMetaData(const Args& args)
     {
+        if constexpr (decode::DispatchFlagTraits<Args>::kHasThreadId)
+        {
+            if (removed_threads_ids_.contains(args.thread_id))
+            {
+                return WriteAnnotation(format::kAnnotationLabelRemovedFunctionCall,
+                                       "Removed meta-command on thread " + std::to_string(args.thread_id))
+                           ? kSuccess
+                           : kError;
+            }
+        }
+        else if constexpr (decode::DispatchFlagTraits<Args>::kHasCommandHeader)
+        {
+            if constexpr (decode::DispatchFlagTraits<decltype(args.command_header)>::kHasThreadId)
+            {
+                if (removed_threads_ids_.contains(args.command_header.thread_id))
+                {
+                    return WriteAnnotation(format::kAnnotationLabelRemovedFunctionCall,
+                                           "Removed meta-command on thread " +
+                                               std::to_string(args.command_header.thread_id))
+                               ? kSuccess
+                               : kError;
+                }
+            }
+        }
+
         return kNeedsPassthrough;
     }
 
+    [[nodiscard]] bool FilterFunctionCall(const decode::FunctionCallArgs& args) const;
     [[nodiscard]] bool FilterMethodCall(const decode::MethodCallArgs& args) const;
 
   protected:
     const std::unordered_set<format::HandleId>& unreferenced_ids_;
     const std::unordered_set<uint64_t>&         unreferenced_blocks_;
+    const std::unordered_set<format::ThreadId>& removed_threads_ids_;
     uint32_t                                    num_removed_blocks_ = 0;
+
+    util::HeapBuffer working_uncompressed_store_;
 };
 
 GFXRECON_END_NAMESPACE(gfxrecon)

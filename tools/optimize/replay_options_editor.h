@@ -1,6 +1,6 @@
 /*
-** Copyright (c) 2022 LunarG, Inc.
-** Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+** Copyright (c) 2020 LunarG, Inc.
+** Copyright (c) 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a
 ** copy of this software and associated documentation files (the "Software"),
@@ -21,41 +21,26 @@
 ** DEALINGS IN THE SOFTWARE.
 */
 
-#include "block_skipping_file_processor.h"
+#ifndef GFXRECON_REPLAY_OPTIONS_EDITOR_H
+#define GFXRECON_REPLAY_OPTIONS_EDITOR_H
 
-#include "decode/decode_allocator.h"
-#include "format/format_util.h"
-#include "format/format_arm.h"
-#include "util/logging.h"
+#include "annotation_editor.h"
 
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
-GFXRECON_BEGIN_NAMESPACE(decode)
 
-void BlockSkippingFileProcessor::SetBlocksToSkip(std::unordered_set<uint64_t> blocks_to_skip)
+class ReplayOptionsEditor : public AnnotationEditor
 {
-    blocks_to_skip_ = blocks_to_skip;
-    blocks_skipped_ = 0;
-}
+  public:
+    bool Process() override;
+    void SetReplayOptions(std::string replay_options);
 
-bool BlockSkippingFileProcessor::IsSkippingFinished()
-{
-    return blocks_skipped_ == blocks_to_skip_.size();
-}
+  protected:
+    bool ProcessAnnotation(decode::ParsedBlock& parsed_block) override;
 
-bool BlockSkippingFileProcessor::SkipBlockProcessing()
-{
-    if (ShouldSkipBlock())
-    {
-        blocks_skipped_++;
-        return true;
-    }
-    return false;
-}
+  private:
+    std::string replay_options_;
+};
 
-bool BlockSkippingFileProcessor::ShouldSkipBlock()
-{
-    return (!(blocks_to_skip_.empty())) && (blocks_to_skip_.find(block_index_) != blocks_to_skip_.end());
-}
-
-GFXRECON_END_NAMESPACE(decode)
 GFXRECON_END_NAMESPACE(gfxrecon)
+
+#endif // GFXRECON_FILE_OPTIMIZER_H

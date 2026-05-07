@@ -1,5 +1,6 @@
 /*
-** Copyright (c) 2022 LunarG, Inc.
+** Copyright (c) 2022-2025 LunarG, Inc.
+** Copyright (c) 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a
 ** copy of this software and associated documentation files (the "Software"),
@@ -33,8 +34,9 @@ class Dx12FileOptimizer : public FileOptimizer
 {
   public:
     Dx12FileOptimizer(const std::unordered_set<format::HandleId>& unreferenced_ids,
-                      const std::unordered_set<uint64_t>&         unreferenced_blocks) :
-        FileOptimizer(unreferenced_ids, unreferenced_blocks),
+                      const std::unordered_set<uint64_t>&         unreferenced_blocks,
+                      const std::unordered_set<format::ThreadId>& removed_threads_ids) :
+        FileOptimizer(unreferenced_ids, unreferenced_blocks, removed_threads_ids),
         fill_command_resource_values_(nullptr), inject_noop_resource_value_optimization_(false),
         num_optimized_fill_commands_(0)
     {}
@@ -48,8 +50,8 @@ class Dx12FileOptimizer : public FileOptimizer
     bool AddFillMemoryResourceValueCommand(const std::vector<decode::Dx12FillCommandResourceValue>& resource_values);
 
     template <typename Args>
-    decode::FileTransformer::VisitResult         VisitMetaData(const Args& args);
-    bool                                         ProcessMetaData(decode::ParsedBlock& parsed_block) override;
+    decode::FileTransformer::VisitResult VisitMetaData(const Args& args);
+    bool                                 ProcessMetaData(decode::ParsedBlock& parsed_block) override;
 
     const decode::Dx12FillCommandResourceValueMap*          fill_command_resource_values_;
     decode::Dx12FillCommandResourceValueMap::const_iterator resource_values_iter_;

@@ -1,6 +1,6 @@
 /*
-** Copyright (c) 2022 LunarG, Inc.
-** Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+** Copyright (c) 2020 LunarG, Inc.
+** Copyright (c) 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a
 ** copy of this software and associated documentation files (the "Software"),
@@ -21,41 +21,39 @@
 ** DEALINGS IN THE SOFTWARE.
 */
 
-#include "block_skipping_file_processor.h"
-
-#include "decode/decode_allocator.h"
-#include "format/format_util.h"
-#include "format/format_arm.h"
-#include "util/logging.h"
+#include "replay_options_editor.h"
 
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
-GFXRECON_BEGIN_NAMESPACE(decode)
 
-void BlockSkippingFileProcessor::SetBlocksToSkip(std::unordered_set<uint64_t> blocks_to_skip)
+bool ReplayOptionsEditor::Process()
 {
-    blocks_to_skip_ = blocks_to_skip;
-    blocks_skipped_ = 0;
-}
-
-bool BlockSkippingFileProcessor::IsSkippingFinished()
-{
-    return blocks_skipped_ == blocks_to_skip_.size();
-}
-
-bool BlockSkippingFileProcessor::SkipBlockProcessing()
-{
-    if (ShouldSkipBlock())
+    bool success = true;
+    if (!replay_options_.empty())
     {
-        blocks_skipped_++;
-        return true;
+        success = WriteAnnotation(
+            gfxrecon::format::AnnotationType::kText, gfxrecon::format::kAnnotationLabelReplayOptions, replay_options_);
     }
-    return false;
+    if (success)
+    {
+        success = success && FileTransformer::Process();
+    }
+    return success;
 }
 
-bool BlockSkippingFileProcessor::ShouldSkipBlock()
+void ReplayOptionsEditor::SetReplayOptions(std::string replay_options)
 {
-    return (!(blocks_to_skip_.empty())) && (blocks_to_skip_.find(block_index_) != blocks_to_skip_.end());
+    replay_options_ = replay_options;
 }
 
-GFXRECON_END_NAMESPACE(decode)
+bool ReplayOptionsEditor::ProcessAnnotation(decode::ParsedBlock& parsed_block)
+{
+    bool success = true;
+    // skip existing annotations
+    if (parsed_block.Get<decode::AnnotationArgs>().label != gfxrecon::format::kAnnotationLabelReplayOptions)
+    {
+        success = FileTransformer::ProcessAnnotation(parsed_block);
+    }
+    return success;
+}
+
 GFXRECON_END_NAMESPACE(gfxrecon)

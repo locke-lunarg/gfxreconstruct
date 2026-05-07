@@ -26,10 +26,15 @@
 #include "dx12_resource_value_tracking_consumer.h"
 
 #include "dx12_file_optimizer.h"
+#include "dx12_file_optimizer_arm.h"
+#include "dx12_raytracing_modifier.h"
+#include "dx12_redundancy_modifier.h"
 #include "decode/dx12_object_info.h"
 #include "generated/generated_dx12_replay_consumer.h"
 #include "decode/dx12_resource_value_tracker.h"
 #include "decode/file_processor.h"
+#include "../tool_settings.h"
+#include "generated/generated_dx12_device_prune_modifier.h"
 
 #ifdef GFXRECON_AGS_SUPPORT
 #include "decode/custom_ags_consumer_base.h"
@@ -38,6 +43,8 @@
 #endif // GFXRECON_AGS_SUPPORT
 
 #include <map>
+
+void PrintUsage(const char*) {}
 
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 
@@ -77,6 +84,9 @@ void CreateResourceValueTrackingConsumer(
     // Use default replay options, except gpu index.
     decode::DxReplayOptions dx_replay_options;
     dx_replay_options.override_gpu_index = options.override_gpu_index;
+
+    decode::CreateDx12ResourceAllocator func    = CreateDxDefaultAllocator;
+    dx_replay_options.create_resource_allocator = func;
 
     // Create the replay consumer.
     dx12_replay_consumer = std::make_unique<decode::Dx12ResourceValueTrackingConsumer>(
@@ -402,7 +412,8 @@ bool ApplyDx12OptimizationInfo(const std::string&                     input_file
         // Write optimized capture file.
         GFXRECON_WRITE_CONSOLE("Writing optimized file.");
 
-        gfxrecon::Dx12FileOptimizer file_optimizer(info.unreferenced_resources, info.unreferenced_blocks);
+        gfxrecon::Dx12FileOptimizer file_optimizer(
+            info.unreferenced_resources, info.unreferenced_blocks, options.removed_threads_ids);
         if (file_optimizer.Initialize(input_filename, output_filename, "optimize"))
         {
             file_optimizer.SetFillCommandResourceValues(&info.fill_command_resource_values,
@@ -456,11 +467,130 @@ bool ApplyDx12OptimizationInfo(const std::string&                     input_file
     return result;
 }
 
+std::unique_ptr<gfxrecon::Dx12FileOptimizerARM::Dx12OptimizationData>
+GetDx12OptimizationData(const std::string& input_filename, const decode::Dx12OptimizationOptions& options)
+{
+    auto result = std::make_unique<gfxrecon::Dx12FileOptimizerARM::Dx12OptimizationData>();
+
+    gfxrecon::decode::FileProcessor file_processor;
+    if (file_processor.Initialize(input_filename))
+    {
+        gfxrecon::decode::Dx12Decoder                    decoder;
+        gfxrecon::decode::Dx12ObjectScanningConsumer     pso_consumer;
+        gfxrecon::decode::Dx12ReferencedResourceConsumer resource_consumer;
+
+        auto redundancy_modifier_consumer = std::make_unique<gfxrecon::decode::Dx12RedundancyModifier>();
+        auto raytracing_modifier_consumer = std::make_unique<gfxrecon::decode::Dx12RayTracingModifier>();
+
+        if (!options.no_default)
+        {
+            if (options.remove_redundant_psos)
+            {
+                decoder.AddConsumer(&pso_consumer);
+            }
+            if (options.remove_redundant_resources)
+            {
+                decoder.AddConsumer(&resource_consumer);
+            }
+
+            decoder.AddConsumer(redundancy_modifier_consumer.get());
+            decoder.AddConsumer(raytracing_modifier_consumer.get());
+        }
+        else
+        {
+            GFXRECON_WRITE_CONSOLE("Skipping default DX12 optimizations.");
+        }
+
+        file_processor.AddDecoder(&decoder);
+        file_processor.ProcessAllFrames();
+
+        if (file_processor.GetErrorState() != gfxrecon::decode::kErrorNone)
+        {
+            throw std::runtime_error("Failed to scan input file for optimizations");
+        }
+
+        if (!options.no_default)
+        {
+            resource_consumer.GetReferencedResourceIds(nullptr, &result->unreferenced_ids);
+            pso_consumer.GetUnreferencedObjectCreationBlocks(&result->unreferenced_blocks, &result->calls_info);
+            GFXRECON_WRITE_CONSOLE("Removing %" PRIu64 " unused PSO related calls.",
+                                   result->unreferenced_blocks.size());
+        }
+        if (redundancy_modifier_consumer->CanOptimize() && !options.no_default)
+        {
+            result->modifiers.push_back(std::move(redundancy_modifier_consumer));
+        }
+        if (raytracing_modifier_consumer->CanOptimize() && !options.no_default)
+        {
+            result->modifiers.push_back(std::move(raytracing_modifier_consumer));
+        }
+    }
+    return result;
+}
+
+void ApplyDx12OptimizationData(const std::string&                     input_filename,
+                               const std::string&                     output_filename,
+                               const decode::Dx12OptimizationOptions& options)
+{
+    GFXRECON_WRITE_CONSOLE("Scanning dx12 trace %s for optimizations...", input_filename.c_str());
+
+    // First pass - get the optimization data
+    auto dx12_opt_data = GetDx12OptimizationData(input_filename, options);
+
+    // Check if any optimization can be done
+    const bool can_remove_unused_blocks = !dx12_opt_data->unreferenced_blocks.empty();
+
+    if (!options.remove_device_ids.empty())
+    {
+        auto device_prune_modifier_consumer =
+            std::make_unique<gfxrecon::decode::Dx12DevicePruneModifier>(options.remove_device_ids);
+        GFXRECON_WRITE_CONSOLE("Start device prune");
+        dx12_opt_data->modifiers.push_back(std::move(device_prune_modifier_consumer));
+    }
+
+    // Early exit if no optimization can be done
+    if (dx12_opt_data->modifiers.empty() && !can_remove_unused_blocks)
+    {
+        GFXRECON_WRITE_CONSOLE("Nothing to optimize. Exiting.");
+        return;
+    }
+
+    // Write optimized capture file.
+    GFXRECON_WRITE_CONSOLE("Writing optimized file.");
+
+    // Modification pass. Implement all identified optimizations in output file
+    gfxrecon::Dx12FileOptimizerARM file_optimizer(dx12_opt_data.get(), options.removed_threads_ids);
+    if (file_optimizer.Initialize(input_filename, output_filename, "optimize"))
+    {
+        file_optimizer.Process();
+
+        if (file_optimizer.GetErrorState() != gfxrecon::decode::BlockIOError::kErrorNone &&
+            file_optimizer.GetErrorState() != gfxrecon::decode::BlockIOError::kErrorReadingBlockHeader)
+        {
+            throw std::runtime_error("A failure has occurred during file processing");
+        }
+
+        GFXRECON_WRITE_CONSOLE("Dx12 optimizations complete.");
+        GFXRECON_WRITE_CONSOLE("\tOriginal file size: %" PRIu64 " bytes", file_optimizer.GetNumBytesRead());
+        GFXRECON_WRITE_CONSOLE("\tOptimized file size: %" PRIu64 " bytes", file_optimizer.GetNumBytesWritten());
+    }
+}
+
 bool Dx12OptimizeFile(std::string input_filename, std::string output_filename, decode::Dx12OptimizationOptions& options)
 {
     // Return early if no DX12 optimizations were enabled.
-    if (!(options.remove_redundant_psos || options.remove_redundant_resources || options.optimize_resource_values))
+    if (!(options.remove_redundant_psos || options.remove_redundant_resources || options.optimize_resource_values ||
+          options.optimize_resource_values_offline))
     {
+        return true;
+    }
+
+    if (options.optimize_resource_values_offline)
+    {
+        options.optimize_resource_values              = false;
+        options.optimize_resource_values_experimental = false;
+
+        ApplyDx12OptimizationData(input_filename, output_filename, options);
         return true;
     }
 

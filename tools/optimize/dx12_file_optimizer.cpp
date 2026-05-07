@@ -1,6 +1,7 @@
 /*
-** Copyright (c) 2022 LunarG, Inc.
+** Copyright (c) 2022-2025 LunarG, Inc.
 ** Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+** Copyright (c) 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a
 ** copy of this software and associated documentation files (the "Software"),
@@ -24,6 +25,7 @@
 #include "dx12_file_optimizer.h"
 
 #include "format/format_util.h"
+#include "format/format_arm.h"
 
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 
@@ -38,7 +40,7 @@ void Dx12FileOptimizer::SetFillCommandResourceValues(
     {
         // A NOOP RV optimization block should only be added if there weren't any real fill_command_resource_values
         // found.
-        GFXRECON_ASSERT((inject_noop_resource_value_optimization_ == false) || fill_command_resource_values->empty());
+        GFXRECON_ASSERT((inject_noop_resource_value_optimization_ == false) || !fill_command_resource_values->empty());
 
         resource_values_iter_ = fill_command_resource_values_->begin();
     }
@@ -56,7 +58,7 @@ bool Dx12FileOptimizer::AddFillMemoryResourceValueCommand(
     rv_header.thread_id                     = 0;
     rv_header.resource_value_count          = resource_values.size();
 
-    size_t       header_size = sizeof(format::FillMemoryResourceValueCommandHeader);
+    size_t       header_size       = sizeof(format::FillMemoryResourceValueCommandHeader);
     const size_t uncompressed_size = resource_values.size() * (sizeof(format::ResourceValueType) + sizeof(uint64_t));
 
     bool not_compressed = true;
@@ -195,7 +197,7 @@ bool Dx12FileOptimizer::ProcessMetaData(decode::ParsedBlock& parsed_block)
         }
     };
 
-    VisitResult         result       = std::visit(meta_visitor, parsed_block.GetArgs());
+    VisitResult result = std::visit(meta_visitor, parsed_block.GetArgs());
 
     if (result == kNeedsPassthrough)
     {

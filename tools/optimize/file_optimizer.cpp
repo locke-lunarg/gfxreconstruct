@@ -31,17 +31,17 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 
 FileOptimizer::FileOptimizer(const std::unordered_set<format::HandleId>& unreferenced_ids,
-                             const std::unordered_set<uint64_t>&         unreferenced_blocks) :
+                             const std::unordered_set<uint64_t>&         unreferenced_blocks,
+                             const std::unordered_set<format::ThreadId>& removed_threads_ids) :
     unreferenced_ids_(unreferenced_ids),
-    unreferenced_blocks_(unreferenced_blocks)
+    unreferenced_blocks_(unreferenced_blocks), removed_threads_ids_(removed_threads_ids)
 {}
 
 bool FileOptimizer::ProcessFunctionCall(decode::ParsedBlock& parsed_block)
 {
-    const auto&    args        = parsed_block.Get<decode::FunctionCallArgs>();
-    const uint64_t block_index = args.call_info.index;
+    const auto& args = parsed_block.Get<decode::FunctionCallArgs>();
 
-    if (unreferenced_blocks_.contains(block_index))
+    if (FilterFunctionCall(args))
     {
         WriteAnnotation(format::kAnnotationLabelRemovedFunctionCall,
                         std::string("Removed API call: ") + std::to_string(static_cast<uint32_t>(args.call_id)));
@@ -80,8 +80,13 @@ bool FileOptimizer::ProcessMetaData(decode::ParsedBlock& parsed_block)
 
 bool FileOptimizer::ProcessMethodCall(decode::ParsedBlock& parsed_block)
 {
-    if (FilterMethodCall(parsed_block.Get<decode::MethodCallArgs>()))
+    const auto& args = parsed_block.Get<decode::MethodCallArgs>();
+
+    if (FilterMethodCall(args))
     {
+        WriteAnnotation(format::kAnnotationLabelRemovedFunctionCall,
+                        "Removed API call: " + std::to_string(args.object_id) + "->" + std::to_string(args.call_id));
+
         // block is filtered out
         ++num_removed_blocks_;
         return true;
@@ -96,10 +101,11 @@ decode::FileTransformer::VisitResult FileOptimizer::FilterMetaData(const decode:
     GFXRECON_ASSERT(format::GetMetaDataType(args.meta_data_id) == format::MetaDataType::kInitBufferCommand);
 
     // If the buffer is in the unused list, omit its initialization data from the file.
-    if (unreferenced_ids_.contains(args.buffer_id))
+    if (unreferenced_ids_.contains(args.buffer_id) || removed_threads_ids_.contains(args.thread_id))
     {
         return WriteAnnotation(format::kAnnotationLabelRemovedResource,
-                               std::string("Removed buffer ") + std::to_string(args.buffer_id))
+                               std::string("Removed buffer ") + std::to_string(args.buffer_id) +
+                                   std::string(" on thread ") + std::to_string(args.thread_id))
                    ? kSuccess
                    : kError;
     }
@@ -111,22 +117,55 @@ decode::FileTransformer::VisitResult FileOptimizer::FilterMetaData(const decode:
     GFXRECON_ASSERT(format::GetMetaDataType(args.meta_data_id) == format::MetaDataType::kInitImageCommand);
 
     // If the image is in the unused list, omit its initialization data from the file.
-    if (unreferenced_ids_.contains(args.image_id))
+    if (unreferenced_ids_.contains(args.image_id) || removed_threads_ids_.contains(args.thread_id))
     {
         // In its place insert a dummy annotation meta command. This should keep the block index when
         // replaying an optimized trimmed capture in in alignment with the block index calculated
         // at capture time
         return WriteAnnotation(format::kAnnotationLabelRemovedResource,
-                               std::string("Removed subresource from image ") + std::to_string(args.image_id))
+                               std::string("Removed subresource from image ") + std::to_string(args.image_id) +
+                                   std::string(" on thread ") + std::to_string(args.thread_id))
                    ? kSuccess
                    : kError;
     }
     return kNeedsPassthrough;
 }
 
+decode::FileTransformer::VisitResult FileOptimizer::FilterMetaData(const decode::InitTensorArgs& args)
+{
+    GFXRECON_ASSERT(format::GetMetaDataType(args.meta_data_id) == format::arm::MetaDataType::kInitTensorCommand);
+
+    // If the tensor is in the unused list, omit its initialization data from the file.
+    if (unreferenced_ids_.find(args.tensor_id) != unreferenced_ids_.end() ||
+        removed_threads_ids_.contains(args.thread_id))
+    {
+        // In its place insert a dummy annotation meta command. This should keep the block index when
+        // replaying an optimized trimmed capture in in alignment with the block index calculated
+        // at capture time
+        return WriteAnnotation(format::kAnnotationLabelRemovedResource,
+                               "Removed subresource from tensor " + std::to_string(args.tensor_id) + " on thread " +
+                                   std::to_string(args.thread_id))
+                   ? kSuccess
+                   : kError;
+    }
+
+    return kNeedsPassthrough;
+}
+
+bool FileOptimizer::FilterFunctionCall(const decode::FunctionCallArgs& args) const
+{
+    return removed_threads_ids_.contains(args.call_info.thread_id) ||
+           unreferenced_blocks_.contains(args.call_info.index);
+}
+
 // Returns whether to filter this MethodCall block or not
 bool FileOptimizer::FilterMethodCall(const decode::MethodCallArgs& args) const
 {
+    if (removed_threads_ids_.contains(args.call_info.thread_id))
+    {
+        return true;
+    }
+
     const format::ApiCallId api_call_id = args.call_id;
     const uint64_t          block_index = args.call_info.index;
 

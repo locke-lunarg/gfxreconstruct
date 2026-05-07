@@ -94,6 +94,18 @@ void Dx12ResourceValueTrackingConsumer::ProcessInitDx12AccelerationStructureComm
     }
 }
 
+void Dx12ResourceValueTrackingConsumer::ProcessGetDx12AccelerationStructureSizeCommand(
+    const format::arm::GetDx12AccelerationStructureSizeCommandHeader&                   command_header,
+    StructPointerDecoder<Decoded_D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS>* input_descs)
+{
+    dxr_workload_ = true;
+
+    if (replay_resource_value_calls_)
+    {
+        Dx12ReplayConsumer::ProcessGetDx12AccelerationStructureSizeCommand(command_header, input_descs);
+    }
+}
+
 void Dx12ResourceValueTrackingConsumer::OverrideExecuteIndirect(DxObjectInfo* command_list_object_info,
                                                                 DxObjectInfo* command_signature_object_info,
                                                                 UINT          max_command_count,
