@@ -27,7 +27,27 @@
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
 
-struct Dx12OptimizationOptions
+struct OptimizationOptions
+{
+    bool remove_redundant_psos{ false };
+    bool remove_redundant_resources{ false };
+    bool optimize_resource_values{ false };
+    bool optimize_resource_values_experimental{ false };
+
+    int32_t override_gpu_index{ -1 };
+};
+
+struct VulkanOptimizationOptions : public OptimizationOptions
+{
+    bool remove_redundant_psos{ false };
+    bool remove_redundant_resources{ false };
+    bool optimize_resource_values{ false };
+    bool optimize_resource_values_experimental{ false };
+
+    int32_t override_gpu_index{ -1 };
+};
+
+struct Dx12OptimizationOptions : public OptimizationOptions
 {
     bool remove_redundant_psos{ false };
     bool remove_redundant_resources{ false };

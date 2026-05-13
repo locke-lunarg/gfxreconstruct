@@ -329,7 +329,7 @@ int main(int argc, const char** argv)
             }
             else if (detected_vulkan)
             {
-                VkRemoveRedundantResources(input_filename, output_filename);
+                RunVulkanOptimizations(input_filename, output_filename);
             }
 #if ENABLE_OPENXR_SUPPORT
             else if (detected_openxr)
