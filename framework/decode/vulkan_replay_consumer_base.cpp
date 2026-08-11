@@ -11172,8 +11172,7 @@ VkResult VulkanReplayConsumerBase::OverrideCreateImageView(
         }
         else
         {
-            // VUID-08910
-            // modified_create_info.format = img_info->format;
+            modified_create_info.format = img_info->format;
         }
     }
 
