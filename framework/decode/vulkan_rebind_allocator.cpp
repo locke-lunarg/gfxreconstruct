@@ -631,7 +631,7 @@ VulkanRebindAllocator::FindAliasedMemoryInfo(const MemoryAllocInfo&      memory_
 {
     // Without a captured byte-extent we cannot test overlap (e.g. a size-0 image with no
     // create_size proxy); fall back to the per-resource path.
-    if (footprint == 0)
+    // if (footprint == 0)
     {
         return nullptr;
     }
