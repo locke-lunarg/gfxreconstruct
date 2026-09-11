@@ -93,6 +93,11 @@ void CopyImageSubresourceMemory(uint8_t*       dst,
 
             // Ensure that we don't write past the end of the resource memory for aligned sizes that produce a
             // total_rows value that is greater than the subresource height.
+            if (current_row >= height)
+            {
+                return; 
+            }
+
             size_t subresource_rows = height - current_row;
             if (total_rows >= subresource_rows)
             {
