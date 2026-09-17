@@ -52,6 +52,11 @@ void App::configure_physical_device_selector(test::PhysicalDeviceSelector& phys_
 {
     phys_device_selector.add_required_extension(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
     phys_device_selector.add_required_extension(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+
+    // External images commonly report requiresDedicatedAllocation, so the image allocation below carries a
+    // VkMemoryDedicatedAllocateInfo.
+    phys_device_selector.add_required_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+    phys_device_selector.add_required_extension(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
 }
 
 uint32_t App::find_memory_type(uint32_t memoryTypeBits, VkMemoryPropertyFlags memory_property_flags)
@@ -120,12 +125,64 @@ void App::create_buffer()
     init.disp.unmapMemory(exportable_memory_);
 }
 
-int App::get_exportable_fd()
+void App::create_image()
+{
+    VkExternalMemoryImageCreateInfo external_mem_img_create_info = {};
+    external_mem_img_create_info.sType                           = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+    external_mem_img_create_info.handleTypes                     = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+
+    VkImageCreateInfo image_create_info     = {};
+    image_create_info.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    image_create_info.pNext                 = &external_mem_img_create_info;
+    image_create_info.flags                 = 0u;
+    image_create_info.imageType             = VK_IMAGE_TYPE_2D;
+    image_create_info.format                = VK_FORMAT_R8G8B8A8_UNORM;
+    image_create_info.extent                = { image_extent_, image_extent_, 1u };
+    image_create_info.mipLevels             = 1u;
+    image_create_info.arrayLayers           = 1u;
+    image_create_info.samples               = VK_SAMPLE_COUNT_1_BIT;
+    image_create_info.tiling                = VK_IMAGE_TILING_OPTIMAL;
+    image_create_info.usage                 = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    image_create_info.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
+    image_create_info.queueFamilyIndexCount = 0u;
+    image_create_info.pQueueFamilyIndices   = nullptr;
+    image_create_info.initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkResult result                         = init.disp.createImage(&image_create_info, nullptr, &image_);
+    VERIFY_VK_RESULT("Export App Failed to create image", result);
+
+    VkMemoryRequirements img_mem_requirements;
+    init.disp.getImageMemoryRequirements(image_, &img_mem_requirements);
+
+    VkExportMemoryAllocateInfo export_mem_alloc_info = {};
+    export_mem_alloc_info.sType                      = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
+    export_mem_alloc_info.handleTypes                = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+
+    // Always dedicated: legal whether or not the driver demands it, and it is what an external image normally
+    // gets in practice.
+    VkMemoryDedicatedAllocateInfo dedicated_alloc_info = {};
+    dedicated_alloc_info.sType                         = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO;
+    dedicated_alloc_info.pNext                         = &export_mem_alloc_info;
+    dedicated_alloc_info.image                         = image_;
+
+    VkMemoryAllocateInfo img_mem_allocate_info = {};
+    img_mem_allocate_info.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    img_mem_allocate_info.pNext                = &dedicated_alloc_info;
+    img_mem_allocate_info.allocationSize       = img_mem_requirements.size;
+    img_mem_allocate_info.memoryTypeIndex =
+        find_memory_type(img_mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    result = init.disp.allocateMemory(&img_mem_allocate_info, nullptr, &exportable_image_memory_);
+    VERIFY_VK_RESULT("Export App Failed to allocate exportable image memory", result);
+
+    result = init.disp.bindImageMemory(image_, exportable_image_memory_, 0u);
+    VERIFY_VK_RESULT("Export App Failed to bind image memory", result);
+}
+
+int App::get_exportable_fd(VkDeviceMemory memory)
 {
     VkMemoryGetFdInfoKHR get_fd_info = {};
     get_fd_info.sType                = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR;
     get_fd_info.handleType           = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
-    get_fd_info.memory               = exportable_memory_;
+    get_fd_info.memory               = memory;
 
     int      exportable_fd = -1;
     VkResult result        = init.disp.getMemoryFdKHR(&get_fd_info, &exportable_fd);
@@ -133,7 +190,7 @@ int App::get_exportable_fd()
     return exportable_fd;
 }
 
-void App::send_exportable_fd(int exportable_fd)
+void App::send_exportable_fds(int buffer_fd, int image_fd)
 {
     // Need to send the fd to the importer process
     int external_socket = socket(PF_UNIX, SOCK_STREAM, 0);
@@ -172,12 +229,16 @@ void App::send_exportable_fd(int exportable_fd)
         throw std::runtime_error("Export App Failed to accept on socket");
     }
 
-    // Send fd
-    ssize_t send_result = send_int(conn_fd, exportable_fd);
-    if (send_result < 0)
+    // Send both fds, buffer first. Each sendmsg carries exactly one SCM_RIGHTS descriptor, so the importer
+    // receives them in the same order.
+    for (int fd : { buffer_fd, image_fd })
     {
-        GFXRECON_LOG_ERROR("Export App Failed to send_int on socket (%d)", send_result);
-        throw std::runtime_error("Export App Failed to send_int on socket");
+        ssize_t send_result = send_int(conn_fd, fd);
+        if (send_result < 0)
+        {
+            GFXRECON_LOG_ERROR("Export App Failed to send_int on socket (%d)", send_result);
+            throw std::runtime_error("Export App Failed to send_int on socket");
+        }
     }
 
     close(conn_fd);
@@ -228,6 +289,9 @@ bool App::frame(const int frame_num)
 
 void App::cleanup()
 {
+    init.disp.destroyImage(image_, nullptr);
+    init.disp.freeMemory(exportable_image_memory_, nullptr);
+
     init.disp.destroyBuffer(buffer_, nullptr);
     init.disp.freeMemory(exportable_memory_, nullptr);
 }
@@ -235,9 +299,12 @@ void App::cleanup()
 void App::setup()
 {
     create_buffer();
-    int fd = get_exportable_fd();
-    GFXRECON_LOG_INFO("Exporting fd (%d)", fd);
-    send_exportable_fd(fd);
+    create_image();
+
+    int buffer_fd = get_exportable_fd(exportable_memory_);
+    int image_fd  = get_exportable_fd(exportable_image_memory_);
+    GFXRECON_LOG_INFO("Exporting buffer fd (%d) and image fd (%d)", buffer_fd, image_fd);
+    send_exportable_fds(buffer_fd, image_fd);
 }
 
 GFXRECON_END_NAMESPACE(external_memory_fd_export)
