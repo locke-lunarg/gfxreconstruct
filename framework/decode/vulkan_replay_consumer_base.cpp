@@ -6289,7 +6289,7 @@ VkResult VulkanReplayConsumerBase::OverrideAllocateMemory(
         int            replacement_import_fd      = -1;
         auto* import_fd_info = graphics::vulkan_struct_get_pnext<VkImportMemoryFdInfoKHR>(modified_allocate_info);
 
-        if (!CanPreserveExternalMemory(device_info))
+        if (!CanPreserveImportedMemory(device_info))
         {
             graphics::vulkan_struct_remove_pnext<VkImportMemoryFdInfoKHR>(modified_allocate_info);
             import_fd_info = nullptr;
@@ -6948,17 +6948,27 @@ VulkanReplayConsumerBase::OverrideCreateBuffer(PFN_vkCreateBuffer               
     auto               replay_create_info   = pCreateInfo->GetPointer();
     VkBufferCreateInfo modified_create_info = *replay_create_info;
 
+    // The external memory info changes how the driver lays the buffer out, so it is only dropped when replay
+    // cannot honor it: either the captured import is replayed as-is (see OverrideAllocateMemory), or the
+    // allocator has to bind the buffer to exportable memory, which the replay device has to support.
     auto* external_memory = graphics::vulkan_struct_get_pnext<VkExternalMemoryBufferCreateInfo>(&modified_create_info);
-    if (external_memory != nullptr && !CanPreserveExternalMemory(device_info) &&
-        (external_memory->handleTypes & VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT))
+    if (external_memory != nullptr && (external_memory->handleTypes & VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT))
     {
-        if (external_memory->handleTypes == VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT)
+        const bool keep_opaque_fd =
+            CanPreserveImportedMemory(device_info) ||
+            (GetExportableHandleTypes(device_info, modified_create_info, external_memory->handleTypes) &
+             VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT) != 0;
+
+        if (!keep_opaque_fd)
         {
-            graphics::vulkan_struct_remove_pnext<VkExternalMemoryBufferCreateInfo>(&modified_create_info);
-        }
-        else
-        {
-            external_memory->handleTypes &= ~VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+            if (external_memory->handleTypes == VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT)
+            {
+                graphics::vulkan_struct_remove_pnext<VkExternalMemoryBufferCreateInfo>(&modified_create_info);
+            }
+            else
+            {
+                external_memory->handleTypes &= ~VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+            }
         }
     }
 
@@ -7229,17 +7239,28 @@ VulkanReplayConsumerBase::OverrideCreateImage(PFN_vkCreateImage                 
             has_external_format             = false;
         }
 
-        if (!CanPreserveExternalMemory(device_info) &&
-            (external_memory->handleTypes & VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT))
+        // The external memory info changes how the driver lays the image out (compression, tiling, memory
+        // requirements), so it is only dropped when replay cannot honor it: either the captured import is
+        // replayed as-is (see OverrideAllocateMemory), or the allocator has to bind the image to exportable
+        // memory, which the replay device has to support for this format and usage.
+        if (external_memory->handleTypes & VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT)
         {
-            if (external_memory->handleTypes == VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT)
+            const bool keep_opaque_fd =
+                CanPreserveImportedMemory(device_info) ||
+                (GetExportableHandleTypes(device_info, modified_create_info, external_memory->handleTypes) &
+                 VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT) != 0;
+
+            if (!keep_opaque_fd)
             {
-                graphics::vulkan_struct_remove_pnext<VkExternalMemoryImageCreateInfo>(&modified_create_info);
-                external_memory = nullptr;
-            }
-            else
-            {
-                external_memory->handleTypes &= ~VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+                if (external_memory->handleTypes == VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT)
+                {
+                    graphics::vulkan_struct_remove_pnext<VkExternalMemoryImageCreateInfo>(&modified_create_info);
+                    external_memory = nullptr;
+                }
+                else
+                {
+                    external_memory->handleTypes &= ~VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+                }
             }
         }
     }
@@ -12930,15 +12951,126 @@ bool VulkanReplayConsumerBase::UseAddressReplacement(const VulkanDeviceInfo* dev
     return !device_info->allocator->SupportsOpaqueDeviceAddresses();
 }
 
-bool VulkanReplayConsumerBase::CanPreserveExternalMemory(const VulkanDeviceInfo* device_info) const
+bool VulkanReplayConsumerBase::CanExportExternalMemory(const VulkanDeviceInfo* device_info) const
 {
-    // -m rebind manages memory via VMA and does not preserve external memory
-    if (device_info == nullptr || UseAddressReplacement(device_info))
+    if (device_info == nullptr)
     {
         return false;
     }
     // Check replay device enabled VK_KHR_external_memory_fd
     return GetDeviceTable(device_info->handle)->GetMemoryFdKHR != graphics::noop::vkGetMemoryFdKHR;
+}
+
+bool VulkanReplayConsumerBase::CanPreserveImportedMemory(const VulkanDeviceInfo* device_info) const
+{
+    // -m rebind manages memory via VMA, so the allocation the capture imported into does not exist at replay.
+    if (device_info == nullptr || UseAddressReplacement(device_info))
+    {
+        return false;
+    }
+    return CanExportExternalMemory(device_info);
+}
+
+VkExternalMemoryHandleTypeFlags
+VulkanReplayConsumerBase::GetExportableHandleTypes(const VulkanDeviceInfo*         device_info,
+                                                   const VkImageCreateInfo&        create_info,
+                                                   VkExternalMemoryHandleTypeFlags handle_types) const
+{
+    if (!CanExportExternalMemory(device_info) || handle_types == 0)
+    {
+        return 0;
+    }
+
+    const auto* instance_table = GetInstanceTable(device_info->parent);
+    if (instance_table == nullptr || instance_table->GetPhysicalDeviceImageFormatProperties2 ==
+                                         graphics::noop::vkGetPhysicalDeviceImageFormatProperties2)
+    {
+        // Without the query there is no way to tell whether the handle types are compatible, so keep the
+        // pre-existing behavior of dropping them.
+        return 0;
+    }
+
+    VkExternalMemoryHandleTypeFlags supported = 0;
+
+    for (uint32_t bit = 1; bit != 0; bit <<= 1)
+    {
+        if ((handle_types & bit) == 0)
+        {
+            continue;
+        }
+
+        VkPhysicalDeviceExternalImageFormatInfo external_info = {
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO
+        };
+        external_info.handleType = static_cast<VkExternalMemoryHandleTypeFlagBits>(bit);
+
+        // The query must describe the same image the create info describes, minus its pNext chain.
+        VkPhysicalDeviceImageFormatInfo2 format_info = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
+                                                         &external_info };
+        format_info.format                           = create_info.format;
+        format_info.type                             = create_info.imageType;
+        format_info.tiling                           = create_info.tiling;
+        format_info.usage                            = create_info.usage;
+        format_info.flags                            = create_info.flags;
+
+        VkExternalImageFormatProperties external_properties = { VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES };
+        VkImageFormatProperties2 properties = { VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2, &external_properties };
+
+        if (instance_table->GetPhysicalDeviceImageFormatProperties2(device_info->parent, &format_info, &properties) ==
+                VK_SUCCESS &&
+            (external_properties.externalMemoryProperties.externalMemoryFeatures &
+             VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT))
+        {
+            supported |= bit;
+        }
+    }
+
+    return supported;
+}
+
+VkExternalMemoryHandleTypeFlags
+VulkanReplayConsumerBase::GetExportableHandleTypes(const VulkanDeviceInfo*         device_info,
+                                                   const VkBufferCreateInfo&       create_info,
+                                                   VkExternalMemoryHandleTypeFlags handle_types) const
+{
+    if (!CanExportExternalMemory(device_info) || handle_types == 0)
+    {
+        return 0;
+    }
+
+    const auto* instance_table = GetInstanceTable(device_info->parent);
+    if (instance_table == nullptr || instance_table->GetPhysicalDeviceExternalBufferProperties ==
+                                         graphics::noop::vkGetPhysicalDeviceExternalBufferProperties)
+    {
+        return 0;
+    }
+
+    VkExternalMemoryHandleTypeFlags supported = 0;
+
+    for (uint32_t bit = 1; bit != 0; bit <<= 1)
+    {
+        if ((handle_types & bit) == 0)
+        {
+            continue;
+        }
+
+        VkPhysicalDeviceExternalBufferInfo buffer_info = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_BUFFER_INFO };
+        buffer_info.flags                              = create_info.flags;
+        buffer_info.usage                              = create_info.usage;
+        buffer_info.handleType                         = static_cast<VkExternalMemoryHandleTypeFlagBits>(bit);
+
+        VkExternalBufferProperties buffer_properties = { VK_STRUCTURE_TYPE_EXTERNAL_BUFFER_PROPERTIES };
+        instance_table->GetPhysicalDeviceExternalBufferProperties(
+            device_info->parent, &buffer_info, &buffer_properties);
+
+        if (buffer_properties.externalMemoryProperties.externalMemoryFeatures &
+            VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT)
+        {
+            supported |= bit;
+        }
+    }
+
+    return supported;
 }
 
 void VulkanReplayConsumerBase::Process_vkUpdateDescriptorSetWithTemplate(const ApiCallInfo& call_info,

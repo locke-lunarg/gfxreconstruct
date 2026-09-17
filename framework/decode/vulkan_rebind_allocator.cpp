@@ -320,6 +320,12 @@ VkResult VulkanRebindAllocator::CreateBuffer(const VkBufferCreateInfo*    create
             {
                 resource_alloc_info->uses_extensions = true;
             }
+
+            if (const auto* external_memory =
+                    graphics::vulkan_struct_get_pnext<VkExternalMemoryBufferCreateInfo>(create_info))
+            {
+                resource_alloc_info->external_handle_types = external_memory->handleTypes;
+            }
         }
     }
 
@@ -376,6 +382,12 @@ VkResult VulkanRebindAllocator::CreateImage(const VkImageCreateInfo*     create_
             if (create_info->pNext != nullptr)
             {
                 resource_alloc_info->uses_extensions = true;
+            }
+
+            if (const auto* external_memory =
+                    graphics::vulkan_struct_get_pnext<VkExternalMemoryImageCreateInfo>(create_info))
+            {
+                resource_alloc_info->external_handle_types = external_memory->handleTypes;
             }
         }
     }
@@ -842,6 +854,31 @@ VulkanRebindAllocator::AllocateMemoryForBuffer(VkBuffer                         
                                        ? std::min(capture_req.size, resource_alloc_info.create_size)
                                        : std::max(capture_req.size, resource_alloc_info.create_size);
 
+    // External buffers need their own exportable allocation, so the reuse paths below are skipped for them. A
+    // handle type the replay device cannot export falls through to a regular allocation instead of failing the
+    // bind, which is what replay did before external memory was preserved here.
+    if (resource_alloc_info.external_handle_types != 0)
+    {
+        VmaMemoryInfo mem_info                      = {};
+        mem_info.memory_info                        = &memory_alloc_info;
+        mem_info.capture_mem_req                    = capture_req;
+        mem_info.replay_mem_req                     = replay_req;
+        mem_info.prefers_dedicated_allocation       = prefers_dedicated_allocation;
+        mem_info.alc_create_info                    = create_info;
+        mem_info.offset_from_original_device_memory = memory_offset;
+
+        if (AllocateExportableMemory(
+                buffer, VK_NULL_HANDLE, resource_alloc_info.external_handle_types, replay_req, create_info, mem_info) >=
+            0)
+        {
+            memory_alloc_info.vma_mem_infos.emplace_back(std::make_unique<VmaMemoryInfo>(mem_info));
+            *vma_mem_info = memory_alloc_info.vma_mem_infos.back().get();
+            memory_alloc_info.bound_ranges.push_back(
+                { VK_HANDLE_TO_UINT64(buffer), memory_offset, footprint, *vma_mem_info, replay_req.size });
+            return VK_SUCCESS;
+        }
+    }
+
     if (VmaMemoryInfo* aliased = FindAliasedMemoryInfo(memory_alloc_info,
                                                        memory_offset,
                                                        footprint,
@@ -1140,6 +1177,53 @@ VkResult VulkanRebindAllocator::AllocateAHBMemory(MemoryAllocInfo* memory_alloc_
     return result;
 }
 
+VkResult VulkanRebindAllocator::AllocateExportableMemory(VkBuffer                        buffer,
+                                                         VkImage                         image,
+                                                         VkExternalMemoryHandleTypeFlags handle_types,
+                                                         const VkMemoryRequirements&     replay_mem_req,
+                                                         const VmaAllocationCreateInfo&  create_info,
+                                                         VmaMemoryInfo&                  vma_mem_info)
+{
+    GFXRECON_ASSERT((buffer != VK_NULL_HANDLE) != (image != VK_NULL_HANDLE));
+
+    VkExportMemoryAllocateInfo export_info = { VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO };
+    export_info.handleTypes                = handle_types;
+
+    const VmaSuballocationType suballoc_type = (buffer != VK_NULL_HANDLE)
+                                                   ? VmaSuballocationType::VMA_SUBALLOCATION_TYPE_BUFFER
+                                                   : VmaSuballocationType::VMA_SUBALLOCATION_TYPE_IMAGE_UNKNOWN;
+
+    // VMA copies the pNext chain into the VkMemoryAllocateInfo during this call, and forces the allocation to be
+    // dedicated whenever one is supplied, so the stack-local export info is enough.
+    util::MarkInjectedCommandsHelper injected;
+    VkResult                         result = allocator_->AllocateMemory(replay_mem_req,
+                                                 true, // requiresDedicatedAllocation
+                                                 false,
+                                                 buffer,
+                                                 image,
+                                                 VmaBufferImageUsage::UNKNOWN,
+                                                 &export_info,
+                                                 create_info,
+                                                 suballoc_type,
+                                                 1,
+                                                 &vma_mem_info.allocation);
+
+    if (result >= 0)
+    {
+        allocator_->GetAllocationInfo(vma_mem_info.allocation, &vma_mem_info.allocation_info);
+        vma_mem_info.requires_dedicated_allocation = true;
+    }
+    else
+    {
+        GFXRECON_LOG_WARNING("Failed to allocate exportable memory for external handle types 0x%x (%s). Falling "
+                             "back to a regular allocation, which cannot be shared with another API or process.",
+                             handle_types,
+                             util::ToString<VkResult>(result).c_str());
+    }
+
+    return result;
+}
+
 VkResult VulkanRebindAllocator::AllocateMemoryForImage(VkImage                                 image,
                                                        VkDeviceSize                            memory_offset,
                                                        const VkPhysicalDeviceMemoryProperties& device_memory_properties,
@@ -1175,6 +1259,31 @@ VkResult VulkanRebindAllocator::AllocateMemoryForImage(VkImage                  
     // Images carry no flat create-size proxy, so the footprint is only known when the memory
     // requirement size was recorded; otherwise overlap is untestable and we use the per-resource path.
     const VkDeviceSize footprint = capture_req.size;
+
+    // External images need their own exportable allocation, so the reuse paths below are skipped for them. A
+    // handle type the replay device cannot export falls through to a regular allocation instead of failing the
+    // bind, which is what replay did before external memory was preserved here.
+    if (resource_alloc_info.external_handle_types != 0)
+    {
+        VmaMemoryInfo mem_info                      = {};
+        mem_info.memory_info                        = &memory_alloc_info;
+        mem_info.capture_mem_req                    = capture_req;
+        mem_info.replay_mem_req                     = replay_req;
+        mem_info.prefers_dedicated_allocation       = prefers_dedicated_allocation;
+        mem_info.alc_create_info                    = create_info;
+        mem_info.offset_from_original_device_memory = memory_offset;
+
+        if (AllocateExportableMemory(
+                VK_NULL_HANDLE, image, resource_alloc_info.external_handle_types, replay_req, create_info, mem_info) >=
+            0)
+        {
+            memory_alloc_info.vma_mem_infos.emplace_back(std::make_unique<VmaMemoryInfo>(mem_info));
+            *vma_mem_info = memory_alloc_info.vma_mem_infos.back().get();
+            memory_alloc_info.bound_ranges.push_back(
+                { VK_HANDLE_TO_UINT64(image), memory_offset, footprint, *vma_mem_info, replay_req.size });
+            return VK_SUCCESS;
+        }
+    }
 
     if (VmaMemoryInfo* aliased = FindAliasedMemoryInfo(memory_alloc_info,
                                                        memory_offset,

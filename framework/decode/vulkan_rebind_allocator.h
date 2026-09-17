@@ -479,6 +479,10 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
         bool          uses_extensions{ false };
         VkFormat      format{ VK_FORMAT_UNDEFINED };
 
+        // VkExternalMemoryImageCreateInfo/VkExternalMemoryBufferCreateInfo handle types the resource was created
+        // with. Non-zero means the memory it binds to has to be exportable with one of these types.
+        VkExternalMemoryHandleTypeFlags external_handle_types{ 0 };
+
         // Captured VkBufferCreateInfo::size. Always present in the stream (unlike the memory
         // requirement size, which is 0 when vkGetBufferMemoryRequirements was never captured), so it
         // provides a captured-space byte-extent for aliasing-overlap detection. 0 for non-buffers.
@@ -610,6 +614,16 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
                               const VkPhysicalDeviceMemoryProperties& device_memory_properties);
 
     VkResult AllocateAHBMemory(MemoryAllocInfo* memory_alloc_info, const VkImage image);
+
+    // Allocates exportable memory for a resource created with external memory handle types. Such a resource may
+    // only be bound to memory allocated with a matching VkExportMemoryAllocateInfo, which rules out sharing a
+    // suballocated block with unrelated resources. Exactly one of buffer/image is a valid handle.
+    VkResult AllocateExportableMemory(VkBuffer                        buffer,
+                                      VkImage                         image,
+                                      VkExternalMemoryHandleTypeFlags handle_types,
+                                      const VkMemoryRequirements&     replay_mem_req,
+                                      const VmaAllocationCreateInfo&  create_info,
+                                      VmaMemoryInfo&                  vma_mem_info);
 
     VkResult BindImageMemory(VkImage                                 image,
                              VkDeviceMemory                          memory,

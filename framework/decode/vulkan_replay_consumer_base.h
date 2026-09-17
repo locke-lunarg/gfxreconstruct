@@ -2098,7 +2098,51 @@ class VulkanReplayConsumerBase : public VulkanConsumer
      */
     bool UseAddressReplacement(const VulkanDeviceInfo* device_info) const;
 
-    bool CanPreserveExternalMemory(const VulkanDeviceInfo* device_info) const;
+    /**
+     * @brief   CanExportExternalMemory returns true if the replay device is able to allocate memory that is
+     *          exportable through an opaque file descriptor.
+     *
+     * This is what the external create-info structs on a buffer or image require: the memory the resource ends
+     * up bound to only has to be exportable with a matching handle type, which every allocator can arrange.
+     *
+     * @param   device_info a device info struct
+     * @return true if exportable allocations can be made on this device.
+     */
+    bool CanExportExternalMemory(const VulkanDeviceInfo* device_info) const;
+
+    /**
+     * @brief   CanPreserveImportedMemory returns true if a captured VkImportMemoryFdInfoKHR can be replaced with
+     *          an import of a file descriptor synthesized at replay.
+     *
+     * Beyond an exportable device this needs the allocator to hand out the VkDeviceMemory the capture allocated.
+     * With -m rebind, VMA owns the allocations and vkAllocateMemory is a bookkeeping no-op, so there is nothing
+     * to import into.
+     *
+     * @param   device_info a device info struct
+     * @return true if captured memory imports can be reproduced.
+     */
+    bool CanPreserveImportedMemory(const VulkanDeviceInfo* device_info) const;
+
+    /**
+     * @brief   Narrows external memory handle types down to the ones the replay device can actually create an
+     *          exportable image or buffer with.
+     *
+     * Keeping a handle type the replay driver does not report as compatible would violate
+     * VUID-VkImageCreateInfo-pNext-00990 (VUID-VkBufferCreateInfo-pNext-00920 for buffers), so any type that is
+     * not reported has to be dropped from the create info.
+     *
+     * @param   device_info     a device info struct
+     * @param   create_info     the image or buffer create info the handle types were found on
+     * @param   handle_types    the captured handle types
+     * @return the subset of handle_types that can be used, or 0 when none can.
+     */
+    VkExternalMemoryHandleTypeFlags GetExportableHandleTypes(const VulkanDeviceInfo*         device_info,
+                                                             const VkImageCreateInfo&        create_info,
+                                                             VkExternalMemoryHandleTypeFlags handle_types) const;
+
+    VkExternalMemoryHandleTypeFlags GetExportableHandleTypes(const VulkanDeviceInfo*         device_info,
+                                                             const VkBufferCreateInfo&       create_info,
+                                                             VkExternalMemoryHandleTypeFlags handle_types) const;
 
     [[nodiscard]] std::vector<std::unique_ptr<char[]>> ReplaceShaders(uint32_t                      create_info_count,
                                                                       VkGraphicsPipelineCreateInfo* create_infos,
