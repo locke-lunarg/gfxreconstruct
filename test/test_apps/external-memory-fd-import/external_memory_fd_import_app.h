@@ -42,10 +42,16 @@ class App : public gfxrecon::test::TestAppBase
   private:
     constexpr static size_t EXPECTED_MEMORY_LEN = 42;
 
+    static constexpr VkFormat kImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    static constexpr uint32_t kImageWidth  = 64;
+    static constexpr uint32_t kImageHeight = 64;
+
     uint32_t       expected_memory_[EXPECTED_MEMORY_LEN] = {};
     const uint32_t buffer_size_                          = sizeof(expected_memory_);
     VkBuffer       buffer_                               = VK_NULL_HANDLE;
     VkDeviceMemory imported_memory_                      = VK_NULL_HANDLE;
+    VkImage        image_                                = VK_NULL_HANDLE;
+    VkDeviceMemory image_memory_                         = VK_NULL_HANDLE;
     int            import_socket_                        = -1;
 
     void configure_instance_builder(test::InstanceBuilder& instance_builder, vkmock::TestConfig* test_config) override;
@@ -54,6 +60,7 @@ class App : public gfxrecon::test::TestAppBase
 
     uint32_t find_memory_type(uint32_t memoryTypeBits, VkMemoryPropertyFlags memory_property_flags);
     void     create_buffer_from_fd(int imported_fd);
+    void     create_external_memory_image();
 
     void cleanup() override;
     bool frame(const int frame_num) override;

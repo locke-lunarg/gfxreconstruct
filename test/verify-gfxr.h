@@ -1,6 +1,7 @@
 #ifndef GFXRECONSTRUCT_VERIFY_GFXR_H
 #define GFXRECONSTRUCT_VERIFY_GFXR_H
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -36,5 +37,25 @@ void verify_gfxr(const char* test_name, char const* trimming_frames = nullptr, b
  * @note expects the same environment variables as verify_gfxr().
  */
 void capture_and_replay(const char* test_name, std::vector<std::string> extra_replay_args = {});
+
+/**
+ * Run an application with capture enabled, replay the resulting gfxr, and let the capture layer record the
+ * *replayer's* own Vulkan calls into a second gfxr, which is then converted to json.
+ *
+ * This lets a test assert on what replay actually handed to the driver, rather than only on whether replay
+ * survived.
+ *
+ * @param test_name          - the name of the test app to launch and capture
+ * @param replay_tag         - short suffix distinguishing this replay from other replays of the same test app
+ * @param extra_replay_args  - additional arguments forwarded verbatim to gfxrecon-replay
+ * @param replay_json_path   - receives the path of the json converted from the replay capture
+ *
+ * @note expects the same environment variables as verify_gfxr(), and relies on the capture layer still being
+ * enabled for the replay process.
+ */
+void capture_and_replay_recapture(const char*                     test_name,
+                                  const char*                     replay_tag,
+                                  const std::vector<std::string>& extra_replay_args,
+                                  std::filesystem::path&          replay_json_path);
 
 #endif // GFXRECONSTRUCT_VERIFY_GFXR_H

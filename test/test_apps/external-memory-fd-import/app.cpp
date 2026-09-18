@@ -244,6 +244,62 @@ void App::create_buffer_from_fd(int imported_fd)
     init.disp.unmapMemory(imported_memory_);
 }
 
+// An external-memory VkImage backed by a dedicated exportable allocation. Buffers and images take different
+// paths through the replayer, so tracing an image here as well gives the replay tests something to assert
+// VkExternalMemoryImageCreateInfo handling against.
+void App::create_external_memory_image()
+{
+    VkExternalMemoryImageCreateInfo external_mem_image_create_info = {};
+    external_mem_image_create_info.sType       = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+    external_mem_image_create_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+
+    VkImageCreateInfo image_create_info     = {};
+    image_create_info.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    image_create_info.pNext                 = &external_mem_image_create_info;
+    image_create_info.flags                 = 0u;
+    image_create_info.imageType             = VK_IMAGE_TYPE_2D;
+    image_create_info.format                = kImageFormat;
+    image_create_info.extent                = { kImageWidth, kImageHeight, 1u };
+    image_create_info.mipLevels             = 1u;
+    image_create_info.arrayLayers           = 1u;
+    image_create_info.samples               = VK_SAMPLE_COUNT_1_BIT;
+    image_create_info.tiling                = VK_IMAGE_TILING_OPTIMAL;
+    image_create_info.usage                 = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    image_create_info.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
+    image_create_info.queueFamilyIndexCount = 0u;
+    image_create_info.pQueueFamilyIndices   = nullptr;
+    image_create_info.initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    VkResult result = init.disp.createImage(&image_create_info, nullptr, &image_);
+    VERIFY_VK_RESULT("Import App Failed to create external memory image", result);
+
+    VkMemoryRequirements image_mem_requirements;
+    init.disp.getImageMemoryRequirements(image_, &image_mem_requirements);
+
+    // External memory is commonly dedicated, so trace that shape of the API as well.
+    VkMemoryDedicatedAllocateInfo dedicated_alloc_info = {};
+    dedicated_alloc_info.sType                         = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO;
+    dedicated_alloc_info.image                         = image_;
+
+    VkExportMemoryAllocateInfo export_mem_alloc_info = {};
+    export_mem_alloc_info.sType                      = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
+    export_mem_alloc_info.pNext                      = &dedicated_alloc_info;
+    export_mem_alloc_info.handleTypes                = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+
+    VkMemoryAllocateInfo mem_alloc_info = {};
+    mem_alloc_info.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    mem_alloc_info.pNext                = &export_mem_alloc_info;
+    mem_alloc_info.allocationSize       = image_mem_requirements.size;
+    mem_alloc_info.memoryTypeIndex =
+        find_memory_type(image_mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    result = init.disp.allocateMemory(&mem_alloc_info, nullptr, &image_memory_);
+    VERIFY_VK_RESULT("Import App Failed to allocate external memory image memory", result);
+
+    result = init.disp.bindImageMemory(image_, image_memory_, 0u);
+    VERIFY_VK_RESULT("Import App Failed to bind external memory image memory", result);
+}
+
 bool App::frame(const int frame_num)
 {
     return false;
@@ -251,6 +307,9 @@ bool App::frame(const int frame_num)
 
 void App::cleanup()
 {
+    init.disp.destroyImage(image_, nullptr);
+    init.disp.freeMemory(image_memory_, nullptr);
+
     init.disp.destroyBuffer(buffer_, nullptr);
     init.disp.freeMemory(imported_memory_, nullptr);
 
@@ -273,6 +332,8 @@ void App::setup()
     {
         create_buffer_from_fd(import_fd);
     }
+
+    create_external_memory_image();
 }
 
 GFXRECON_END_NAMESPACE(external_memory_fd_import)

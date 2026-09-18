@@ -385,3 +385,53 @@ void capture_and_replay(const char* test_name, std::vector<std::string> extra_re
     ASSERT_EQ(result, 0) << "replay command failed " << paths.replay_path << " for capture " << paths.capture_path
                          << " in path " << paths.base_path;
 }
+
+void capture_and_replay_recapture(const char*                     test_name,
+                                  const char*                     replay_tag,
+                                  const std::vector<std::string>& extra_replay_args,
+                                  std::filesystem::path&          replay_json_path)
+{
+    EnvironmentVariables env_vars;
+
+    Paths paths{ test_name, nullptr, false };
+    int   result;
+
+    bool working_directory_exists = std::filesystem::exists(paths.working_directory);
+    ASSERT_TRUE(working_directory_exists) << "working directory does not exist: " << paths.working_directory;
+
+    // Run the app with capture enabled to produce the gfxr to replay.
+    env_vars.SetEnv("GFXRECON_CAPTURE_FILE", paths.capture_path.string().c_str());
+    result = run_command(paths.working_directory, paths.full_executable_path, { test_name });
+    ASSERT_EQ(result, 0) << "capture command failed " << paths.full_executable_path << " " << test_name << " in path "
+                         << paths.working_directory;
+
+    ASSERT_TRUE(std::filesystem::exists(paths.capture_path)) << "capture file was not produced: " << paths.capture_path;
+
+    // The capture layer is still enabled in the environment, so the replay process gets captured too. Point
+    // GFXRECON_CAPTURE_FILE at a second file to collect the calls replay makes on the replay device.
+    std::filesystem::path replay_capture_path{ paths.base_path };
+    replay_capture_path.append(test_name + std::string("_replay_") + replay_tag + ".gfxr");
+    std::filesystem::remove(replay_capture_path);
+    env_vars.SetEnv("GFXRECON_CAPTURE_FILE", replay_capture_path.string().c_str());
+
+    std::vector<std::string> replay_args = { "--swapchain", "offscreen" };
+    replay_args.insert(replay_args.end(), extra_replay_args.begin(), extra_replay_args.end());
+    replay_args.push_back(paths.capture_path.string());
+
+    result = run_command(paths.base_path, paths.replay_path, replay_args);
+    ASSERT_EQ(result, 0) << "replay command failed " << paths.replay_path << " for capture " << paths.capture_path
+                         << " in path " << paths.base_path;
+
+    ASSERT_TRUE(std::filesystem::exists(replay_capture_path))
+        << "replay capture file was not produced: " << replay_capture_path
+        << ". The capture layer must stay enabled for the replay process.";
+
+    result = run_command(paths.base_path, paths.convert_path, { replay_capture_path.string() });
+    ASSERT_EQ(result, 0) << "command failed " << paths.convert_path << " " << replay_capture_path << " in path "
+                         << paths.base_path;
+
+    replay_json_path = std::filesystem::path{ replay_capture_path };
+    replay_json_path.replace_extension(".json");
+    ASSERT_TRUE(std::filesystem::exists(replay_json_path))
+        << "replay capture json was not produced: " << replay_json_path;
+}
