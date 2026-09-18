@@ -479,6 +479,10 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
         bool          uses_extensions{ false };
         VkFormat      format{ VK_FORMAT_UNDEFINED };
 
+        // Non-zero when the resource was created with VkExternalMemory{Buffer,Image}CreateInfo. Such a resource
+        // may only be bound to memory created for the same handle types, so it cannot use a VMA sub-allocation.
+        VkExternalMemoryHandleTypeFlags external_handle_types{ 0 };
+
         // Captured VkBufferCreateInfo::size. Always present in the stream (unlike the memory
         // requirement size, which is 0 when vkGetBufferMemoryRequirements was never captured), so it
         // provides a captured-space byte-extent for aliasing-overlap detection. 0 for non-buffers.
@@ -515,6 +519,10 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
         VkDeviceSize                                     mapped_offset{ 0 };
         AHardwareBuffer*                                 ahb{ nullptr };
         VkDeviceMemory                                   ahb_memory{ VK_NULL_HANDLE };
+
+        // Exportable allocations made for resources carrying external handle types, one per bind. Kept out of
+        // VMA because an external resource needs a whole dedicated allocation of its own.
+        std::vector<VkDeviceMemory> external_memories;
         std::unique_ptr<uint8_t[]>                       original_content;
         std::unordered_map<uint64_t, ResourceAllocInfo*> original_objects; // Key is object handle.
 
@@ -610,6 +618,17 @@ class VulkanRebindAllocator : public VulkanResourceAllocator
                               const VkPhysicalDeviceMemoryProperties& device_memory_properties);
 
     VkResult AllocateAHBMemory(MemoryAllocInfo* memory_alloc_info, const VkImage image);
+
+    // Pick a replay memory type satisfying memory_type_bits, preferring the type the capture used.
+    uint32_t FindMemoryTypeIndex(uint32_t memory_type_bits, uint32_t preferred_index) const;
+
+    // Allocate a dedicated exportable allocation for a resource created with external handle types, and bind it.
+    // Exactly one of image/buffer is a live handle.
+    VkResult BindExternalMemory(ResourceAllocInfo& resource_alloc_info,
+                                MemoryAllocInfo&   memory_alloc_info,
+                                VkImage            image,
+                                VkBuffer           buffer,
+                                VkDeviceSize       memory_offset);
 
     VkResult BindImageMemory(VkImage                                 image,
                              VkDeviceMemory                          memory,
