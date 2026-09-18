@@ -6289,7 +6289,11 @@ VkResult VulkanReplayConsumerBase::OverrideAllocateMemory(
         int            replacement_import_fd      = -1;
         auto* import_fd_info = graphics::vulkan_struct_get_pnext<VkImportMemoryFdInfoKHR>(modified_allocate_info);
 
-        if (!CanPreserveExternalMemory(device_info))
+        // Under address replacement the captured vkAllocateMemory is never forwarded to the driver, so nothing
+        // would import the replacement FD and it would leak. VulkanRebindAllocator allocates exportable memory
+        // for external resources at bind time instead, which is why the VkExternalMemory*CreateInfo structs are
+        // still preserved on the buffers and images themselves.
+        if (!CanPreserveExternalMemory(device_info) || UseAddressReplacement(device_info))
         {
             graphics::vulkan_struct_remove_pnext<VkImportMemoryFdInfoKHR>(modified_allocate_info);
             import_fd_info = nullptr;
@@ -12932,8 +12936,7 @@ bool VulkanReplayConsumerBase::UseAddressReplacement(const VulkanDeviceInfo* dev
 
 bool VulkanReplayConsumerBase::CanPreserveExternalMemory(const VulkanDeviceInfo* device_info) const
 {
-    // -m rebind manages memory via VMA and does not preserve external memory
-    if (device_info == nullptr || UseAddressReplacement(device_info))
+    if (device_info == nullptr)
     {
         return false;
     }
