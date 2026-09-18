@@ -38,6 +38,13 @@ struct CallCounts
     size_t matching = 0;
 };
 
+// A pNext struct that replay is expected to keep on a given entry point.
+struct Expectation
+{
+    const char* api_call;
+    const char* struct_type;
+};
+
 // Count the calls to api_call_name recorded in a converted gfxr, and how many of them mention struct_type
 // anywhere in their arguments.
 CallCounts count_calls_mentioning(const std::filesystem::path& json_path,
@@ -98,11 +105,18 @@ TEST(ExternalMemoryFD, RebindReplay)
     ASSERT_NO_FATAL_FAILURE(
         capture_and_replay_recapture("external-memory-fd-import", "rebind", { "-m", "rebind" }, replay_json_path));
 
-    const CallCounts counts = count_calls_mentioning(
-        replay_json_path, "vkCreateImage", "VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO");
+    const Expectation expectations[] = {
+        { "vkCreateImage", "VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO" },
+        { "vkAllocateMemory", "VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR" },
+    };
 
-    ASSERT_GT(counts.total, 0u) << "replay made no vkCreateImage calls, see " << replay_json_path;
-    EXPECT_GT(counts.matching, 0u) << "replay with -m rebind dropped "
-                                      "VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO from every one of the "
-                                   << counts.total << " vkCreateImage calls, see " << replay_json_path;
+    for (const Expectation& expected : expectations)
+    {
+        const CallCounts counts = count_calls_mentioning(replay_json_path, expected.api_call, expected.struct_type);
+
+        EXPECT_GT(counts.total, 0u) << "replay made no " << expected.api_call << " calls, see " << replay_json_path;
+        EXPECT_GT(counts.matching, 0u) << "replay with -m rebind dropped " << expected.struct_type
+                                       << " from every one of the " << counts.total << " " << expected.api_call
+                                       << " calls, see " << replay_json_path;
+    }
 }
