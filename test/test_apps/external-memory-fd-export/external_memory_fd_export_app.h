@@ -42,13 +42,9 @@ class App : public gfxrecon::test::TestAppBase
   private:
     const uint32_t buffer_size_       = sizeof(uint32_t[42]);
     VkBuffer       buffer_            = VK_NULL_HANDLE;
-    VkDeviceMemory exportable_memory_ = VK_NULL_HANDLE;
+    VkDeviceMemory exportable_buffer_memory_ = VK_NULL_HANDLE;
 
-    // An external image as well as an external buffer, because the two take different paths through replay:
-    // VkExternalMemoryImageCreateInfo changes how the driver lays the image out, so its memory requirements can
-    // differ from a non-external image of the same description.
-    static constexpr uint32_t image_extent_ = 64u;
-
+    uint32_t image_extent_ = 64u;
     VkImage        image_                   = VK_NULL_HANDLE;
     VkDeviceMemory exportable_image_memory_ = VK_NULL_HANDLE;
 

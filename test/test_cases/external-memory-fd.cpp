@@ -92,13 +92,6 @@ TEST(ExternalMemoryFD, CorrectGFXR)
     verify_gfxr("external-memory-fd-import");
 }
 
-// Replays the same capture with -m rebind, where memory is managed by VMA rather than by the captured
-// vkAllocateMemory calls. The external create-info structs have to survive that translation, and the resources
-// have to end up bound to exportable allocations. See
-// https://github.com/LunarG/gfxreconstruct/issues/2813.
-//
-// The mock ICD does not validate, so replay exits cleanly whether or not it dropped the structs. Recapture the
-// replay process instead and check what it actually handed to the driver.
 TEST(ExternalMemoryFD, RebindReplay)
 {
     run_in_background("external-memory-fd-export");

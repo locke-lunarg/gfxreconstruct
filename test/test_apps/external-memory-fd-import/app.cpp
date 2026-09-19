@@ -66,8 +66,6 @@ void App::configure_physical_device_selector(test::PhysicalDeviceSelector& phys_
     phys_device_selector.add_required_extension(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
     phys_device_selector.add_required_extension(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
 
-    // External images commonly report requiresDedicatedAllocation, so the image import below carries a
-    // VkMemoryDedicatedAllocateInfo.
     phys_device_selector.add_required_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
     phys_device_selector.add_required_extension(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
 }
@@ -228,14 +226,14 @@ void App::create_buffer_from_fd(int imported_fd)
                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     mem_alloc_info.pNext = &import_mem_fd_info;
 
-    result = init.disp.allocateMemory(&mem_alloc_info, nullptr, &imported_memory_);
+    result = init.disp.allocateMemory(&mem_alloc_info, nullptr, &imported_buffer_memory_);
     VERIFY_VK_RESULT("Import App Failed to import memory", result);
 
-    result = init.disp.bindBufferMemory(buffer_, imported_memory_, 0u);
+    result = init.disp.bindBufferMemory(buffer_, imported_buffer_memory_, 0u);
     VERIFY_VK_RESULT("Import App Failed to bind memory", result);
 
     uint32_t* data = nullptr;
-    result         = init.disp.mapMemory(imported_memory_, 0u, buffer_size_, 0u, reinterpret_cast<void**>(&data));
+    result         = init.disp.mapMemory(imported_buffer_memory_, 0u, buffer_size_, 0u, reinterpret_cast<void**>(&data));
     VERIFY_VK_RESULT("Import App Failed to map buffer memory", result);
     for (uint32_t i = 0; i < buffer_size_ / sizeof(uint32_t); ++i)
     {
@@ -246,13 +244,11 @@ void App::create_buffer_from_fd(int imported_fd)
         }
     }
     GFXRECON_LOG_INFO("Import App Memory imported correctly");
-    init.disp.unmapMemory(imported_memory_);
+    init.disp.unmapMemory(imported_buffer_memory_);
 }
 
 void App::create_image_from_fd(int imported_fd)
 {
-    // Must match the exporter's image description exactly, VkExternalMemoryImageCreateInfo included: the
-    // opaque FD payload is only meaningful to an image the driver lays out the same way.
     VkExternalMemoryImageCreateInfo external_mem_img_create_info = {};
     external_mem_img_create_info.sType                           = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
     external_mem_img_create_info.handleTypes                     = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
@@ -316,7 +312,7 @@ void App::cleanup()
     init.disp.freeMemory(imported_image_memory_, nullptr);
 
     init.disp.destroyBuffer(buffer_, nullptr);
-    init.disp.freeMemory(imported_memory_, nullptr);
+    init.disp.freeMemory(imported_buffer_memory_, nullptr);
 
     close(import_socket_);
 }

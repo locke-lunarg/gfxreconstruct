@@ -45,13 +45,10 @@ class App : public gfxrecon::test::TestAppBase
     uint32_t       expected_memory_[EXPECTED_MEMORY_LEN] = {};
     const uint32_t buffer_size_                          = sizeof(expected_memory_);
     VkBuffer       buffer_                               = VK_NULL_HANDLE;
-    VkDeviceMemory imported_memory_                      = VK_NULL_HANDLE;
+    VkDeviceMemory imported_buffer_memory_                      = VK_NULL_HANDLE;
     int            import_socket_                        = -1;
 
-    // Mirrors the exporter's image. VkExternalMemoryImageCreateInfo has to survive replay for the imported
-    // image to keep the layout the capture used, which is what this half of the test covers.
-    static constexpr uint32_t image_extent_ = 64u;
-
+    uint32_t image_extent_ = 64u;
     VkImage        image_                 = VK_NULL_HANDLE;
     VkDeviceMemory imported_image_memory_ = VK_NULL_HANDLE;
 
