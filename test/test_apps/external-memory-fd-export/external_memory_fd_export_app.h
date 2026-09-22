@@ -42,7 +42,11 @@ class App : public gfxrecon::test::TestAppBase
   private:
     const uint32_t buffer_size_       = sizeof(uint32_t[42]);
     VkBuffer       buffer_            = VK_NULL_HANDLE;
-    VkDeviceMemory exportable_memory_ = VK_NULL_HANDLE;
+    VkDeviceMemory exportable_buffer_memory_ = VK_NULL_HANDLE;
+
+    uint32_t image_extent_ = 64u;
+    VkImage        image_                   = VK_NULL_HANDLE;
+    VkDeviceMemory exportable_image_memory_ = VK_NULL_HANDLE;
 
     void configure_instance_builder(test::InstanceBuilder& instance_builder, vkmock::TestConfig* test_config) override;
     void configure_physical_device_selector(test::PhysicalDeviceSelector& phys_device_selector,
@@ -50,9 +54,10 @@ class App : public gfxrecon::test::TestAppBase
 
     uint32_t find_memory_type(uint32_t memoryTypeBits, VkMemoryPropertyFlags memory_property_flags);
     void     create_buffer();
+    void     create_image();
 
-    int     get_exportable_fd();
-    void    send_exportable_fd(int exportable_fd);
+    int     get_exportable_fd(VkDeviceMemory memory);
+    void    send_exportable_fds(int buffer_fd, int image_fd);
     ssize_t send_int(int conn_fd, int data);
 
     void cleanup() override;

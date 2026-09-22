@@ -33,6 +33,8 @@ bool clean_gfxr_json(int depth, nlohmann::json::parse_event_t event, nlohmann::j
                 return false;
             if (key == "\"ppData\"")
                 return false;
+            if (key == "\"pUserData\"")
+                return false;
             if (key == "\"fd\"")
                 return false;
             if (key == "\"app_name\"")
@@ -307,7 +309,78 @@ void run_trimming_app(const Paths& paths, const char* test_name, char const* tri
     ASSERT_EQ(trimming_diff.size(), 0) << std::setw(4) << trimming_diff;
 }
 
-void verify_gfxr(const char* test_name, char const* trimming_frames, bool trigger_trimming)
+// Convert a gfxr and its known good counterpart to json and assert they match, ignoring the fields
+// clean_gfxr_json filters out.
+static void CompareToKnownGood(const std::filesystem::path& base_path,
+                               const std::filesystem::path& convert_path,
+                               const std::filesystem::path& capture_path,
+                               const std::filesystem::path& known_good_path)
+{
+    int result = run_command(base_path, convert_path, { capture_path.string() });
+    ASSERT_EQ(result, 0) << "command failed " << convert_path << " " << capture_path << " in path " << base_path;
+
+    result = run_command(base_path, convert_path, { known_good_path.string() });
+    ASSERT_EQ(result, 0) << "command failed " << convert_path << " " << known_good_path << " in path " << base_path;
+
+    std::filesystem::path capture_json_path{ capture_path };
+    capture_json_path.replace_extension(".json");
+
+    std::filesystem::path known_good_json_path{ known_good_path };
+    known_good_json_path.replace_extension(".json");
+
+    std::ifstream capture_file{ capture_json_path };
+    ASSERT_TRUE(capture_file.is_open()) << "app json file: " << capture_json_path << " would not open";
+    auto capture_json = nlohmann::json::parse(capture_file, clean_gfxr_json);
+
+    std::ifstream known_file{ known_good_json_path };
+    ASSERT_TRUE(known_file.is_open()) << "known good json file: " << known_good_json_path << " would not open";
+    auto known_json = nlohmann::json::parse(known_file, clean_gfxr_json);
+
+    auto diff = nlohmann::json::diff(known_json, capture_json);
+    ASSERT_EQ(diff.size(), 0) << std::setw(4) << diff;
+}
+
+// Replay the capture with the capture layer still enabled, so the calls replay makes on the replay device are
+// captured in turn, and compare that second capture to its own known good.
+static void verify_replay(const Paths&                    paths,
+                          const char*                     test_name,
+                          const char*                     replay_tag,
+                          const std::vector<std::string>& extra_replay_args)
+{
+    EnvironmentVariables env_vars;
+
+    ASSERT_TRUE(std::filesystem::exists(paths.capture_path)) << "capture file was not produced: " << paths.capture_path;
+
+    std::string           replay_file_name = test_name + std::string("_replay_") + replay_tag + ".gfxr";
+    std::filesystem::path replay_capture_path{ paths.base_path };
+    replay_capture_path.append(replay_file_name);
+    std::filesystem::remove(replay_capture_path);
+    env_vars.SetEnv("GFXRECON_CAPTURE_FILE", replay_capture_path.string().c_str());
+
+    std::vector<std::string> replay_args = { "--swapchain", "offscreen" };
+    replay_args.insert(replay_args.end(), extra_replay_args.begin(), extra_replay_args.end());
+    replay_args.push_back(paths.capture_path.string());
+
+    int result = run_command(paths.base_path, paths.replay_path, replay_args);
+    ASSERT_EQ(result, 0) << "replay command failed " << paths.replay_path << " for capture " << paths.capture_path
+                         << " in path " << paths.base_path;
+
+    ASSERT_TRUE(std::filesystem::exists(replay_capture_path))
+        << "replay capture file was not produced: " << replay_capture_path
+        << ". The capture layer must stay enabled for the replay process.";
+
+    std::filesystem::path known_good_replay_path{ paths.base_path };
+    known_good_replay_path.append("known_good");
+    known_good_replay_path.append(replay_file_name);
+
+    CompareToKnownGood(paths.base_path, paths.convert_path, replay_capture_path, known_good_replay_path);
+}
+
+void verify_gfxr(const char*              test_name,
+                 char const*              trimming_frames,
+                 bool                     trigger_trimming,
+                 const char*              replay_tag,
+                 std::vector<std::string> extra_replay_args)
 {
     EnvironmentVariables env_vars;
 
@@ -323,30 +396,16 @@ void verify_gfxr(const char* test_name, char const* trimming_frames, bool trigge
     ASSERT_EQ(result, 0) << "command failed " << paths.full_executable_path << " " << test_name << " in path "
                          << paths.working_directory;
 
-    // convert actual gfxr
-    result = run_command(paths.base_path, paths.convert_path, { paths.capture_path.string() });
-    ASSERT_EQ(result, 0) << "command failed " << paths.convert_path << " " << paths.capture_path << " in path "
-                         << paths.base_path;
-
-    // convert known good gfxr
-    result = run_command(paths.base_path, paths.convert_path, { paths.known_good_path.string() });
-    ASSERT_EQ(result, 0) << "command failed " << paths.convert_path << " " << paths.known_good_path << " in path "
-                         << paths.base_path;
-
-    std::ifstream app_file{ paths.app_json_path };
-    ASSERT_TRUE(app_file.is_open()) << "app json file: " << paths.app_json_path << " would not open";
-    auto app_json = nlohmann::json::parse(app_file, clean_gfxr_json);
-
-    std::ifstream known_file{ paths.known_good_json_path };
-    ASSERT_TRUE(known_file.is_open()) << "known good json file: " << paths.known_good_json_path << " would not open";
-    auto known_json = nlohmann::json::parse(known_file, clean_gfxr_json);
-
-    auto diff = nlohmann::json::diff(known_json, app_json);
-    ASSERT_EQ(diff.size(), 0) << std::setw(4) << diff;
+    CompareToKnownGood(paths.base_path, paths.convert_path, paths.capture_path, paths.known_good_path);
 
     if (trimming_frames || trigger_trimming)
     {
         run_trimming_app(paths, test_name, trimming_frames, trigger_trimming);
+    }
+
+    if (replay_tag != nullptr)
+    {
+        ASSERT_NO_FATAL_FAILURE(verify_replay(paths, test_name, replay_tag, extra_replay_args));
     }
 }
 

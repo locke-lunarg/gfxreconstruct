@@ -1,6 +1,7 @@
 #ifndef GFXRECONSTRUCT_VERIFY_GFXR_H
 #define GFXRECONSTRUCT_VERIFY_GFXR_H
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -9,8 +10,18 @@ void run_in_background(const char* test_name);
 /**
  * Run an application with capture enabled, and compare the resulting gfxr file to a known good gfxr
  *
+ * When replay_tag is given, the capture is also replayed with the capture layer left enabled, so the calls
+ * replay makes on the replay device are captured in turn, and that second capture is compared to its own known
+ * good at known_good/<test_name>_replay_<replay_tag>.gfxr. That is how a test checks what replay handed to the
+ * driver rather than only whether replay exited cleanly. Replay is forced offscreen (--swapchain offscreen) so it
+ * runs headless against the mock ICD.
+ *
  * @param test_name         - the name of the test to launch
  * @param trimming_frames   - It's not nullptr if it needs to run trimming app. frame info ex: "10" or "10-100"
+ * @param trigger_trimming  - true to run the trimming app driven by a trigger key instead of a frame range
+ * @param replay_tag        - names the known good for this set of replay arguments, e.g. "rebind". nullptr skips
+ *                            the replay comparison entirely.
+ * @param extra_replay_args - additional arguments forwarded verbatim to gfxrecon-replay
  *
  * @note expects the following environment variables to be set
  * VK_LAYER_PATH     - path to VkLayer_gfxreconstruct.dll
@@ -21,7 +32,11 @@ void run_in_background(const char* test_name);
  * GFXRECON_CAPTURE_FILE_TIMESTAMP=false
  * GFXRECON_CAPTURE_FILE=actual.gfxr
  */
-void verify_gfxr(const char* test_name, char const* trimming_frames = nullptr, bool trigger_trimming = false);
+void verify_gfxr(const char*              test_name,
+                 char const*              trimming_frames   = nullptr,
+                 bool                     trigger_trimming  = false,
+                 const char*              replay_tag        = nullptr,
+                 std::vector<std::string> extra_replay_args = {});
 
 /**
  * Run an application with capture enabled, then replay the resulting gfxr with gfxrecon-replay, asserting that the
