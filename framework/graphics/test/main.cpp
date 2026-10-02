@@ -29,6 +29,7 @@
 
 #include "graphics/vulkan_feature_util.h"
 #include "graphics/vulkan_shader_group_handle.h"
+#include "graphics/vulkan_util.h"
 
 TEST_CASE("vulkan_shader_group_handle - create empty handles", "[]")
 {
@@ -226,4 +227,94 @@ TEST_CASE("FilterPNextFeatures - remove unsupported", "[feature_util]")
         gfxrecon::graphics::feature_util::FilterPNextFeatures(&raster_create_info, enabled_none);
         REQUIRE(raster_create_info.pNext == nullptr);
     }
+}
+
+TEST_CASE("GetGraphicsPipelineLibraryFlags - explicit and default subsets", "[]")
+{
+    constexpr VkGraphicsPipelineLibraryFlagsEXT kAllSubsets =
+        VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT |
+        VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT |
+        VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT |
+        VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT;
+
+    VkGraphicsPipelineCreateInfo create_info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+
+    SECTION("Complete pipeline without VkGraphicsPipelineLibraryCreateInfoEXT")
+    {
+        REQUIRE(gfxrecon::graphics::GetGraphicsPipelineLibraryFlags(create_info) == kAllSubsets);
+    }
+
+    SECTION("Explicit VkGraphicsPipelineLibraryCreateInfoEXT")
+    {
+        VkGraphicsPipelineLibraryCreateInfoEXT library_info = {
+            VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
+            nullptr,
+            VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT |
+                VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT
+        };
+        create_info.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
+        create_info.pNext = &library_info;
+        REQUIRE(gfxrecon::graphics::GetGraphicsPipelineLibraryFlags(create_info) == library_info.flags);
+    }
+
+    SECTION("Pipeline library without VkGraphicsPipelineLibraryCreateInfoEXT")
+    {
+        create_info.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
+        REQUIRE(gfxrecon::graphics::GetGraphicsPipelineLibraryFlags(create_info) == 0);
+    }
+
+    SECTION("Pipeline library from VkPipelineCreateFlags2CreateInfo")
+    {
+        VkPipelineCreateFlags2CreateInfo flags2_info = { VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+                                                         nullptr,
+                                                         VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR };
+        create_info.pNext                            = &flags2_info;
+        REQUIRE(gfxrecon::graphics::GetGraphicsPipelineLibraryFlags(create_info) == 0);
+
+        // VkPipelineCreateFlags2CreateInfo::flags is used instead of VkGraphicsPipelineCreateInfo::flags.
+        flags2_info.flags = 0;
+        create_info.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
+        REQUIRE(gfxrecon::graphics::GetGraphicsPipelineLibraryFlags(create_info) == kAllSubsets);
+    }
+
+    SECTION("Pipeline linked from libraries without VkGraphicsPipelineLibraryCreateInfoEXT")
+    {
+        VkPipeline                     library      = UINT64_TO_VK_HANDLE(VkPipeline, 1);
+        VkPipelineLibraryCreateInfoKHR linking_info = {
+            VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR, nullptr, 1, &library
+        };
+        create_info.pNext = &linking_info;
+        REQUIRE(gfxrecon::graphics::GetGraphicsPipelineLibraryFlags(create_info) == 0);
+
+        linking_info.libraryCount = 0;
+        REQUIRE(gfxrecon::graphics::GetGraphicsPipelineLibraryFlags(create_info) == kAllSubsets);
+    }
+}
+
+TEST_CASE("ArePipelineRenderingFormatsIgnored - fragment output interface state and render pass", "[]")
+{
+    VkGraphicsPipelineLibraryCreateInfoEXT library_info = {
+        VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
+        nullptr,
+        VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT |
+            VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT
+    };
+    VkGraphicsPipelineCreateInfo create_info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+
+    // Complete pipeline with dynamic rendering uses the formats.
+    REQUIRE_FALSE(gfxrecon::graphics::ArePipelineRenderingFormatsIgnored(create_info));
+
+    // Complete pipeline with a render pass ignores the formats.
+    create_info.renderPass = UINT64_TO_VK_HANDLE(VkRenderPass, 1);
+    REQUIRE(gfxrecon::graphics::ArePipelineRenderingFormatsIgnored(create_info));
+    create_info.renderPass = VK_NULL_HANDLE;
+
+    // Library without fragment output interface state ignores the formats.
+    create_info.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
+    create_info.pNext = &library_info;
+    REQUIRE(gfxrecon::graphics::ArePipelineRenderingFormatsIgnored(create_info));
+
+    // Library with fragment output interface state uses the formats.
+    library_info.flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT;
+    REQUIRE_FALSE(gfxrecon::graphics::ArePipelineRenderingFormatsIgnored(create_info));
 }
