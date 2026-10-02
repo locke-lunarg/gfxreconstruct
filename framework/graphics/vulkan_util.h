@@ -196,6 +196,29 @@ uint32_t FindGraphicsOrComputeQueueFamilyIndex(const VulkanQueueFamilyFlags& fam
  */
 std::vector<VkPipelineBindPoint> ShaderStageFlagsToPipelineBindPoints(VkShaderStageFlags flags);
 
+/**
+ * @brief   Get the graphics pipeline library state subsets that a graphics pipeline create info specifies directly.
+ *
+ * When VkGraphicsPipelineLibraryCreateInfoEXT is omitted, the subsets are none for a pipeline library or a pipeline
+ * linked from libraries, and all of them otherwise (a complete graphics pipeline).
+ *
+ * @param[in]   create_info The graphics pipeline create info
+ * @return  The graphics pipeline library state subsets specified by create_info
+ */
+VkGraphicsPipelineLibraryFlagsEXT GetGraphicsPipelineLibraryFlags(const VkGraphicsPipelineCreateInfo& create_info);
+
+/**
+ * @brief   Check if the attachment formats of VkPipelineRenderingCreateInfo are ignored by a graphics pipeline.
+ *
+ * The formats are ignored when the pipeline is created with a valid VkRenderPass, or when it doesn't specify the
+ * fragment output interface state, so the application may leave them uninitialized.
+ *
+ * @param[in]   create_info The graphics pipeline create info
+ * @return  True if colorAttachmentCount, pColorAttachmentFormats, depthAttachmentFormat and stencilAttachmentFormat
+ *          of VkPipelineRenderingCreateInfo are ignored
+ */
+bool ArePipelineRenderingFormatsIgnored(const VkGraphicsPipelineCreateInfo& create_info);
+
 GFXRECON_END_NAMESPACE(graphics)
 GFXRECON_END_NAMESPACE(gfxrecon)
 
