@@ -35,6 +35,7 @@
 #include "format/api_call_id.h"
 #include "generated/generated_vulkan_struct_encoders.h"
 #include "generated/generated_vulkan_struct_handle_wrappers.h"
+#include "graphics/vulkan_util.h"
 #include "util/defines.h"
 
 #include <cassert>
@@ -497,6 +498,47 @@ VKAPI_ATTR void VKAPI_CALL vkDumpAssetsGFXR()
     manager->SetWriteAssets();
 }
 
+static const VkGraphicsPipelineCreateInfo* ClearIgnoredPipelineRenderingFormats(
+    const VkGraphicsPipelineCreateInfo* pCreateInfos, uint32_t createInfoCount, HandleUnwrapMemory* unwrap_memory)
+{
+    VkGraphicsPipelineCreateInfo* modified_create_infos =
+        vulkan_wrappers::MakeUnwrapStructs(pCreateInfos, createInfoCount, unwrap_memory);
+
+    for (uint32_t i = 0; i < createInfoCount; ++i)
+    {
+        if (!graphics::ArePipelineRenderingFormatsIgnored(pCreateInfos[i]))
+        {
+            continue;
+        }
+
+        auto* prev = reinterpret_cast<VkBaseInStructure*>(&modified_create_infos[i]);
+        for (auto* next = prev->pNext; next != nullptr; next = next->pNext)
+        {
+            VkBaseInStructure* next_copy = vulkan_wrappers::CopyPNextStruct(next, unwrap_memory);
+            if (next_copy == nullptr)
+            {
+                continue;
+            }
+
+            prev->pNext = next_copy;
+
+            if (next_copy->sType == VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO)
+            {
+                auto* rendering_copy                    = reinterpret_cast<VkPipelineRenderingCreateInfo*>(next_copy);
+                rendering_copy->colorAttachmentCount    = 0;
+                rendering_copy->pColorAttachmentFormats = nullptr;
+                rendering_copy->depthAttachmentFormat   = VK_FORMAT_UNDEFINED;
+                rendering_copy->stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+                break;
+            }
+
+            prev = next_copy;
+        }
+    }
+
+    return modified_create_infos;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateGraphicsPipelines(VkDevice                            device,
                                                          VkPipelineCache                     pipelineCache,
                                                          uint32_t                            createInfoCount,
@@ -567,7 +609,9 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateGraphicsPipelines(VkDevice               
         encoder->EncodeVulkanHandleValue<vulkan_wrappers::DeviceWrapper>(device);
         encoder->EncodeVulkanHandleValue<vulkan_wrappers::PipelineCacheWrapper>(pipelineCache);
         encoder->EncodeUInt32Value(createInfoCount);
-        EncodeStructArray(encoder, pCreateInfos, createInfoCount);
+        EncodeStructArray(encoder,
+                          ClearIgnoredPipelineRenderingFormats(pCreateInfos, createInfoCount, handle_unwrap_memory),
+                          createInfoCount);
         EncodeStructPtr(encoder, pAllocator);
         encoder->EncodeVulkanHandleArray<vulkan_wrappers::PipelineWrapper>(
             pPipelines, createInfoCount, omit_output_data);

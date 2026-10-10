@@ -232,5 +232,38 @@ std::vector<VkPipelineBindPoint> ShaderStageFlagsToPipelineBindPoints(VkShaderSt
     return bind_points;
 }
 
+VkGraphicsPipelineLibraryFlagsEXT GetGraphicsPipelineLibraryFlags(const VkGraphicsPipelineCreateInfo& create_info)
+{
+    if (const auto* library_info = vulkan_struct_get_pnext<VkGraphicsPipelineLibraryCreateInfoEXT>(&create_info))
+    {
+        return library_info->flags;
+    }
+
+    VkPipelineCreateFlags2 create_flags = create_info.flags;
+    if (const auto* create_flags2_info = vulkan_struct_get_pnext<VkPipelineCreateFlags2CreateInfo>(&create_info))
+    {
+        create_flags = create_flags2_info->flags;
+    }
+
+    const auto* linked_libraries = vulkan_struct_get_pnext<VkPipelineLibraryCreateInfoKHR>(&create_info);
+    if (((create_flags & VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR) != 0) ||
+        ((linked_libraries != nullptr) && (linked_libraries->libraryCount > 0)))
+    {
+        return 0;
+    }
+
+    return VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT |
+           VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT |
+           VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT |
+           VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT;
+}
+
+bool ArePipelineRenderingFormatsIgnored(const VkGraphicsPipelineCreateInfo& create_info)
+{
+    return (create_info.renderPass != VK_NULL_HANDLE) ||
+           ((GetGraphicsPipelineLibraryFlags(create_info) &
+             VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT) == 0);
+}
+
 GFXRECON_END_NAMESPACE(graphics)
 GFXRECON_END_NAMESPACE(gfxrecon)
