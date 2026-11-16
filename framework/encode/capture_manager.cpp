@@ -717,12 +717,76 @@ CommonCaptureManager::ApiCallLock CommonCaptureManager::AcquireCallLock() const
     }
 }
 
+// Queries that only return data: no handles, no state changes.
+static bool IsDataQuery(format::ApiCallId call_id)
+{
+    switch (call_id)
+    {
+        case format::ApiCall_vkGetBufferMemoryRequirements:
+        case format::ApiCall_vkGetBufferMemoryRequirements2:
+        case format::ApiCall_vkGetBufferMemoryRequirements2KHR:
+        case format::ApiCall_vkGetDeviceBufferMemoryRequirements:
+        case format::ApiCall_vkGetDeviceBufferMemoryRequirementsKHR:
+        case format::ApiCall_vkGetDeviceImageMemoryRequirements:
+        case format::ApiCall_vkGetDeviceImageMemoryRequirementsKHR:
+        case format::ApiCall_vkGetImageMemoryRequirements:
+        case format::ApiCall_vkGetImageMemoryRequirements2:
+        case format::ApiCall_vkGetImageMemoryRequirements2KHR:
+        case format::ApiCall_vkGetImageSubresourceLayout:
+        case format::ApiCall_vkGetImageSubresourceLayout2:
+        case format::ApiCall_vkGetImageSubresourceLayout2EXT:
+        case format::ApiCall_vkGetImageSubresourceLayout2KHR:
+        case format::ApiCall_vkGetPhysicalDeviceFeatures:
+        case format::ApiCall_vkGetPhysicalDeviceFeatures2:
+        case format::ApiCall_vkGetPhysicalDeviceFeatures2KHR:
+        case format::ApiCall_vkGetPhysicalDeviceFormatProperties:
+        case format::ApiCall_vkGetPhysicalDeviceFormatProperties2:
+        case format::ApiCall_vkGetPhysicalDeviceFormatProperties2KHR:
+        case format::ApiCall_vkGetPhysicalDeviceImageFormatProperties:
+        case format::ApiCall_vkGetPhysicalDeviceImageFormatProperties2:
+        case format::ApiCall_vkGetPhysicalDeviceImageFormatProperties2KHR:
+        case format::ApiCall_vkGetPhysicalDeviceMemoryProperties:
+        case format::ApiCall_vkGetPhysicalDeviceMemoryProperties2:
+        case format::ApiCall_vkGetPhysicalDeviceMemoryProperties2KHR:
+        case format::ApiCall_vkGetPhysicalDeviceProperties:
+        case format::ApiCall_vkGetPhysicalDeviceProperties2:
+        case format::ApiCall_vkGetPhysicalDeviceProperties2KHR:
+        case format::ApiCall_vkGetPhysicalDeviceQueueFamilyProperties:
+        case format::ApiCall_vkGetPhysicalDeviceQueueFamilyProperties2:
+        case format::ApiCall_vkGetPhysicalDeviceQueueFamilyProperties2KHR:
+        case format::ApiCall_vkGetPhysicalDeviceSurfaceCapabilities2EXT:
+        case format::ApiCall_vkGetPhysicalDeviceSurfaceCapabilities2KHR:
+        case format::ApiCall_vkGetPhysicalDeviceSurfaceCapabilitiesKHR:
+        case format::ApiCall_vkGetPhysicalDeviceSurfaceFormats2KHR:
+        case format::ApiCall_vkGetPhysicalDeviceSurfaceFormatsKHR:
+        case format::ApiCall_vkGetPhysicalDeviceSurfacePresentModes2EXT:
+        case format::ApiCall_vkGetPhysicalDeviceSurfacePresentModesKHR:
+        case format::ApiCall_vkGetPhysicalDeviceSurfaceSupportKHR:
+            return true;
+        default:
+            return false;
+    }
+}
+
+// Calls replay makes on its own that a replay of the recaptured file does not need: calls in an
+// OmitFromRecaptureHelper scope, and data queries replay injects (a later replay makes its own).
+// Only the write is skipped; the state of the calls is still tracked.
+static bool OmitFromCaptureFile(format::ApiCallId call_id)
+{
+    return util::OmitFromRecaptureActive() || (util::InjectedCommandsActive() && IsDataQuery(call_id));
+}
+
 void CommonCaptureManager::EndApiCallCapture()
 {
     if (IsCaptureModeWrite())
     {
         auto thread_data = GetThreadData();
         assert(thread_data != nullptr);
+
+        if (OmitFromCaptureFile(thread_data->call_id_))
+        {
+            return;
+        }
 
         auto parameter_buffer = thread_data->parameter_buffer_.get();
         assert((parameter_buffer != nullptr) && (thread_data->parameter_encoder_ != nullptr));
@@ -779,6 +843,11 @@ void CommonCaptureManager::EndMethodCallCapture()
     {
         auto thread_data = GetThreadData();
         assert(thread_data != nullptr);
+
+        if (OmitFromCaptureFile(thread_data->call_id_))
+        {
+            return;
+        }
 
         auto parameter_buffer = thread_data->parameter_buffer_.get();
         assert((parameter_buffer != nullptr) && (thread_data->parameter_encoder_ != nullptr));

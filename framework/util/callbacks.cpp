@@ -151,6 +151,25 @@ bool InjectedCommandsActive()
     return thread_scope_depth != 0;
 }
 
+// Per-thread nesting depth of OmitFromRecaptureHelper scopes.
+static thread_local uint32_t omit_from_recapture_depth = 0;
+
+OmitFromRecaptureHelper::OmitFromRecaptureHelper()
+{
+    ++omit_from_recapture_depth;
+}
+
+OmitFromRecaptureHelper::~OmitFromRecaptureHelper()
+{
+    GFXRECON_ASSERT(omit_from_recapture_depth);
+    --omit_from_recapture_depth;
+}
+
+bool OmitFromRecaptureActive()
+{
+    return omit_from_recapture_depth != 0;
+}
+
 extern "C" void GFXR_EXPORT SetInjectedCommandCallbacks(PFN_EventBeginCallBack begin_fp,
                                                         PFN_EventEndCallBack   end_fp,
                                                         void*                  data)

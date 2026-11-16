@@ -1045,8 +1045,12 @@ VulkanRebindAllocator::AllocateMemoryForBuffer(VkBuffer                         
     VkMemoryRequirements replay_req                    = {};
     bool                 requires_dedicated_allocation = false;
     bool                 prefers_dedicated_allocation  = false;
-    allocator_->GetBufferMemoryRequirements(
-        buffer, replay_req, requires_dedicated_allocation, prefers_dedicated_allocation);
+    {
+        // Replay's own query, not one of the application's.
+        util::MarkInjectedCommandsHelper injected;
+        allocator_->GetBufferMemoryRequirements(
+            buffer, replay_req, requires_dedicated_allocation, prefers_dedicated_allocation);
+    }
 
     replay_req.alignment = std::max<VkDeviceSize>(replay_req.alignment, min_buffer_alignment_);
 
@@ -1425,8 +1429,12 @@ VkResult VulkanRebindAllocator::AllocateMemoryForImage(VkImage                  
     VkMemoryRequirements replay_req                    = {};
     bool                 requires_dedicated_allocation = false;
     bool                 prefers_dedicated_allocation  = false;
-    allocator_->GetImageMemoryRequirements(
-        image, replay_req, requires_dedicated_allocation, prefers_dedicated_allocation);
+    {
+        // Replay's own query, not one of the application's.
+        util::MarkInjectedCommandsHelper injected;
+        allocator_->GetImageMemoryRequirements(
+            image, replay_req, requires_dedicated_allocation, prefers_dedicated_allocation);
+    }
 
     VmaAllocationCreateInfo create_info{};
     create_info.flags = 0;
@@ -3683,14 +3691,20 @@ void VulkanRebindAllocator::RebindSparseMemory(const T&                     orig
         if (buffer != VK_NULL_HANDLE)
         {
             GFXRECON_ASSERT(image == VK_NULL_HANDLE);
-            allocator_->GetBufferMemoryRequirements(
-                buffer, replay_req, requires_dedicated_allocation, prefers_dedicated_allocation);
+            {
+                // Replay's own query, not one of the application's.
+                util::MarkInjectedCommandsHelper injected;
+                allocator_->GetBufferMemoryRequirements(
+                    buffer, replay_req, requires_dedicated_allocation, prefers_dedicated_allocation);
+            }
 
             replay_req.alignment = std::max<VkDeviceSize>(replay_req.alignment, min_buffer_alignment_);
         }
         else
         {
             GFXRECON_ASSERT(image != VK_NULL_HANDLE);
+            // Replay's own query, not one of the application's.
+            util::MarkInjectedCommandsHelper injected;
             allocator_->GetImageMemoryRequirements(
                 image, replay_req, requires_dedicated_allocation, prefers_dedicated_allocation);
         }

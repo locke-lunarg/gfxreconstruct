@@ -43,6 +43,18 @@ struct MarkInjectedCommandsHelper
 // Returns true while the calling thread is inside a MarkInjectedCommandsHelper scope.
 bool InjectedCommandsActive();
 
+//! RAII helper for calls replay makes on its own that a replay of a recaptured file makes again by itself, such as
+//! the cleanup at the end of replay. While a scope is open on the calling thread, recapture leaves the calls out of the
+//! capture file; they are still made and their state is still tracked. It does not mark the calls as injected.
+struct OmitFromRecaptureHelper
+{
+    OmitFromRecaptureHelper();
+    ~OmitFromRecaptureHelper();
+};
+
+// Returns true while the calling thread is inside an OmitFromRecaptureHelper scope.
+bool OmitFromRecaptureActive();
+
 // Interface for registering callbacks so that GFXReconstruct can notify an external library about
 // generated API calls that are not included in the capture file.
 // Intended usage: GFXR will call PFN_EventΑCallBack once before it starts issuing synthesized

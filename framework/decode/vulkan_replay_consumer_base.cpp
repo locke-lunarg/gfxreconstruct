@@ -327,6 +327,9 @@ void VulkanReplayConsumerBase::SavePipelineCachesToFile()
 
 VulkanReplayConsumerBase::~VulkanReplayConsumerBase()
 {
+    // Everything below is replay's own cleanup after the last call of the capture; a recapture leaves it out.
+    util::OmitFromRecaptureHelper omit_from_recapture;
+
     if (save_pipeline_caches_to_file)
     {
         SavePipelineCachesToFile();
@@ -5006,9 +5009,11 @@ VkResult VulkanReplayConsumerBase::OverrideGetFenceStatus(PFN_vkGetFenceStatus  
     {
         // Replay is usually faster than the original application, so there is a good chance the fence is still not
         // ready. In this case, we make sure the fence is signaled by waiting for it.
-        auto device_table = GetInjectedDeviceCalls(device);
-        auto injected     = device_table.Open();
-        result            = injected->WaitForFences(device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+        // A recapture records the status call below as VK_SUCCESS, so its replay waits by itself; leave this wait out.
+        util::OmitFromRecaptureHelper omit_from_recapture;
+        auto                          device_table = GetInjectedDeviceCalls(device);
+        auto                          injected     = device_table.Open();
+        result = injected->WaitForFences(device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
         GFXRECON_ASSERT(result == VK_SUCCESS);
     }
 
