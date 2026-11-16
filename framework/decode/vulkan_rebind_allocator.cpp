@@ -1161,6 +1161,14 @@ void VulkanRebindAllocator::UpdateAllocInfo(ResourceAllocInfo&     resource_allo
 {
     resource_alloc_info.memory_info_type = memory_info_type;
 
+    // Only the bind that gives an allocation its first resource needs to initialize it from the original content.
+    // While an allocation backs a live resource, WriteMappedMemoryRange mirrors every write to its range into it, so a
+    // resource that binds into an allocation already in use (aliasing, aliasing group, or compatible reuse) finds the
+    // content already there. Copying the whole allocation again for each such bind only rewrites the same bytes, which
+    // a recapture records as FillMemoryCommands for the entire allocation, and it overwrites anything the device wrote
+    // to the other resources sharing the allocation.
+    bool first_reference = false;
+
     switch (memory_info_type)
     {
         case MemoryInfoType::kBasic:
@@ -1171,6 +1179,7 @@ void VulkanRebindAllocator::UpdateAllocInfo(ResourceAllocInfo&     resource_allo
             }
             resource_alloc_info.bound_memory_infos[0] = &vma_mem_info;
             ++vma_mem_info.reference_count;
+            first_reference = (vma_mem_info.reference_count == 1);
             break;
         }
         case MemoryInfoType::kSparse:
@@ -1191,6 +1200,7 @@ void VulkanRebindAllocator::UpdateAllocInfo(ResourceAllocInfo&     resource_allo
             {
                 resource_alloc_info.bound_memory_infos.push_back(&vma_mem_info);
                 ++vma_mem_info.reference_count;
+                first_reference = (vma_mem_info.reference_count == 1);
             }
             break;
         }
@@ -1208,7 +1218,7 @@ void VulkanRebindAllocator::UpdateAllocInfo(ResourceAllocInfo&     resource_allo
 
     memory_alloc_info.original_objects.insert(std::make_pair(object_handle, &resource_alloc_info));
 
-    if (memory_alloc_info.original_content != nullptr)
+    if (first_reference && (memory_alloc_info.original_content != nullptr))
     {
         // Memory has been mapped and written prior to bind.  Copy the original content to the new
         // allocation to ensure it contains the correct data.
