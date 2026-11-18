@@ -322,6 +322,13 @@ class VulkanReplayConsumerBase : public VulkanConsumer
 
     void CheckResult(const char* func_name, VkResult original, VkResult replay, const decode::ApiCallInfo& call_info);
 
+    // Stops replay with a std::runtime_error when the dispatchable handle that an API call is made through has no
+    // replay object, which replay would otherwise dereference. This typically means the capture file is corrupt.
+    [[noreturn]] void RaiseMissingDispatchHandle(const decode::ApiCallInfo& call_info,
+                                                 const char*                func_name,
+                                                 const char*                handle_type,
+                                                 format::HandleId           handle_id) const;
+
     PFN_vkGetInstanceProcAddr GetGetInstanceProcAddr()
     {
         if (loader_handle_ == nullptr)

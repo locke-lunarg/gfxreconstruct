@@ -189,6 +189,29 @@ class VulkanReplayConsumerBodyGenerator(
                 break
         return body
 
+    def make_dispatch_handle_check(self, name, values, is_override):
+        """
+        Method override.
+        Replay dereferences the dispatchable handle that a command is called through, so stop with an error when
+        that handle has no replay object instead of crashing.  This happens when the capture file is corrupt.
+        """
+        if not values:
+            return None
+        value = values[0]
+        if value.is_pointer or value.is_array or not self.is_dispatchable_handle(value.base_type):
+            return None
+
+        # Override functions receive the object info; other functions receive the mapped replay handle.
+        arg_name = 'in_' + value.name
+        missing_value = 'nullptr' if is_override else 'VK_NULL_HANDLE'
+        check = 'if ({} == {}) {{ RaiseMissingDispatchHandle(call_info, "{}", "{}", {}); }}'.format(
+            arg_name, missing_value, name, value.base_type, value.prefixed_name
+        )
+        if value.is_optional:
+            # A null handle is valid here (e.g. vkDestroyDevice), and the command does nothing.
+            check = 'if ({} == format::kNullHandleId) {{ return; }}\n    {}'.format(value.prefixed_name, check)
+        return check
+
     def handle_instance_device_items(self):
         """Method override."""
         device_items = []

@@ -73,6 +73,7 @@
 #include <chrono>
 #include <limits>
 #include <numeric>
+#include <stdexcept>
 #include <thread>
 #include <unordered_set>
 #include <future>
@@ -1713,6 +1714,28 @@ void VulkanReplayConsumerBase::CheckResult(const char*                func_name,
             GFXRECON_LOG_DEBUG("%s.", log_str);
         }
     }
+}
+
+void VulkanReplayConsumerBase::RaiseMissingDispatchHandle(const decode::ApiCallInfo& call_info,
+                                                          const char*                func_name,
+                                                          const char*                handle_type,
+                                                          format::HandleId           handle_id) const
+{
+    constexpr size_t buf_size = 512;
+    char             message[buf_size];
+    snprintf(message,
+             buf_size,
+             "API call at index: %" PRIu64 " thread: %" PRIu64 " %s uses %s with ID %" PRIu64
+             ", which has no replay object. It was not created earlier in the capture file, or its creation failed "
+             "during replay; the capture file may be corrupt",
+             call_info.index,
+             call_info.thread_id,
+             func_name,
+             handle_type,
+             handle_id);
+
+    // The replay tools report the exception as a fatal error and exit.
+    throw std::runtime_error(message);
 }
 
 void VulkanReplayConsumerBase::SetInstancePhysicalDeviceEntries(VulkanInstanceInfo*     instance_info,

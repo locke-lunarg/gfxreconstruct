@@ -21,6 +21,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import re
 from khronos_base_generator import ValueInfo, write
 
 
@@ -53,6 +54,14 @@ class KhronosReplayConsumerBodyGenerator():
     def check_skip_offscreen(self, values, name):
         """Method may be overriden. """
         return ''
+
+    def make_dispatch_handle_check(self, name, values, is_override):
+        """
+        Method may be overriden.
+        Return a statement to place directly after the lookup of the handle that the command is dispatched through,
+        to stop replay before that handle is dereferenced when it has no replay object.  None implies no check.
+        """
+        return None
 
     def check_skip_extended_struct_handling(self, struct, struct_type):
         """Method may be overriden. """
@@ -202,6 +211,15 @@ class KhronosReplayConsumerBodyGenerator():
             api_data, return_type, name, values, is_override
         )
         arglist = ', '.join(args)
+
+        dispatch_handle_check = self.make_dispatch_handle_check(name, values, is_override)
+        if dispatch_handle_check:
+            # Insert the check after the statement that declares the dispatch handle, before anything uses it.
+            declaration = re.compile(r'(^|\s)in_{} = '.format(re.escape(values[0].name)))
+            for index, expr in enumerate(preexpr):
+                if declaration.search(expr):
+                    preexpr.insert(index + 1, dispatch_handle_check)
+                    break
 
         dispatchfunc = ''
         if not self.is_core_type(name):
