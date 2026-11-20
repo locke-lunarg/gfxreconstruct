@@ -1248,9 +1248,30 @@ std::string CommonCaptureManager::CreateTrimDrawCallsFilename(const std::string&
     return util::filepath::InsertFilenamePostfix(base_filename, range_string);
 }
 
+// On Windows the capture opens its files with _wfopen_s, which does not share them, so a second process cannot write into
+// a file another process is capturing to (POSIX relies on the flock below for that). The second process's open fails
+// instead, and with it capture initialization and the application's vkCreateInstance. Such an open is retried once under
+// a _pid<pid> name, the name the POSIX path falls back to as well.
+#if defined(_WIN32)
+static constexpr bool kRetryFailedOpenWithProcessFilename = true;
+#else
+static constexpr bool kRetryFailedOpenWithProcessFilename = false;
+#endif
+
+static void UseProcessUniqueFilename(std::string* filename)
+{
+    const std::string failed_filename = *filename;
+    *filename                         = util::filepath::InsertFilenamePostfix(
+        *filename, "_pid" + std::to_string(util::platform::GetCurrentProcessId()));
+    GFXRECON_LOG_WARNING("Cannot open %s, possibly because another process has it open; using %s instead",
+                         failed_filename.c_str(),
+                         filename->c_str());
+}
+
 std::unique_ptr<util::FileOutputStream> CommonCaptureManager::CreateAssetFile()
 {
-    if (asset_file_name_.empty())
+    const bool new_asset_file = asset_file_name_.empty();
+    if (new_asset_file)
     {
         asset_file_name_ = CreateAssetFilename(base_filename_);
 
@@ -1264,6 +1285,18 @@ std::unique_ptr<util::FileOutputStream> CommonCaptureManager::CreateAssetFile()
 
     std::unique_ptr<util::FileOutputStream> asset_file_stream =
         std::make_unique<CaptureFileOutputStream>(this, asset_file_name_, kFileStreamBufferSize, true);
+
+    // Only a new asset file may switch names; reopening an existing one has to keep appending to the same file.
+    if constexpr (kRetryFailedOpenWithProcessFilename)
+    {
+        if (new_asset_file && !asset_file_stream->IsValid())
+        {
+            UseProcessUniqueFilename(&asset_file_name_);
+            asset_file_stream =
+                std::make_unique<CaptureFileOutputStream>(this, asset_file_name_, kFileStreamBufferSize, true);
+        }
+    }
+
     if (!asset_file_stream->IsValid())
     {
         GFXRECON_LOG_ERROR("Failed opening asset file %s", asset_file_name_.c_str())
@@ -1367,6 +1400,15 @@ bool CommonCaptureManager::CreateCaptureFile(format::ApiFamilyId api_family, con
     capture_lock_fd_ = LockOutputFile(&capture_filename_);
 
     file_stream_ = std::make_unique<CaptureFileOutputStream>(this, capture_filename_, kFileStreamBufferSize);
+
+    if constexpr (kRetryFailedOpenWithProcessFilename)
+    {
+        if (!file_stream_->IsValid())
+        {
+            UseProcessUniqueFilename(&capture_filename_);
+            file_stream_ = std::make_unique<CaptureFileOutputStream>(this, capture_filename_, kFileStreamBufferSize);
+        }
+    }
 
     if (file_stream_->IsValid())
     {
